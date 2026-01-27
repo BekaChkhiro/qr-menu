@@ -1,0 +1,202 @@
+{
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "menus": "Menus",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "help": "Help",
+    "upgrade": "Upgrade"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome, {name}!",
+    "stats": {
+      "totalMenus": "Menus",
+      "totalViews": "Views",
+      "publishedMenus": "Published",
+      "totalProducts": "Products"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "createMenu": "Create Menu",
+      "viewAnalytics": "View Analytics"
+    },
+    "recentMenus": "Recent Menus"
+  },
+  "menus": {
+    "title": "Menus",
+    "create": "Create Menu",
+    "empty": {
+      "title": "No menus yet",
+      "description": "Create your first menu to get started",
+      "action": "Create Menu"
+    },
+    "card": {
+      "categories": "{count} categories",
+      "products": "{count} products",
+      "views": "{count} views",
+      "viewMenu": "View Menu",
+      "editMenu": "Edit",
+      "downloadQR": "Download QR",
+      "manageContent": "Manage Content",
+      "manage": "Manage"
+    },
+    "form": {
+      "name": "Menu Name",
+      "namePlaceholder": "e.g. Main Menu",
+      "slug": "URL Slug",
+      "slugPlaceholder": "e.g. main-menu",
+      "slugHelp": "This will be used in the menu URL: /m/{slug}",
+      "description": "Description",
+      "descriptionPlaceholder": "Short description of the menu",
+      "create": "Create Menu",
+      "update": "Update"
+    },
+    "info": {
+      "title": "Menu Information",
+      "publicUrl": "Public URL",
+      "createdAt": "Created"
+    },
+    "delete": {
+      "title": "Delete Menu",
+      "message": "Are you sure you want to delete this menu? This action cannot be undone.",
+      "confirm": "Yes, delete"
+    }
+  },
+  "categories": {
+    "title": "Categories",
+    "add": "Add Category",
+    "empty": {
+      "title": "No categories",
+      "description": "Add a category to group your products"
+    },
+    "form": {
+      "nameKa": "Name (Georgian)",
+      "nameKaPlaceholder": "e.g. Hot Drinks",
+      "nameEn": "Name (English)",
+      "nameEnPlaceholder": "e.g. Hot Drinks",
+      "nameRu": "Name (Russian)",
+      "nameRuPlaceholder": "e.g. Hot Drinks",
+      "descriptionKa": "Description (Georgian)",
+      "descriptionEn": "Description (English)",
+      "descriptionRu": "Description (Russian)"
+    },
+    "delete": {
+      "title": "Delete Category",
+      "message": "This will also delete all products in this category."
+    }
+  },
+  "products": {
+    "title": "Products",
+    "add": "Add Product",
+    "empty": {
+      "title": "No products",
+      "description": "Add a product to this category"
+    },
+    "form": {
+      "nameKa": "Name (Georgian)",
+      "nameKaPlaceholder": "e.g. კაპუჩინო",
+      "nameKaHelp": "The primary product name in Georgian.",
+      "nameEn": "Name (English)",
+      "nameEnPlaceholder": "e.g. Cappuccino",
+      "nameEnHelp": "Optional English translation.",
+      "nameRu": "Name (Russian)",
+      "nameRuPlaceholder": "e.g. Капучино",
+      "nameRuHelp": "Optional Russian translation.",
+      "descriptionKa": "Description (Georgian)",
+      "descriptionKaPlaceholder": "აღწერეთ პროდუქტი...",
+      "descriptionEn": "Description (English)",
+      "descriptionEnPlaceholder": "Describe the product...",
+      "descriptionRu": "Description (Russian)",
+      "descriptionRuPlaceholder": "Опишите продукт...",
+      "price": "Price (GEL)",
+      "pricePlaceholder": "e.g. 5.50",
+      "priceHelp": "Price in Georgian Lari.",
+      "image": "Product Image",
+      "imageUpload": "Upload Image",
+      "imageChange": "Change Image",
+      "imageHelp": "Upload a product image. Recommended size: 400x400 pixels.",
+      "category": "Category",
+      "selectCategory": "Select a category",
+      "isAvailable": "Available",
+      "isAvailableHelp": "Toggle off to temporarily hide this product from the menu.",
+      "allergens": "Allergens",
+      "allergensHelp": "Select allergens present in this product.",
+      "allergenGluten": "Gluten",
+      "allergenDairy": "Dairy",
+      "allergenEggs": "Eggs",
+      "allergenNuts": "Nuts",
+      "allergenSeafood": "Seafood",
+      "allergenSoy": "Soy",
+      "allergenPork": "Pork"
+    },
+    "variations": {
+      "title": "Variations",
+      "add": "Add Variation",
+      "name": "Name",
+      "namePlaceholder": "e.g. Small",
+      "price": "Price",
+      "empty": "No variations added"
+    },
+    "delete": {
+      "title": "Delete Product",
+      "message": "Are you sure you want to delete this product?"
+    }
+  },
+  "promotions": {
+    "title": "Promotions",
+    "add": "Add Promotion",
+    "empty": {
+      "title": "No promotions",
+      "description": "Create a promotion to attract customers"
+    },
+    "form": {
+      "titleKa": "Title (Georgian)",
+      "titleEn": "Title (English)",
+      "titleRu": "Title (Russian)",
+      "descriptionKa": "Description (Georgian)",
+      "descriptionEn": "Description (English)",
+      "descriptionRu": "Description (Russian)",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "image": "Image"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": {
+      "title": "Profile",
+      "name": "Name",
+      "email": "Email",
+      "save": "Save"
+    },
+    "password": {
+      "title": "Change Password",
+      "current": "Current Password",
+      "new": "New Password",
+      "confirm": "Confirm New Password",
+      "save": "Change Password"
+    },
+    "plan": {
+      "title": "Your Plan",
+      "current": "Current Plan",
+      "free": "Free",
+      "starter": "Starter",
+      "pro": "Pro",
+      "upgrade": "Upgrade"
+    }
+  },
+  "plan": {
+    "limits": {
+      "menus": "Menus: {used}/{limit}",
+      "categories": "Categories: {used}/{limit}",
+      "products": "Products: {used}/{limit}",
+      "unlimited": "Unlimited"
+    },
+    "upgrade": {
+      "title": "Upgrade Plan",
+      "message": "You've reached your limit. Upgrade for more features.",
+      "action": "View Plans"
+    }
+  }
+}

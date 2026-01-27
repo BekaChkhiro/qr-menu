@@ -1,0 +1,47 @@
+{
+  "header": {
+    "poweredBy": "Powered by Digital Menu"
+  },
+  "navigation": {
+    "categories": "Categories",
+    "promotions": "Promotions",
+    "scrollToTop": "Back to top"
+  },
+  "product": {
+    "price": "Price",
+    "from": "from",
+    "variations": "Options",
+    "noDescription": "No description"
+  },
+  "promotion": {
+    "active": "Active promotion",
+    "endsIn": "Ends in: {days} days",
+    "expired": "Expired"
+  },
+  "empty": {
+    "title": "Menu is empty",
+    "description": "No products have been added yet"
+  },
+  "notFound": {
+    "title": "Menu not found",
+    "description": "This menu doesn't exist or hasn't been published"
+  },
+  "loading": {
+    "title": "Loading...",
+    "description": "Please wait"
+  },
+  "footer": {
+    "createdWith": "Created with",
+    "allRightsReserved": "All rights reserved"
+  },
+  "allergens": {
+    "title": "Allergens",
+    "gluten": "Gluten",
+    "dairy": "Dairy",
+    "eggs": "Eggs",
+    "nuts": "Nuts",
+    "seafood": "Seafood",
+    "soy": "Soy",
+    "pork": "Pork"
+  }
+}

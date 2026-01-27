@@ -1,0 +1,47 @@
+{
+  "header": {
+    "poweredBy": "Создано в Digital Menu"
+  },
+  "navigation": {
+    "categories": "Категории",
+    "promotions": "Акции",
+    "scrollToTop": "Наверх"
+  },
+  "product": {
+    "price": "Цена",
+    "from": "от",
+    "variations": "Варианты",
+    "noDescription": "Нет описания"
+  },
+  "promotion": {
+    "active": "Активная акция",
+    "endsIn": "До окончания: {days} дней",
+    "expired": "Истекла"
+  },
+  "empty": {
+    "title": "Меню пустое",
+    "description": "Продукты ещё не добавлены"
+  },
+  "notFound": {
+    "title": "Меню не найдено",
+    "description": "Это меню не существует или не опубликовано"
+  },
+  "loading": {
+    "title": "Загрузка...",
+    "description": "Пожалуйста, подождите"
+  },
+  "footer": {
+    "createdWith": "Создано с помощью",
+    "allRightsReserved": "Все права защищены"
+  },
+  "allergens": {
+    "title": "Аллергены",
+    "gluten": "Глютен",
+    "dairy": "Молочные продукты",
+    "eggs": "Яйца",
+    "nuts": "Орехи",
+    "seafood": "Морепродукты",
+    "soy": "Соя",
+    "pork": "Свинина"
+  }
+}

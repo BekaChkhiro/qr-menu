@@ -1,0 +1,47 @@
+{
+  "header": {
+    "poweredBy": "შექმნილია Digital Menu-ით"
+  },
+  "navigation": {
+    "categories": "კატეგორიები",
+    "promotions": "აქციები",
+    "scrollToTop": "ზევით"
+  },
+  "product": {
+    "price": "ფასი",
+    "from": "-დან",
+    "variations": "არჩევანი",
+    "noDescription": "აღწერა არ არის"
+  },
+  "promotion": {
+    "active": "აქტიური აქცია",
+    "endsIn": "დასრულებამდე: {days} დღე",
+    "expired": "ვადაგასული"
+  },
+  "empty": {
+    "title": "მენიუ ცარიელია",
+    "description": "პროდუქტები ჯერ არ არის დამატებული"
+  },
+  "notFound": {
+    "title": "მენიუ ვერ მოიძებნა",
+    "description": "ეს მენიუ არ არსებობს ან არ არის გამოქვეყნებული"
+  },
+  "loading": {
+    "title": "იტვირთება...",
+    "description": "გთხოვთ მოიცადოთ"
+  },
+  "footer": {
+    "createdWith": "შექმნილია",
+    "allRightsReserved": "ყველა უფლება დაცულია"
+  },
+  "allergens": {
+    "title": "ალერგენები",
+    "gluten": "გლუტენი",
+    "dairy": "რძის პროდუქტები",
+    "eggs": "კვერცხი",
+    "nuts": "თხილეული",
+    "seafood": "ზღვის პროდუქტები",
+    "soy": "სოია",
+    "pork": "ღორის ხორცი"
+  }
+}

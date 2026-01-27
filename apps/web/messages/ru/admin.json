@@ -1,0 +1,202 @@
+{
+  "sidebar": {
+    "dashboard": "Панель",
+    "menus": "Меню",
+    "analytics": "Аналитика",
+    "settings": "Настройки",
+    "help": "Помощь",
+    "upgrade": "Обновить"
+  },
+  "dashboard": {
+    "title": "Панель",
+    "welcome": "Добро пожаловать, {name}!",
+    "stats": {
+      "totalMenus": "Меню",
+      "totalViews": "Просмотры",
+      "publishedMenus": "Опубликовано",
+      "totalProducts": "Продукты"
+    },
+    "quickActions": {
+      "title": "Быстрые действия",
+      "createMenu": "Создать меню",
+      "viewAnalytics": "Аналитика"
+    },
+    "recentMenus": "Недавние меню"
+  },
+  "menus": {
+    "title": "Меню",
+    "create": "Создать меню",
+    "empty": {
+      "title": "Меню пока нет",
+      "description": "Создайте своё первое меню",
+      "action": "Создать меню"
+    },
+    "card": {
+      "categories": "{count} категорий",
+      "products": "{count} продуктов",
+      "views": "{count} просмотров",
+      "viewMenu": "Просмотр меню",
+      "editMenu": "Редактировать",
+      "downloadQR": "Скачать QR",
+      "manageContent": "Управление контентом",
+      "manage": "Управление"
+    },
+    "form": {
+      "name": "Название меню",
+      "namePlaceholder": "напр. Основное меню",
+      "slug": "URL адрес",
+      "slugPlaceholder": "напр. main-menu",
+      "slugHelp": "Будет использован в адресе: /m/{slug}",
+      "description": "Описание",
+      "descriptionPlaceholder": "Краткое описание меню",
+      "create": "Создать меню",
+      "update": "Обновить"
+    },
+    "info": {
+      "title": "Информация о меню",
+      "publicUrl": "Публичный URL",
+      "createdAt": "Создано"
+    },
+    "delete": {
+      "title": "Удалить меню",
+      "message": "Вы уверены, что хотите удалить это меню? Это действие необратимо.",
+      "confirm": "Да, удалить"
+    }
+  },
+  "categories": {
+    "title": "Категории",
+    "add": "Добавить категорию",
+    "empty": {
+      "title": "Нет категорий",
+      "description": "Добавьте категорию для группировки продуктов"
+    },
+    "form": {
+      "nameKa": "Название (грузинский)",
+      "nameKaPlaceholder": "напр. Горячие напитки",
+      "nameEn": "Название (английский)",
+      "nameEnPlaceholder": "напр. Hot Drinks",
+      "nameRu": "Название (русский)",
+      "nameRuPlaceholder": "напр. Горячие напитки",
+      "descriptionKa": "Описание (грузинский)",
+      "descriptionEn": "Описание (английский)",
+      "descriptionRu": "Описание (русский)"
+    },
+    "delete": {
+      "title": "Удалить категорию",
+      "message": "Это также удалит все продукты в этой категории."
+    }
+  },
+  "products": {
+    "title": "Продукты",
+    "add": "Добавить продукт",
+    "empty": {
+      "title": "Нет продуктов",
+      "description": "Добавьте продукт в эту категорию"
+    },
+    "form": {
+      "nameKa": "Название (грузинский)",
+      "nameKaPlaceholder": "напр. კაპუჩინო",
+      "nameKaHelp": "Основное название продукта на грузинском.",
+      "nameEn": "Название (английский)",
+      "nameEnPlaceholder": "напр. Cappuccino",
+      "nameEnHelp": "Необязательный английский перевод.",
+      "nameRu": "Название (русский)",
+      "nameRuPlaceholder": "напр. Капучино",
+      "nameRuHelp": "Необязательный русский перевод.",
+      "descriptionKa": "Описание (грузинский)",
+      "descriptionKaPlaceholder": "აღწერეთ პროდუქტი...",
+      "descriptionEn": "Описание (английский)",
+      "descriptionEnPlaceholder": "Describe the product...",
+      "descriptionRu": "Описание (русский)",
+      "descriptionRuPlaceholder": "Опишите продукт...",
+      "price": "Цена (GEL)",
+      "pricePlaceholder": "напр. 5.50",
+      "priceHelp": "Цена в грузинских лари.",
+      "image": "Изображение продукта",
+      "imageUpload": "Загрузить",
+      "imageChange": "Изменить",
+      "imageHelp": "Загрузите изображение продукта. Рекомендуемый размер: 400x400 пикселей.",
+      "category": "Категория",
+      "selectCategory": "Выберите категорию",
+      "isAvailable": "Доступен",
+      "isAvailableHelp": "Отключите, чтобы временно скрыть продукт из меню.",
+      "allergens": "Аллергены",
+      "allergensHelp": "Выберите аллергены, присутствующие в этом продукте.",
+      "allergenGluten": "Глютен",
+      "allergenDairy": "Молочные продукты",
+      "allergenEggs": "Яйца",
+      "allergenNuts": "Орехи",
+      "allergenSeafood": "Морепродукты",
+      "allergenSoy": "Соя",
+      "allergenPork": "Свинина"
+    },
+    "variations": {
+      "title": "Вариации",
+      "add": "Добавить вариацию",
+      "name": "Название",
+      "namePlaceholder": "напр. Маленький",
+      "price": "Цена",
+      "empty": "Вариации не добавлены"
+    },
+    "delete": {
+      "title": "Удалить продукт",
+      "message": "Вы уверены, что хотите удалить этот продукт?"
+    }
+  },
+  "promotions": {
+    "title": "Акции",
+    "add": "Добавить акцию",
+    "empty": {
+      "title": "Нет акций",
+      "description": "Создайте акцию для привлечения клиентов"
+    },
+    "form": {
+      "titleKa": "Заголовок (грузинский)",
+      "titleEn": "Заголовок (английский)",
+      "titleRu": "Заголовок (русский)",
+      "descriptionKa": "Описание (грузинский)",
+      "descriptionEn": "Описание (английский)",
+      "descriptionRu": "Описание (русский)",
+      "startDate": "Дата начала",
+      "endDate": "Дата окончания",
+      "image": "Изображение"
+    }
+  },
+  "settings": {
+    "title": "Настройки",
+    "profile": {
+      "title": "Профиль",
+      "name": "Имя",
+      "email": "Email",
+      "save": "Сохранить"
+    },
+    "password": {
+      "title": "Изменить пароль",
+      "current": "Текущий пароль",
+      "new": "Новый пароль",
+      "confirm": "Подтвердите новый пароль",
+      "save": "Изменить пароль"
+    },
+    "plan": {
+      "title": "Ваш план",
+      "current": "Текущий план",
+      "free": "Бесплатный",
+      "starter": "Стартер",
+      "pro": "Про",
+      "upgrade": "Обновить"
+    }
+  },
+  "plan": {
+    "limits": {
+      "menus": "Меню: {used}/{limit}",
+      "categories": "Категории: {used}/{limit}",
+      "products": "Продукты: {used}/{limit}",
+      "unlimited": "Безлимитно"
+    },
+    "upgrade": {
+      "title": "Обновить план",
+      "message": "Вы достигли лимита. Обновите план для большего.",
+      "action": "Посмотреть планы"
+    }
+  }
+}

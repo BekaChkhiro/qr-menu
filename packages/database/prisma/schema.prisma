@@ -1,0 +1,332 @@
+// Prisma Schema for Digital Menu SaaS Platform
+// Database: PostgreSQL (Neon)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+}
+
+enum MenuStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum Language {
+  KA  // Georgian
+  EN  // English
+  RU  // Russian
+}
+
+enum Allergen {
+  GLUTEN
+  DAIRY
+  EGGS
+  NUTS
+  SEAFOOD
+  SOY
+  PORK
+}
+
+// ============================================================================
+// USER MODEL
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  password      String?   // Hashed with bcrypt, nullable for OAuth users
+  image         String?
+  plan          Plan      @default(FREE)
+
+  // OAuth fields
+  accounts      Account[]
+  sessions      Session[]
+
+  // Relations
+  menus         Menu[]
+
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([email])
+  @@map("users")
+}
+
+// ============================================================================
+// NEXTAUTH MODELS
+// ============================================================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================================================
+// MENU MODEL
+// ============================================================================
+
+model Menu {
+  id          String     @id @default(cuid())
+  userId      String
+
+  // Menu details
+  name        String
+  slug        String     @unique
+  description String?    @db.Text
+
+  // Status
+  status      MenuStatus @default(DRAFT)
+  publishedAt DateTime?
+
+  // Branding (PRO features)
+  logoUrl     String?
+  primaryColor String?   @default("#000000")
+  accentColor  String?   @default("#f59e0b")
+
+  // Relations
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories  Category[]
+  promotions  Promotion[]
+  views       MenuView[]
+
+  // Timestamps
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([slug])
+  @@index([status])
+  @@map("menus")
+}
+
+// ============================================================================
+// CATEGORY MODEL
+// ============================================================================
+
+model Category {
+  id          String    @id @default(cuid())
+  menuId      String
+
+  // Multi-language names
+  nameKa      String    // Georgian (required)
+  nameEn      String?   // English (optional)
+  nameRu      String?   // Russian (optional)
+
+  // Description
+  descriptionKa String? @db.Text
+  descriptionEn String? @db.Text
+  descriptionRu String? @db.Text
+
+  // Ordering
+  sortOrder   Int       @default(0)
+
+  // Relations
+  menu        Menu      @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  products    Product[]
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([menuId])
+  @@index([menuId, sortOrder])
+  @@map("categories")
+}
+
+// ============================================================================
+// PRODUCT MODEL
+// ============================================================================
+
+model Product {
+  id          String              @id @default(cuid())
+  categoryId  String
+
+  // Multi-language names
+  nameKa      String              // Georgian (required)
+  nameEn      String?             // English (optional)
+  nameRu      String?             // Russian (optional)
+
+  // Multi-language descriptions
+  descriptionKa String?           @db.Text
+  descriptionEn String?           @db.Text
+  descriptionRu String?           @db.Text
+
+  // Pricing
+  price       Decimal             @db.Decimal(10, 2)
+  currency    String              @default("GEL")
+
+  // Image
+  imageUrl    String?
+
+  // Allergens (PRO feature)
+  allergens   Allergen[]
+
+  // Availability
+  isAvailable Boolean             @default(true)
+
+  // Ordering
+  sortOrder   Int                 @default(0)
+
+  // Relations
+  category    Category            @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  variations  ProductVariation[]
+
+  // Timestamps
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([categoryId])
+  @@index([categoryId, sortOrder])
+  @@map("products")
+}
+
+// ============================================================================
+// PRODUCT VARIATION MODEL
+// ============================================================================
+
+model ProductVariation {
+  id          String   @id @default(cuid())
+  productId   String
+
+  // Multi-language names (e.g., "Small", "Medium", "Large")
+  nameKa      String
+  nameEn      String?
+  nameRu      String?
+
+  // Price for this variation
+  price       Decimal  @db.Decimal(10, 2)
+
+  // Ordering
+  sortOrder   Int      @default(0)
+
+  // Relations
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([productId])
+  @@index([productId, sortOrder])
+  @@map("product_variations")
+}
+
+// ============================================================================
+// PROMOTION MODEL
+// ============================================================================
+
+model Promotion {
+  id          String    @id @default(cuid())
+  menuId      String
+
+  // Multi-language content
+  titleKa     String
+  titleEn     String?
+  titleRu     String?
+
+  descriptionKa String? @db.Text
+  descriptionEn String? @db.Text
+  descriptionRu String? @db.Text
+
+  // Image
+  imageUrl    String?
+
+  // Validity period
+  startDate   DateTime
+  endDate     DateTime
+
+  // Visibility
+  isActive    Boolean   @default(true)
+
+  // Relations
+  menu        Menu      @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([menuId])
+  @@index([menuId, isActive])
+  @@index([startDate, endDate])
+  @@map("promotions")
+}
+
+// ============================================================================
+// ANALYTICS MODEL
+// ============================================================================
+
+model MenuView {
+  id          String   @id @default(cuid())
+  menuId      String
+
+  // Tracking data
+  userAgent   String?  @db.Text
+  ipAddress   String?
+  country     String?
+  city        String?
+  device      String?
+  browser     String?
+
+  // Relations
+  menu        Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  viewedAt    DateTime @default(now())
+
+  @@index([menuId])
+  @@index([menuId, viewedAt])
+  @@map("menu_views")
+}

@@ -1,0 +1,89 @@
+{
+  "app": {
+    "name": "Digital Menu",
+    "tagline": "QR Code Menu Management for Cafes and Restaurants"
+  },
+  "nav": {
+    "home": "Home",
+    "pricing": "Pricing",
+    "demo": "Demo",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "dashboard": "Dashboard",
+    "menus": "Menus",
+    "settings": "Settings",
+    "analytics": "Analytics"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "edit": "Edit",
+    "create": "Create",
+    "add": "Add",
+    "remove": "Remove",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close",
+    "submit": "Submit",
+    "loading": "Loading...",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "refresh": "Refresh",
+    "tryAgain": "Try Again",
+    "download": "Download",
+    "upload": "Upload",
+    "preview": "Preview",
+    "publish": "Publish",
+    "unpublish": "Unpublish"
+  },
+  "status": {
+    "draft": "Draft",
+    "published": "Published",
+    "active": "Active",
+    "inactive": "Inactive",
+    "hidden": "Hidden"
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Please enter a valid email",
+    "minLength": "Minimum {min} characters",
+    "maxLength": "Maximum {max} characters",
+    "passwordMismatch": "Passwords do not match"
+  },
+  "errors": {
+    "general": "Something went wrong",
+    "notFound": "Not found",
+    "unauthorized": "Unauthorized access",
+    "forbidden": "Access forbidden",
+    "serverError": "Server error"
+  },
+  "success": {
+    "saved": "Successfully saved",
+    "deleted": "Successfully deleted",
+    "created": "Successfully created",
+    "updated": "Successfully updated"
+  },
+  "confirm": {
+    "delete": "Are you sure you want to delete this?",
+    "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?"
+  },
+  "empty": {
+    "noData": "No data available",
+    "noResults": "No results found"
+  },
+  "language": {
+    "select": "Select language",
+    "ka": "Georgian",
+    "en": "English",
+    "ru": "Russian"
+  },
+  "currency": {
+    "gel": "GEL"
+  }
+}

@@ -1,0 +1,202 @@
+{
+  "sidebar": {
+    "dashboard": "პანელი",
+    "menus": "მენიუები",
+    "analytics": "ანალიტიკა",
+    "settings": "პარამეტრები",
+    "help": "დახმარება",
+    "upgrade": "განახლება"
+  },
+  "dashboard": {
+    "title": "პანელი",
+    "welcome": "მოგესალმებით, {name}!",
+    "stats": {
+      "totalMenus": "მენიუები",
+      "totalViews": "ნახვები",
+      "publishedMenus": "გამოქვეყნებული",
+      "totalProducts": "პროდუქტები"
+    },
+    "quickActions": {
+      "title": "სწრაფი მოქმედებები",
+      "createMenu": "მენიუს შექმნა",
+      "viewAnalytics": "ანალიტიკის ნახვა"
+    },
+    "recentMenus": "ბოლო მენიუები"
+  },
+  "menus": {
+    "title": "მენიუები",
+    "create": "მენიუს შექმნა",
+    "empty": {
+      "title": "მენიუები არ არის",
+      "description": "შექმენით თქვენი პირველი მენიუ",
+      "action": "მენიუს შექმნა"
+    },
+    "card": {
+      "categories": "{count} კატეგორია",
+      "products": "{count} პროდუქტი",
+      "views": "{count} ნახვა",
+      "viewMenu": "მენიუს ნახვა",
+      "editMenu": "რედაქტირება",
+      "downloadQR": "QR-ის ჩამოტვირთვა",
+      "manageContent": "კონტენტის მართვა",
+      "manage": "მართვა"
+    },
+    "form": {
+      "name": "მენიუს სახელი",
+      "namePlaceholder": "მაგ: ძირითადი მენიუ",
+      "slug": "URL მისამართი",
+      "slugPlaceholder": "მაგ: main-menu",
+      "slugHelp": "ეს გამოყენებული იქნება მენიუს მისამართში: /m/{slug}",
+      "description": "აღწერა",
+      "descriptionPlaceholder": "მოკლე აღწერა მენიუს შესახებ",
+      "create": "მენიუს შექმნა",
+      "update": "განახლება"
+    },
+    "info": {
+      "title": "მენიუს ინფორმაცია",
+      "publicUrl": "საჯარო URL",
+      "createdAt": "შექმნილია"
+    },
+    "delete": {
+      "title": "მენიუს წაშლა",
+      "message": "დარწმუნებული ხართ, რომ გსურთ ამ მენიუს წაშლა? ეს მოქმედება შეუქცევადია.",
+      "confirm": "დიახ, წაშალე"
+    }
+  },
+  "categories": {
+    "title": "კატეგორიები",
+    "add": "კატეგორიის დამატება",
+    "empty": {
+      "title": "კატეგორიები არ არის",
+      "description": "დაამატეთ კატეგორია პროდუქტების დასაჯგუფებლად"
+    },
+    "form": {
+      "nameKa": "სახელი (ქართულად)",
+      "nameKaPlaceholder": "მაგ: ცხელი სასმელები",
+      "nameEn": "სახელი (ინგლისურად)",
+      "nameEnPlaceholder": "მაგ: Hot Drinks",
+      "nameRu": "სახელი (რუსულად)",
+      "nameRuPlaceholder": "მაგ: Горячие напитки",
+      "descriptionKa": "აღწერა (ქართულად)",
+      "descriptionEn": "აღწერა (ინგლისურად)",
+      "descriptionRu": "აღწერა (რუსულად)"
+    },
+    "delete": {
+      "title": "კატეგორიის წაშლა",
+      "message": "ეს ასევე წაშლის ყველა პროდუქტს ამ კატეგორიაში."
+    }
+  },
+  "products": {
+    "title": "პროდუქტები",
+    "add": "პროდუქტის დამატება",
+    "empty": {
+      "title": "პროდუქტები არ არის",
+      "description": "დაამატეთ პროდუქტი ამ კატეგორიაში"
+    },
+    "form": {
+      "nameKa": "სახელი (ქართულად)",
+      "nameKaPlaceholder": "მაგ: ამერიკანო",
+      "nameKaHelp": "პროდუქტის ძირითადი სახელი ქართულად.",
+      "nameEn": "სახელი (ინგლისურად)",
+      "nameEnPlaceholder": "მაგ: Americano",
+      "nameEnHelp": "არასავალდებულო ინგლისური თარგმანი.",
+      "nameRu": "სახელი (რუსულად)",
+      "nameRuPlaceholder": "მაგ: Американо",
+      "nameRuHelp": "არასავალდებულო რუსული თარგმანი.",
+      "descriptionKa": "აღწერა (ქართულად)",
+      "descriptionKaPlaceholder": "აღწერეთ პროდუქტი...",
+      "descriptionEn": "აღწერა (ინგლისურად)",
+      "descriptionEnPlaceholder": "Describe the product...",
+      "descriptionRu": "აღწერა (რუსულად)",
+      "descriptionRuPlaceholder": "Опишите продукт...",
+      "price": "ფასი (ლარი)",
+      "pricePlaceholder": "მაგ: 5.50",
+      "priceHelp": "ფასი ქართულ ლარში.",
+      "image": "პროდუქტის სურათი",
+      "imageUpload": "სურათის ატვირთვა",
+      "imageChange": "სურათის შეცვლა",
+      "imageHelp": "ატვირთეთ პროდუქტის სურათი. რეკომენდებული ზომა: 400x400 პიქსელი.",
+      "category": "კატეგორია",
+      "selectCategory": "აირჩიეთ კატეგორია",
+      "isAvailable": "ხელმისაწვდომი",
+      "isAvailableHelp": "გამორთეთ პროდუქტის დროებით დასამალად მენიუდან.",
+      "allergens": "ალერგენები",
+      "allergensHelp": "აირჩიეთ ამ პროდუქტში არსებული ალერგენები.",
+      "allergenGluten": "გლუტენი",
+      "allergenDairy": "რძის პროდუქტები",
+      "allergenEggs": "კვერცხი",
+      "allergenNuts": "თხილეული",
+      "allergenSeafood": "ზღვის პროდუქტები",
+      "allergenSoy": "სოია",
+      "allergenPork": "ღორის ხორცი"
+    },
+    "variations": {
+      "title": "ვარიაციები",
+      "add": "ვარიაციის დამატება",
+      "name": "სახელი",
+      "namePlaceholder": "მაგ: პატარა",
+      "price": "ფასი",
+      "empty": "ვარიაციები არ არის დამატებული"
+    },
+    "delete": {
+      "title": "პროდუქტის წაშლა",
+      "message": "დარწმუნებული ხართ, რომ გსურთ ამ პროდუქტის წაშლა?"
+    }
+  },
+  "promotions": {
+    "title": "აქციები",
+    "add": "აქციის დამატება",
+    "empty": {
+      "title": "აქციები არ არის",
+      "description": "შექმენით აქცია მომხმარებლების მოსაზიდად"
+    },
+    "form": {
+      "titleKa": "სათაური (ქართულად)",
+      "titleEn": "სათაური (ინგლისურად)",
+      "titleRu": "სათაური (რუსულად)",
+      "descriptionKa": "აღწერა (ქართულად)",
+      "descriptionEn": "აღწერა (ინგლისურად)",
+      "descriptionRu": "აღწერა (რუსულად)",
+      "startDate": "დაწყების თარიღი",
+      "endDate": "დასრულების თარიღი",
+      "image": "სურათი"
+    }
+  },
+  "settings": {
+    "title": "პარამეტრები",
+    "profile": {
+      "title": "პროფილი",
+      "name": "სახელი",
+      "email": "ელფოსტა",
+      "save": "შენახვა"
+    },
+    "password": {
+      "title": "პაროლის შეცვლა",
+      "current": "მიმდინარე პაროლი",
+      "new": "ახალი პაროლი",
+      "confirm": "გაიმეორეთ ახალი პაროლი",
+      "save": "პაროლის შეცვლა"
+    },
+    "plan": {
+      "title": "თქვენი გეგმა",
+      "current": "მიმდინარე გეგმა",
+      "free": "უფასო",
+      "starter": "სტარტერი",
+      "pro": "პრო",
+      "upgrade": "განახლება"
+    }
+  },
+  "plan": {
+    "limits": {
+      "menus": "მენიუები: {used}/{limit}",
+      "categories": "კატეგორიები: {used}/{limit}",
+      "products": "პროდუქტები: {used}/{limit}",
+      "unlimited": "შეუზღუდავი"
+    },
+    "upgrade": {
+      "title": "გეგმის განახლება",
+      "message": "მიაღწიეთ ლიმიტს. განაახლეთ გეგმა მეტი ფუნქციებისთვის.",
+      "action": "გეგმების ნახვა"
+    }
+  }
+}
