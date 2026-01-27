@@ -133,10 +133,13 @@
     "variations": {
       "title": "Variations",
       "add": "Add Variation",
-      "name": "Name",
+      "nameKa": "Name (Georgian)",
+      "nameEn": "Name (English)",
+      "nameRu": "Name (Russian)",
       "namePlaceholder": "e.g. Small",
-      "price": "Price",
-      "empty": "No variations added"
+      "price": "Price (GEL)",
+      "empty": "No variations added",
+      "deleteConfirm": "Are you sure you want to delete \"{name}\"?"
     },
     "delete": {
       "title": "Delete Product",
@@ -145,21 +148,37 @@
   },
   "promotions": {
     "title": "Promotions",
+    "singular": "Promotion",
     "add": "Add Promotion",
+    "visible": "Visible",
+    "hidden": "Hidden",
     "empty": {
       "title": "No promotions",
       "description": "Create a promotion to attract customers"
     },
     "form": {
       "titleKa": "Title (Georgian)",
+      "titleKaPlaceholder": "e.g. Summer Sale",
       "titleEn": "Title (English)",
+      "titleEnPlaceholder": "e.g. Summer Sale",
       "titleRu": "Title (Russian)",
+      "titleRuPlaceholder": "e.g. Summer Sale",
       "descriptionKa": "Description (Georgian)",
+      "descriptionKaPlaceholder": "Describe the promotion...",
       "descriptionEn": "Description (English)",
+      "descriptionEnPlaceholder": "Describe the promotion...",
       "descriptionRu": "Description (Russian)",
+      "descriptionRuPlaceholder": "Describe the promotion...",
       "startDate": "Start Date",
       "endDate": "End Date",
-      "image": "Image"
+      "image": "Promotion Image",
+      "imageHint": "Upload a banner image for the promotion. Recommended size: 1200x600 pixels.",
+      "isActive": "Active",
+      "isActiveHint": "When enabled, the promotion will be visible to customers within the date range."
+    },
+    "delete": {
+      "title": "Delete Promotion",
+      "message": "Are you sure you want to delete this promotion? This action cannot be undone."
     }
   },
   "settings": {
@@ -197,6 +216,39 @@
       "title": "Upgrade Plan",
       "message": "You've reached your limit. Upgrade for more features.",
       "action": "View Plans"
+    }
+  },
+  "qr": {
+    "button": "QR Code",
+    "title": "Download QR Code",
+    "description": "Generate and download a QR code for {name}",
+    "publicUrl": "Public URL",
+    "format": "Format",
+    "size": "Size",
+    "downloading": "Downloading..."
+  },
+  "analytics": {
+    "title": "Analytics",
+    "totalViews": "Total Views",
+    "viewsToday": "Views Today",
+    "viewsThisWeek": "This Week",
+    "viewsThisMonth": "This Month",
+    "averageDaily": "Daily Average",
+    "allTime": "All time",
+    "today": "Today",
+    "thisWeek": "This week",
+    "perDay": "Views per day",
+    "viewsOverTime": "Views Over Time",
+    "selectPeriod": "Select a time period",
+    "deviceBreakdown": "Device Breakdown",
+    "deviceDescription": "Views by device type",
+    "browserBreakdown": "Browser Breakdown",
+    "browserDescription": "Top browsers used",
+    "noData": "No data available for this period",
+    "periods": {
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "90d": "Last 90 days"
     }
   }
 }

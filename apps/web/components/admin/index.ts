@@ -8,3 +8,8 @@ export * from './category-dialog';
 export * from './categories-list';
 export * from './product-form';
 export * from './image-upload';
+export * from './variation-form';
+export * from './variation-manager';
+export * from './promotion-form';
+export * from './promotion-dialog';
+export * from './promotions-list';

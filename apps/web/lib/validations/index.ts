@@ -75,3 +75,21 @@ export {
   type UploadResponse,
   type AllowedMimeType,
 } from './upload';
+
+// Analytics validations
+export {
+  trackViewSchema,
+  analyticsQuerySchema,
+  analyticsOverviewSchema,
+  dailyViewSchema,
+  deviceBreakdownSchema,
+  browserBreakdownSchema,
+  menuAnalyticsSchema,
+  type TrackViewInput,
+  type AnalyticsQueryInput,
+  type AnalyticsOverview,
+  type DailyView,
+  type DeviceBreakdown,
+  type BrowserBreakdown,
+  type MenuAnalytics,
+} from './analytics';

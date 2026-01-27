@@ -133,10 +133,13 @@
     "variations": {
       "title": "Вариации",
       "add": "Добавить вариацию",
-      "name": "Название",
+      "nameKa": "Название (грузинский)",
+      "nameEn": "Название (английский)",
+      "nameRu": "Название (русский)",
       "namePlaceholder": "напр. Маленький",
-      "price": "Цена",
-      "empty": "Вариации не добавлены"
+      "price": "Цена (GEL)",
+      "empty": "Вариации не добавлены",
+      "deleteConfirm": "Вы уверены, что хотите удалить \"{name}\"?"
     },
     "delete": {
       "title": "Удалить продукт",
@@ -145,21 +148,37 @@
   },
   "promotions": {
     "title": "Акции",
+    "singular": "Акция",
     "add": "Добавить акцию",
+    "visible": "Видимая",
+    "hidden": "Скрытая",
     "empty": {
       "title": "Нет акций",
       "description": "Создайте акцию для привлечения клиентов"
     },
     "form": {
       "titleKa": "Заголовок (грузинский)",
+      "titleKaPlaceholder": "напр. ზაფხულის ფასდაკლება",
       "titleEn": "Заголовок (английский)",
+      "titleEnPlaceholder": "напр. Summer Sale",
       "titleRu": "Заголовок (русский)",
+      "titleRuPlaceholder": "напр. Летняя распродажа",
       "descriptionKa": "Описание (грузинский)",
+      "descriptionKaPlaceholder": "აღწერეთ აქცია...",
       "descriptionEn": "Описание (английский)",
+      "descriptionEnPlaceholder": "Describe the promotion...",
       "descriptionRu": "Описание (русский)",
+      "descriptionRuPlaceholder": "Опишите акцию...",
       "startDate": "Дата начала",
       "endDate": "Дата окончания",
-      "image": "Изображение"
+      "image": "Изображение акции",
+      "imageHint": "Загрузите баннер для акции. Рекомендуемый размер: 1200x600 пикселей.",
+      "isActive": "Активная",
+      "isActiveHint": "При включении акция будет видна клиентам в указанном диапазоне дат."
+    },
+    "delete": {
+      "title": "Удалить акцию",
+      "message": "Вы уверены, что хотите удалить эту акцию? Это действие необратимо."
     }
   },
   "settings": {
@@ -197,6 +216,39 @@
       "title": "Обновить план",
       "message": "Вы достигли лимита. Обновите план для большего.",
       "action": "Посмотреть планы"
+    }
+  },
+  "qr": {
+    "button": "QR-код",
+    "title": "Скачать QR-код",
+    "description": "Создайте и скачайте QR-код для {name}",
+    "publicUrl": "Публичный URL",
+    "format": "Формат",
+    "size": "Размер",
+    "downloading": "Скачивание..."
+  },
+  "analytics": {
+    "title": "Аналитика",
+    "totalViews": "Всего просмотров",
+    "viewsToday": "Просмотры сегодня",
+    "viewsThisWeek": "На этой неделе",
+    "viewsThisMonth": "В этом месяце",
+    "averageDaily": "Среднее за день",
+    "allTime": "За всё время",
+    "today": "Сегодня",
+    "thisWeek": "На этой неделе",
+    "perDay": "Просмотров в день",
+    "viewsOverTime": "Просмотры во времени",
+    "selectPeriod": "Выберите период",
+    "deviceBreakdown": "По устройствам",
+    "deviceDescription": "Просмотры по типу устройства",
+    "browserBreakdown": "По браузерам",
+    "browserDescription": "Популярные браузеры",
+    "noData": "Нет данных за этот период",
+    "periods": {
+      "7d": "Последние 7 дней",
+      "30d": "Последние 30 дней",
+      "90d": "Последние 90 дней"
     }
   }
 }

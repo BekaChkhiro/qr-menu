@@ -9,11 +9,12 @@ import {
   Eye,
   EyeOff,
   ExternalLink,
-  QrCode,
   FolderPlus,
   BarChart3,
 } from 'lucide-react';
 import { CategoriesList } from '@/components/admin/categories-list';
+import { PromotionsList } from '@/components/admin/promotions-list';
+import { QRCodeDialog } from '@/components/admin/qr-code-dialog';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -119,22 +120,21 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
               {tActions('edit')}
             </Link>
           </Button>
+          <Button variant="outline" asChild>
+            <Link href={`/admin/menus/${id}/analytics`}>
+              <BarChart3 className="mr-2 h-4 w-4" />
+              {t('sidebar.analytics')}
+            </Link>
+          </Button>
           {isPublished && (
-            <>
-              <Button variant="outline" asChild>
-                <Link href={publicUrl} target="_blank">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  View
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href={`/api/qr/${id}`} target="_blank">
-                  <QrCode className="mr-2 h-4 w-4" />
-                  QR Code
-                </Link>
-              </Button>
-            </>
+            <Button variant="outline" asChild>
+              <Link href={publicUrl} target="_blank">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View
+              </Link>
+            </Button>
           )}
+          <QRCodeDialog menuId={id} menuName={menu.name} menuSlug={menu.slug} />
         </div>
       </div>
 
@@ -183,6 +183,19 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
         </CardHeader>
         <CardContent>
           <CategoriesList menuId={id} />
+        </CardContent>
+      </Card>
+
+      {/* Promotions Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('promotions.title')}</CardTitle>
+          <CardDescription>
+            Manage special offers and promotions for this menu
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PromotionsList menuId={id} />
         </CardContent>
       </Card>
 

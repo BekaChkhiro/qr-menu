@@ -133,10 +133,13 @@
     "variations": {
       "title": "ვარიაციები",
       "add": "ვარიაციის დამატება",
-      "name": "სახელი",
+      "nameKa": "სახელი (ქართულად)",
+      "nameEn": "სახელი (ინგლისურად)",
+      "nameRu": "სახელი (რუსულად)",
       "namePlaceholder": "მაგ: პატარა",
-      "price": "ფასი",
-      "empty": "ვარიაციები არ არის დამატებული"
+      "price": "ფასი (ლარი)",
+      "empty": "ვარიაციები არ არის დამატებული",
+      "deleteConfirm": "დარწმუნებული ხართ, რომ გსურთ \"{name}\"-ის წაშლა?"
     },
     "delete": {
       "title": "პროდუქტის წაშლა",
@@ -145,21 +148,37 @@
   },
   "promotions": {
     "title": "აქციები",
+    "singular": "აქცია",
     "add": "აქციის დამატება",
+    "visible": "ხილული",
+    "hidden": "დამალული",
     "empty": {
       "title": "აქციები არ არის",
       "description": "შექმენით აქცია მომხმარებლების მოსაზიდად"
     },
     "form": {
       "titleKa": "სათაური (ქართულად)",
+      "titleKaPlaceholder": "მაგ: ზაფხულის ფასდაკლება",
       "titleEn": "სათაური (ინგლისურად)",
+      "titleEnPlaceholder": "მაგ: Summer Sale",
       "titleRu": "სათაური (რუსულად)",
+      "titleRuPlaceholder": "მაგ: Летняя распродажа",
       "descriptionKa": "აღწერა (ქართულად)",
+      "descriptionKaPlaceholder": "აღწერეთ აქცია...",
       "descriptionEn": "აღწერა (ინგლისურად)",
+      "descriptionEnPlaceholder": "Describe the promotion...",
       "descriptionRu": "აღწერა (რუსულად)",
+      "descriptionRuPlaceholder": "Опишите акцию...",
       "startDate": "დაწყების თარიღი",
       "endDate": "დასრულების თარიღი",
-      "image": "სურათი"
+      "image": "აქციის სურათი",
+      "imageHint": "ატვირთეთ აქციის ბანერი. რეკომენდებული ზომა: 1200x600 პიქსელი.",
+      "isActive": "აქტიური",
+      "isActiveHint": "ჩართვისას, აქცია ხილული იქნება მომხმარებლებისთვის თარიღების დიაპაზონში."
+    },
+    "delete": {
+      "title": "აქციის წაშლა",
+      "message": "დარწმუნებული ხართ, რომ გსურთ ამ აქციის წაშლა? ეს მოქმედება შეუქცევადია."
     }
   },
   "settings": {
@@ -197,6 +216,39 @@
       "title": "გეგმის განახლება",
       "message": "მიაღწიეთ ლიმიტს. განაახლეთ გეგმა მეტი ფუნქციებისთვის.",
       "action": "გეგმების ნახვა"
+    }
+  },
+  "qr": {
+    "button": "QR კოდი",
+    "title": "QR კოდის ჩამოტვირთვა",
+    "description": "{name}-ის QR კოდის გენერირება და ჩამოტვირთვა",
+    "publicUrl": "საჯარო URL",
+    "format": "ფორმატი",
+    "size": "ზომა",
+    "downloading": "ჩამოტვირთვა..."
+  },
+  "analytics": {
+    "title": "ანალიტიკა",
+    "totalViews": "სულ ნახვები",
+    "viewsToday": "დღევანდელი ნახვები",
+    "viewsThisWeek": "ამ კვირას",
+    "viewsThisMonth": "ამ თვეში",
+    "averageDaily": "საშუალო დღიური",
+    "allTime": "სულ",
+    "today": "დღეს",
+    "thisWeek": "ამ კვირას",
+    "perDay": "ნახვა დღეში",
+    "viewsOverTime": "ნახვები დროში",
+    "selectPeriod": "აირჩიეთ პერიოდი",
+    "deviceBreakdown": "მოწყობილობები",
+    "deviceDescription": "ნახვები მოწყობილობის ტიპის მიხედვით",
+    "browserBreakdown": "ბრაუზერები",
+    "browserDescription": "ყველაზე გამოყენებული ბრაუზერები",
+    "noData": "ამ პერიოდისთვის მონაცემები არ არის",
+    "periods": {
+      "7d": "ბოლო 7 დღე",
+      "30d": "ბოლო 30 დღე",
+      "90d": "ბოლო 90 დღე"
     }
   }
 }
