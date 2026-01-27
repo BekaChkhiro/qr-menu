@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db';
 import { loginSchema } from '@/lib/validations/auth';
 import type { Plan } from '@prisma/client';
 import type { Adapter } from 'next-auth/adapters';
+import { authConfig } from './auth.config';
 
 declare module 'next-auth' {
   interface Session {
@@ -22,14 +23,11 @@ declare module 'next-auth' {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma) as Adapter,
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
-  pages: {
-    signIn: '/login',
-    error: '/login',
   },
   providers: [
     Google({
@@ -77,6 +75,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
+    ...authConfig.callbacks,
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;

@@ -1,18 +1,15 @@
-import { auth } from '@/lib/auth/auth';
+import NextAuth from 'next-auth';
 import { NextResponse } from 'next/server';
+import { authConfig } from '@/lib/auth/auth.config';
 import {
-  locales,
   defaultLocale,
   isValidLocale,
   LOCALE_COOKIE_NAME,
   type Locale,
 } from '@/i18n/config';
 
-// Routes that require authentication
-const protectedRoutes = ['/admin'];
-
-// Routes that should redirect authenticated users to dashboard
-const authRoutes = ['/login', '/register', '/forgot-password'];
+// Create auth middleware from lightweight config (no Prisma/bcrypt)
+const { auth } = NextAuth(authConfig);
 
 // Detect preferred locale from Accept-Language header
 function getPreferredLocale(acceptLanguage: string | null): Locale {
@@ -42,28 +39,6 @@ function getPreferredLocale(acceptLanguage: string | null): Locale {
 
 export default auth((req) => {
   const { nextUrl } = req;
-  const isLoggedIn = !!req.auth;
-
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    nextUrl.pathname.startsWith(route)
-  );
-
-  const isAuthRoute = authRoutes.some(
-    (route) =>
-      nextUrl.pathname === route || nextUrl.pathname.startsWith(route + '/')
-  );
-
-  // Redirect unauthenticated users trying to access protected routes
-  if (isProtectedRoute && !isLoggedIn) {
-    const redirectUrl = new URL('/login', nextUrl.origin);
-    redirectUrl.searchParams.set('callbackUrl', nextUrl.pathname);
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  // Redirect authenticated users away from auth pages to dashboard
-  if (isAuthRoute && isLoggedIn) {
-    return NextResponse.redirect(new URL('/admin/dashboard', nextUrl.origin));
-  }
 
   // Handle locale cookie for first-time visitors
   const response = NextResponse.next();
