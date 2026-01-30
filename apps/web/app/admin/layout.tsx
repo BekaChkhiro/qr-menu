@@ -19,7 +19,7 @@ export default async function AdminLayout({
         userName={session.user?.name}
         userPlan={session.user?.plan || 'FREE'}
       />
-      <main className="flex-1 overflow-auto p-6">{children}</main>
+      <main id="main-content" className="flex-1 overflow-auto p-6" tabIndex={-1}>{children}</main>
     </div>
   );
 }

@@ -85,5 +85,23 @@
   },
   "currency": {
     "gel": "₾"
+  },
+  "accessibility": {
+    "skipToContent": "გადასვლა მთავარ კონტენტზე",
+    "mainNavigation": "მთავარი ნავიგაცია",
+    "menuActions": "მენიუს მოქმედებები",
+    "dragHandle": "გადაათრიეთ გადასალაგებლად",
+    "expandCategory": "კატეგორიის გაშლა",
+    "collapseCategory": "კატეგორიის შეკუმშვა",
+    "editItem": "{item}-ის რედაქტირება",
+    "deleteItem": "{item}-ის წაშლა",
+    "currentPage": "მიმდინარე გვერდი",
+    "loading": "კონტენტი იტვირთება",
+    "itemReordered": "{item} გადავიდა {position} პოზიციაზე",
+    "itemCreated": "{item} წარმატებით შეიქმნა",
+    "itemUpdated": "{item} წარმატებით განახლდა",
+    "itemDeleted": "{item} წარმატებით წაიშალა",
+    "openMenu": "მენიუს გახსნა",
+    "closeMenu": "მენიუს დახურვა"
   }
 }

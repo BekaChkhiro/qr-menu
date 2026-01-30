@@ -36,6 +36,7 @@ export function Sidebar({ userName, userPlan = 'FREE' }: SidebarProps) {
   const t = useTranslations('admin.sidebar');
   const tNav = useTranslations('nav');
   const tPlan = useTranslations('admin.settings.plan');
+  const tA11y = useTranslations('common.accessibility');
 
   return (
     <aside
@@ -43,6 +44,7 @@ export function Sidebar({ userName, userPlan = 'FREE' }: SidebarProps) {
         'flex flex-col border-r bg-card transition-all duration-300',
         collapsed ? 'w-16' : 'w-64'
       )}
+      aria-label={tA11y('mainNavigation')}
     >
       {/* Header */}
       <div className="flex h-16 items-center justify-between border-b px-4">
@@ -57,17 +59,19 @@ export function Sidebar({ userName, userPlan = 'FREE' }: SidebarProps) {
           size="icon"
           onClick={() => setCollapsed(!collapsed)}
           className={cn('h-8 w-8', collapsed && 'mx-auto')}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? tA11y('openMenu') : tA11y('closeMenu')}
         >
           {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
           ) : (
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           )}
         </Button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-2">
+      <nav className="flex-1 space-y-1 p-2" role="navigation">
         {navigation.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -77,16 +81,18 @@ export function Sidebar({ userName, userPlan = 'FREE' }: SidebarProps) {
               key={item.name}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-ring',
                 isActive
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                 collapsed && 'justify-center px-2'
               )}
               title={collapsed ? label : undefined}
+              aria-current={isActive ? 'page' : undefined}
             >
-              <item.icon className="h-5 w-5 shrink-0" />
+              <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
               {!collapsed && <span>{label}</span>}
+              {collapsed && <span className="sr-only">{label}</span>}
             </Link>
           );
         })}
@@ -114,14 +120,16 @@ export function Sidebar({ userName, userPlan = 'FREE' }: SidebarProps) {
         <Button
           variant="ghost"
           className={cn(
-            'w-full justify-start gap-3 text-muted-foreground hover:text-destructive',
+            'w-full justify-start gap-3 text-muted-foreground hover:text-destructive focus-ring',
             collapsed && 'justify-center px-2'
           )}
           onClick={() => signOut({ callbackUrl: '/login' })}
           title={collapsed ? tNav('logout') : undefined}
+          aria-label={tNav('logout')}
         >
-          <LogOut className="h-5 w-5 shrink-0" />
+          <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />
           {!collapsed && <span>{tNav('logout')}</span>}
+          {collapsed && <span className="sr-only">{tNav('logout')}</span>}
         </Button>
       </div>
     </aside>

@@ -110,15 +110,18 @@ export function ProductCard({ product, locale }: ProductCardProps) {
     </span>
   );
 
+  const allergenLabel = locale === 'ka' ? 'ალერგენები' : locale === 'ru' ? 'Аллергены' : 'Allergens';
+  const variationsLabel = locale === 'ka' ? 'ვარიაციები' : locale === 'ru' ? 'Варианты' : 'Variations';
+
   return (
     <Card className="overflow-hidden transition-all duration-200 hover:shadow-md hover:border-primary/20 touch-feedback">
       <CardContent className="p-0">
-        <div className="flex gap-4 p-4">
+        <article className="flex gap-4 p-4" aria-label={name}>
           {/* Product Image */}
           {product.imageUrl && !imageError && (
             <div className="relative h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
               {!imageLoaded && (
-                <Skeleton className="absolute inset-0 rounded-lg" />
+                <Skeleton className="absolute inset-0 rounded-lg" aria-hidden="true" />
               )}
               <Image
                 src={product.imageUrl}
@@ -139,7 +142,9 @@ export function ProductCard({ product, locale }: ProductCardProps) {
           <div className="flex-1 min-w-0">
             <div className="flex justify-between items-start gap-3">
               <h3 className="font-semibold leading-tight text-base">{name}</h3>
-              <div className="flex-shrink-0 text-right">{priceDisplay}</div>
+              <div className="flex-shrink-0 text-right" aria-label={`Price: ${hasVariations ? formatPrice(product.variations[0].price, product.currency) : formatPrice(product.price, product.currency)}`}>
+                {priceDisplay}
+              </div>
             </div>
 
             {description && (
@@ -150,12 +155,13 @@ export function ProductCard({ product, locale }: ProductCardProps) {
 
             {/* Variations */}
             {hasVariations && (
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
+              <div className="mt-2.5 flex flex-wrap gap-1.5" role="list" aria-label={variationsLabel}>
                 {product.variations.map((variation) => (
                   <Badge
                     key={variation.id}
                     variant="secondary"
                     className="text-xs font-medium px-2 py-0.5"
+                    role="listitem"
                   >
                     {getVariationName(variation, locale)} -{' '}
                     {formatPrice(variation.price, product.currency)}
@@ -166,12 +172,13 @@ export function ProductCard({ product, locale }: ProductCardProps) {
 
             {/* Allergens */}
             {hasAllergens && (
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
+              <div className="mt-2.5 flex flex-wrap gap-1.5" role="list" aria-label={allergenLabel}>
                 {product.allergens.map((allergen) => (
                   <Badge
                     key={allergen}
                     variant="outline"
                     className="text-xs text-orange-600 border-orange-200 bg-orange-50 dark:text-orange-400 dark:border-orange-800 dark:bg-orange-950"
+                    role="listitem"
                   >
                     {getAllergenLabel(allergen, locale)}
                   </Badge>
@@ -179,7 +186,7 @@ export function ProductCard({ product, locale }: ProductCardProps) {
               </div>
             )}
           </div>
-        </div>
+        </article>
       </CardContent>
     </Card>
   );

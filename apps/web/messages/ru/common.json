@@ -85,5 +85,23 @@
   },
   "currency": {
     "gel": "лари"
+  },
+  "accessibility": {
+    "skipToContent": "Перейти к основному содержимому",
+    "mainNavigation": "Главная навигация",
+    "menuActions": "Действия с меню",
+    "dragHandle": "Перетащите для сортировки",
+    "expandCategory": "Развернуть категорию",
+    "collapseCategory": "Свернуть категорию",
+    "editItem": "Редактировать {item}",
+    "deleteItem": "Удалить {item}",
+    "currentPage": "Текущая страница",
+    "loading": "Загрузка контента",
+    "itemReordered": "{item} перемещён на позицию {position}",
+    "itemCreated": "{item} успешно создан",
+    "itemUpdated": "{item} успешно обновлён",
+    "itemDeleted": "{item} успешно удалён",
+    "openMenu": "Открыть меню",
+    "closeMenu": "Закрыть меню"
   }
 }

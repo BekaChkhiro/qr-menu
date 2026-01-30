@@ -69,6 +69,8 @@ export function CategorySection({ category, locale, index = 0 }: CategorySection
   const description = getCategoryDescription(category, locale);
   const productCount = category.products.length;
 
+  const productCountLabel = locale === 'ka' ? 'პროდუქტი' : locale === 'ru' ? 'продукт' : 'products';
+
   return (
     <section
       id={`category-${category.id}`}
@@ -78,12 +80,14 @@ export function CategorySection({ category, locale, index = 0 }: CategorySection
         index > 0 && 'pt-2'
       )}
       style={{ animationDelay: `${index * 100}ms` }}
+      aria-labelledby={`category-heading-${category.id}`}
+      role="tabpanel"
     >
       {/* Category Header */}
       <div className="mb-4 pb-3 border-b border-border/50">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-xl font-bold tracking-tight">{name}</h2>
-          <span className="text-xs text-muted-foreground font-medium px-2 py-0.5 bg-muted rounded-full">
+          <h2 id={`category-heading-${category.id}`} className="text-xl font-bold tracking-tight">{name}</h2>
+          <span className="text-xs text-muted-foreground font-medium px-2 py-0.5 bg-muted rounded-full" aria-label={`${productCount} ${productCountLabel}`}>
             {productCount}
           </span>
         </div>
@@ -95,12 +99,13 @@ export function CategorySection({ category, locale, index = 0 }: CategorySection
       </div>
 
       {/* Products */}
-      <div className="space-y-3">
+      <div className="space-y-3" role="list" aria-label={name}>
         {category.products.map((product, productIndex) => (
           <div
             key={product.id}
             className="animate-fade-in"
             style={{ animationDelay: `${(index * 100) + (productIndex * 50)}ms` }}
+            role="listitem"
           >
             <ProductCard product={product} locale={locale} />
           </div>

@@ -85,5 +85,23 @@
   },
   "currency": {
     "gel": "GEL"
+  },
+  "accessibility": {
+    "skipToContent": "Skip to main content",
+    "mainNavigation": "Main navigation",
+    "menuActions": "Menu actions",
+    "dragHandle": "Drag to reorder",
+    "expandCategory": "Expand category",
+    "collapseCategory": "Collapse category",
+    "editItem": "Edit {item}",
+    "deleteItem": "Delete {item}",
+    "currentPage": "Current page",
+    "loading": "Loading content",
+    "itemReordered": "{item} moved to position {position}",
+    "itemCreated": "{item} created successfully",
+    "itemUpdated": "{item} updated successfully",
+    "itemDeleted": "{item} deleted successfully",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
   }
 }

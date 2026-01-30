@@ -205,29 +205,30 @@ export function ProductsList({
           onClick={handleAddProduct}
           size="sm"
           variant={canAddProduct ? 'outline' : 'secondary'}
+          className="focus-ring"
         >
           {canAddProduct ? (
-            <Plus className="mr-1 h-3 w-3" />
+            <Plus className="mr-1 h-3 w-3" aria-hidden="true" />
           ) : (
-            <Lock className="mr-1 h-3 w-3" />
+            <Lock className="mr-1 h-3 w-3" aria-hidden="true" />
           )}
           {t('add')}
         </Button>
       </div>
 
       {!products || products.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-6 text-center">
-          <Package className="mx-auto h-8 w-8 text-muted-foreground" />
+        <div className="rounded-lg border border-dashed p-6 text-center" role="region" aria-label={t('empty.title')}>
+          <Package className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />
           <p className="mt-2 text-sm text-muted-foreground">
             {t('empty.description')}
           </p>
           <Button
             onClick={handleAddProduct}
-            className="mt-3"
+            className="mt-3 focus-ring"
             size="sm"
             variant="outline"
           >
-            <Plus className="mr-1 h-3 w-3" />
+            <Plus className="mr-1 h-3 w-3" aria-hidden="true" />
             {tActions('create')}
           </Button>
         </div>
@@ -241,7 +242,7 @@ export function ProductsList({
             items={products.map((p) => p.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-2">
+            <div className="space-y-2" role="list" aria-label={t('title')}>
               {products.map((product) => (
                 <SortableProductItem
                   key={product.id}
@@ -325,6 +326,8 @@ interface SortableProductItemProps {
 function SortableProductItem({ product, onEdit, onDelete }: SortableProductItemProps) {
   const tStatus = useTranslations('status');
   const tVariations = useTranslations('admin.products.variations');
+  const tA11y = useTranslations('common.accessibility');
+  const tActions = useTranslations('actions');
 
   const {
     attributes,
@@ -360,10 +363,10 @@ function SortableProductItem({ product, onEdit, onDelete }: SortableProductItemP
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab touch-none rounded p-1 hover:bg-muted active:cursor-grabbing"
-          aria-label="Drag to reorder"
+          className="cursor-grab touch-none rounded p-1 hover:bg-muted active:cursor-grabbing focus-ring"
+          aria-label={tA11y('dragHandle')}
         >
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
+          <GripVertical className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
         </button>
 
         {/* Product Image */}
@@ -389,7 +392,7 @@ function SortableProductItem({ product, onEdit, onDelete }: SortableProductItemP
             <p className="font-medium text-sm truncate">{product.nameKa}</p>
             {!product.isAvailable && (
               <Badge variant="secondary" className="text-xs">
-                <EyeOff className="mr-1 h-3 w-3" />
+                <EyeOff className="mr-1 h-3 w-3" aria-hidden="true" />
                 {tStatus('hidden')}
               </Badge>
             )}
@@ -411,20 +414,20 @@ function SortableProductItem({ product, onEdit, onDelete }: SortableProductItemP
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-8 w-8 focus-ring"
             onClick={onEdit}
-            aria-label="Edit product"
+            aria-label={`${tActions('edit')} ${product.nameKa}`}
           >
-            <Pencil className="h-3.5 w-3.5" />
+            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-destructive hover:text-destructive"
+            className="h-8 w-8 text-destructive hover:text-destructive focus-ring"
             onClick={onDelete}
-            aria-label="Delete product"
+            aria-label={`${tActions('delete')} ${product.nameKa}`}
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
           </Button>
         </div>
       </CardContent>

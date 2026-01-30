@@ -102,26 +102,33 @@ export function CategoryNav({ categories, locale }: CategoryNavProps) {
     <nav
       ref={navRef}
       className="sticky top-[73px] z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b"
+      aria-label="Menu categories"
     >
       <div className="max-w-2xl mx-auto px-4 py-2">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              data-category-id={category.id}
-              onClick={() => scrollToCategory(category.id)}
-              className={cn(
-                'px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap flex-shrink-0',
-                'transition-all duration-200 touch-feedback',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
-                activeCategory === category.id
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {getCategoryName(category, locale)}
-            </button>
-          ))}
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1" role="tablist">
+          {categories.map((category) => {
+            const isActive = activeCategory === category.id;
+            return (
+              <button
+                key={category.id}
+                role="tab"
+                data-category-id={category.id}
+                onClick={() => scrollToCategory(category.id)}
+                aria-selected={isActive}
+                aria-controls={`category-${category.id}`}
+                className={cn(
+                  'px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap flex-shrink-0',
+                  'transition-all duration-200 touch-feedback',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+                  isActive
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {getCategoryName(category, locale)}
+              </button>
+            );
+          })}
         </div>
       </div>
     </nav>

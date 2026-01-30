@@ -259,7 +259,7 @@ export default async function PublicMenuPage({ params }: PageProps) {
       )}
 
       {/* Menu Content */}
-      <main className="px-4 pb-8">
+      <main id="main-content" className="px-4 pb-8" tabIndex={-1}>
         <div className="max-w-2xl mx-auto">
           {hasCategories ? (
             <div className="space-y-8">
@@ -273,7 +273,7 @@ export default async function PublicMenuPage({ params }: PageProps) {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12">
+            <div className="text-center py-12" role="status" aria-label={locale === 'ka' ? 'მენიუ ცარიელია' : locale === 'ru' ? 'Меню пусто' : 'Menu is empty'}>
               <p className="text-muted-foreground">
                 {locale === 'ka'
                   ? 'მენიუ ცარიელია'

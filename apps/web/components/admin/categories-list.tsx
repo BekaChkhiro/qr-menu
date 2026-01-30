@@ -207,25 +207,26 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
           onClick={handleAddCategory}
           size="sm"
           variant={canAddCategory ? 'default' : 'secondary'}
+          className="focus-ring"
         >
           {canAddCategory ? (
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
           ) : (
-            <Lock className="mr-2 h-4 w-4" />
+            <Lock className="mr-2 h-4 w-4" aria-hidden="true" />
           )}
           {t('add')}
         </Button>
       </div>
 
       {!categories || categories.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-8 text-center">
-          <FolderOpen className="mx-auto h-10 w-10 text-muted-foreground" />
+        <div className="rounded-lg border border-dashed p-8 text-center" role="region" aria-label={t('empty.title')}>
+          <FolderOpen className="mx-auto h-10 w-10 text-muted-foreground" aria-hidden="true" />
           <h4 className="mt-3 text-base font-semibold">{t('empty.title')}</h4>
           <p className="mt-1 text-sm text-muted-foreground">
             {t('empty.description')}
           </p>
-          <Button onClick={handleAddCategory} className="mt-4" size="sm">
-            <Plus className="mr-2 h-4 w-4" />
+          <Button onClick={handleAddCategory} className="mt-4 focus-ring" size="sm">
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             {tActions('create')}
           </Button>
         </div>
@@ -239,7 +240,7 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
             items={categories.map((c) => c.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-3">
+            <div className="space-y-3" role="list" aria-label={t('title')}>
               {categories.map((category) => (
                 <SortableCategoryItem
                   key={category.id}
@@ -339,6 +340,8 @@ function SortableCategoryItem({
   totalMenuProducts = 0,
 }: SortableCategoryItemProps) {
   const tProducts = useTranslations('admin.products');
+  const tA11y = useTranslations('common.accessibility');
+  const tActions = useTranslations('actions');
 
   const {
     attributes,
@@ -369,21 +372,22 @@ function SortableCategoryItem({
             <button
               {...attributes}
               {...listeners}
-              className="cursor-grab touch-none rounded p-1 hover:bg-muted active:cursor-grabbing"
-              aria-label="Drag to reorder"
+              className="cursor-grab touch-none rounded p-1 hover:bg-muted active:cursor-grabbing focus-ring"
+              aria-label={tA11y('dragHandle')}
             >
-              <GripVertical className="h-5 w-5 text-muted-foreground" />
+              <GripVertical className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
             </button>
 
             <CollapsibleTrigger asChild>
               <button
-                className="flex items-center gap-1 rounded p-1 hover:bg-muted"
-                aria-label={isExpanded ? 'Collapse products' : 'Expand products'}
+                className="flex items-center gap-1 rounded p-1 hover:bg-muted focus-ring"
+                aria-label={isExpanded ? tA11y('collapseCategory') : tA11y('expandCategory')}
+                aria-expanded={isExpanded}
               >
                 {isExpanded ? (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 ) : (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 )}
               </button>
             </CollapsibleTrigger>
@@ -413,18 +417,19 @@ function SortableCategoryItem({
                 variant="ghost"
                 size="icon"
                 onClick={onEdit}
-                aria-label="Edit category"
+                aria-label={`${tActions('edit')} ${category.nameKa}`}
+                className="focus-ring"
               >
-                <Pencil className="h-4 w-4" />
+                <Pencil className="h-4 w-4" aria-hidden="true" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={onDelete}
-                aria-label="Delete category"
-                className="text-destructive hover:text-destructive"
+                aria-label={`${tActions('delete')} ${category.nameKa}`}
+                className="text-destructive hover:text-destructive focus-ring"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
           </div>

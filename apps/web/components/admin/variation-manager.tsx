@@ -66,6 +66,8 @@ function SortableVariationItem({
     transition,
     isDragging,
   } = useSortable({ id: variation.id });
+  const tA11y = useTranslations('common.accessibility');
+  const tActions = useTranslations('actions');
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -78,14 +80,16 @@ function SortableVariationItem({
       ref={setNodeRef}
       style={style}
       className="flex items-center gap-3 p-3 bg-background border rounded-lg group"
+      role="listitem"
     >
       <button
         type="button"
-        className="cursor-grab touch-none text-muted-foreground hover:text-foreground"
+        className="cursor-grab touch-none text-muted-foreground hover:text-foreground focus-ring rounded"
+        aria-label={tA11y('dragHandle')}
         {...attributes}
         {...listeners}
       >
-        <GripVertical className="h-4 w-4" />
+        <GripVertical className="h-4 w-4" aria-hidden="true" />
       </button>
       <div className="flex-1 min-w-0">
         <div className="font-medium truncate">{variation.nameKa}</div>
@@ -98,22 +102,26 @@ function SortableVariationItem({
       <div className="font-medium text-sm">
         {Number(variation.price).toFixed(2)} GEL
       </div>
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
         <Button
           type="button"
           variant="ghost"
           size="icon"
           onClick={() => onEdit(variation)}
+          aria-label={`${tActions('edit')} ${variation.nameKa}`}
+          className="focus-ring"
         >
-          <Pencil className="h-4 w-4" />
+          <Pencil className="h-4 w-4" aria-hidden="true" />
         </Button>
         <Button
           type="button"
           variant="ghost"
           size="icon"
           onClick={() => onDelete(variation)}
+          aria-label={`${tActions('delete')} ${variation.nameKa}`}
+          className="focus-ring"
         >
-          <Trash2 className="h-4 w-4 text-destructive" />
+          <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
         </Button>
       </div>
     </div>
@@ -199,10 +207,12 @@ export function VariationManager({ menuId, productId }: VariationManagerProps) {
     setDeletingVariation(null);
   };
 
+  const tA11y = useTranslations('common.accessibility');
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center py-8" role="status" aria-label={tA11y('loading')}>
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
       </div>
     );
   }
@@ -216,8 +226,9 @@ export function VariationManager({ menuId, productId }: VariationManagerProps) {
           variant="outline"
           size="sm"
           onClick={() => setIsAddDialogOpen(true)}
+          className="focus-ring"
         >
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
           {t('add')}
         </Button>
       </div>
@@ -244,7 +255,7 @@ export function VariationManager({ menuId, productId }: VariationManagerProps) {
             items={variations.map((v) => v.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-2">
+            <div className="space-y-2" role="list" aria-label={t('title')}>
               {variations.map((variation) => (
                 <SortableVariationItem
                   key={variation.id}
@@ -311,7 +322,7 @@ export function VariationManager({ menuId, productId }: VariationManagerProps) {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
               )}
               {tActions('delete')}
             </AlertDialogAction>

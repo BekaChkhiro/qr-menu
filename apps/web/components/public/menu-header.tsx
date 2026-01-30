@@ -18,19 +18,21 @@ export function MenuHeader({ name, description, logoUrl, locale }: MenuHeaderPro
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
+  const languageLabel = locale === 'ka' ? 'ენის არჩევა' : locale === 'ru' ? 'Выбор языка' : 'Select language';
+
   return (
-    <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b shadow-sm">
+    <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b shadow-sm" role="banner">
       <div className="max-w-2xl mx-auto px-4 py-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             {logoUrl && !imageError && (
               <div className="relative h-12 w-12 flex-shrink-0 rounded-full overflow-hidden border-2 border-border/50 bg-muted shadow-sm">
                 {!imageLoaded && (
-                  <Skeleton className="absolute inset-0 rounded-full" />
+                  <Skeleton className="absolute inset-0 rounded-full" aria-hidden="true" />
                 )}
                 <Image
                   src={logoUrl}
-                  alt={name}
+                  alt={`${name} logo`}
                   fill
                   className={cn(
                     'object-cover transition-opacity duration-300',
@@ -52,7 +54,9 @@ export function MenuHeader({ name, description, logoUrl, locale }: MenuHeaderPro
               )}
             </div>
           </div>
-          <LanguageSwitcher currentLocale={locale} variant="compact" />
+          <div aria-label={languageLabel}>
+            <LanguageSwitcher currentLocale={locale} variant="compact" />
+          </div>
         </div>
       </div>
     </header>
