@@ -9,6 +9,7 @@ import {
 } from '@/lib/api';
 import { reorderVariationsSchema } from '@/lib/validations';
 import { invalidateMenuCache } from '@/lib/cache/redis';
+import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 
 interface RouteParams {
   params: Promise<{ id: string; pid: string }>;
@@ -39,7 +40,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!menu) {
-      return createErrorResponse(ERROR_CODES.MENU_NOT_FOUND, 'Menu not found', 404);
+      return createErrorResponse(
+        ERROR_CODES.MENU_NOT_FOUND,
+        'Menu not found',
+        404
+      );
     }
 
     if (menu.userId !== session.user.id) {
@@ -59,32 +64,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!product) {
-      return createErrorResponse(ERROR_CODES.PRODUCT_NOT_FOUND, 'Product not found', 404);
+      return createErrorResponse(
+        ERROR_CODES.PRODUCT_NOT_FOUND,
+        'Product not found',
+        404
+      );
     }
 
     // Validate request body
     const body = await request.json();
     const { variations } = reorderVariationsSchema.parse(body);
 
-    // Verify all variations belong to this product
-    const variationIds = variations.map((v) => v.id);
-    const existingVariations = await prisma.productVariation.findMany({
-      where: {
-        id: { in: variationIds },
-        productId,
-      },
-      select: { id: true },
-    });
-
-    if (existingVariations.length !== variationIds.length) {
-      return createErrorResponse(
-        ERROR_CODES.VALIDATION_ERROR,
-        'One or more variations do not belong to this product',
-        400
-      );
-    }
-
-    // Update all variations in a transaction
+    // Update sort orders in a transaction
     await prisma.$transaction(
       variations.map(({ id, sortOrder }) =>
         prisma.productVariation.update({
@@ -102,6 +93,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Invalidate cache
     await invalidateMenuCache(menuId, menu.slug);
+
+    // Broadcast real-time update
+    await triggerMenuEvent(menuId, EVENTS.PRODUCT_UPDATED, { id: productId });
 
     return createSuccessResponse(updatedVariations);
   } catch (error) {

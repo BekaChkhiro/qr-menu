@@ -27,7 +27,9 @@ import {
   FolderOpen,
   ChevronDown,
   ChevronRight,
+  Lock,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +51,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { CategoryDialog } from './category-dialog';
 import { ProductsList } from './products-list';
+import { UpgradePrompt } from './upgrade-prompt';
+import { PlanLimitIndicator } from './plan-limit-indicator';
 import {
   useCategories,
   useCreateCategory,
@@ -56,15 +60,17 @@ import {
   useDeleteCategory,
   useReorderCategories,
 } from '@/hooks/use-categories';
+import { useUserPlan } from '@/hooks/use-user-plan';
 import type { Category } from '@/types/menu';
 import type { CreateCategoryInput } from '@/lib/validations/category';
 
 interface CategoriesListProps {
   menuId: string;
   showAllergens?: boolean;
+  totalMenuProducts?: number;
 }
 
-export function CategoriesList({ menuId, showAllergens = false }: CategoriesListProps) {
+export function CategoriesList({ menuId, showAllergens = false, totalMenuProducts = 0 }: CategoriesListProps) {
   const t = useTranslations('admin.categories');
   const tProducts = useTranslations('admin.products');
   const tActions = useTranslations('actions');
@@ -73,12 +79,18 @@ export function CategoriesList({ menuId, showAllergens = false }: CategoriesList
   const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   const { data: categories, isLoading, error } = useCategories(menuId);
   const createCategory = useCreateCategory(menuId);
   const updateCategory = useUpdateCategory(menuId, categoryToEdit?.id || '');
   const deleteCategory = useDeleteCategory(menuId);
   const reorderCategories = useReorderCategories(menuId);
+
+  const { plan, canCreate, getLimit } = useUserPlan();
+  const categoryCount = categories?.length ?? 0;
+  const categoryLimit = getLimit('category');
+  const canAddCategory = canCreate('category', categoryCount);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -119,20 +131,35 @@ export function CategoriesList({ menuId, showAllergens = false }: CategoriesList
   };
 
   const handleCreate = async (data: CreateCategoryInput) => {
-    await createCategory.mutateAsync(data);
-    setIsCreateOpen(false);
+    try {
+      await createCategory.mutateAsync(data);
+      setIsCreateOpen(false);
+      toast.success(t('toast.created'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('toast.createError'));
+    }
   };
 
   const handleUpdate = async (data: CreateCategoryInput) => {
     if (!categoryToEdit) return;
-    await updateCategory.mutateAsync(data);
-    setCategoryToEdit(null);
+    try {
+      await updateCategory.mutateAsync(data);
+      setCategoryToEdit(null);
+      toast.success(t('toast.updated'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('toast.updateError'));
+    }
   };
 
   const handleDelete = async () => {
     if (!categoryToDelete) return;
-    await deleteCategory.mutateAsync(categoryToDelete.id);
-    setCategoryToDelete(null);
+    try {
+      await deleteCategory.mutateAsync(categoryToDelete.id);
+      setCategoryToDelete(null);
+      toast.success(t('toast.deleted'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('toast.deleteError'));
+    }
   };
 
   if (isLoading) {
@@ -154,12 +181,38 @@ export function CategoriesList({ menuId, showAllergens = false }: CategoriesList
     );
   }
 
+  const handleAddCategory = () => {
+    if (!canAddCategory) {
+      setShowUpgradePrompt(true);
+      return;
+    }
+    setIsCreateOpen(true);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">{t('title')}</h3>
-        <Button onClick={() => setIsCreateOpen(true)} size="sm">
-          <Plus className="mr-2 h-4 w-4" />
+        <div className="flex items-center gap-3">
+          <h3 className="text-lg font-semibold">{t('title')}</h3>
+          {categoryLimit !== Infinity && (
+            <PlanLimitIndicator
+              current={categoryCount}
+              limit={categoryLimit}
+              resource="category"
+              showProgress={false}
+            />
+          )}
+        </div>
+        <Button
+          onClick={handleAddCategory}
+          size="sm"
+          variant={canAddCategory ? 'default' : 'secondary'}
+        >
+          {canAddCategory ? (
+            <Plus className="mr-2 h-4 w-4" />
+          ) : (
+            <Lock className="mr-2 h-4 w-4" />
+          )}
           {t('add')}
         </Button>
       </div>
@@ -171,7 +224,7 @@ export function CategoriesList({ menuId, showAllergens = false }: CategoriesList
           <p className="mt-1 text-sm text-muted-foreground">
             {t('empty.description')}
           </p>
-          <Button onClick={() => setIsCreateOpen(true)} className="mt-4" size="sm">
+          <Button onClick={handleAddCategory} className="mt-4" size="sm">
             <Plus className="mr-2 h-4 w-4" />
             {tActions('create')}
           </Button>
@@ -198,6 +251,7 @@ export function CategoriesList({ menuId, showAllergens = false }: CategoriesList
                   onEdit={() => setCategoryToEdit(category)}
                   onDelete={() => setCategoryToDelete(category)}
                   showAllergens={showAllergens}
+                  totalMenuProducts={totalMenuProducts}
                 />
               ))}
             </div>
@@ -248,6 +302,15 @@ export function CategoriesList({ menuId, showAllergens = false }: CategoriesList
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Upgrade Prompt */}
+      <UpgradePrompt
+        open={showUpgradePrompt}
+        onOpenChange={setShowUpgradePrompt}
+        currentPlan={plan}
+        reason="category_limit"
+        currentCount={categoryCount}
+      />
     </div>
   );
 }
@@ -261,6 +324,7 @@ interface SortableCategoryItemProps {
   onEdit: () => void;
   onDelete: () => void;
   showAllergens?: boolean;
+  totalMenuProducts?: number;
 }
 
 function SortableCategoryItem({
@@ -272,6 +336,7 @@ function SortableCategoryItem({
   onEdit,
   onDelete,
   showAllergens = false,
+  totalMenuProducts = 0,
 }: SortableCategoryItemProps) {
   const tProducts = useTranslations('admin.products');
 
@@ -372,6 +437,7 @@ function SortableCategoryItem({
                 categoryId={category.id}
                 categories={categories}
                 showAllergens={showAllergens}
+                totalMenuProducts={totalMenuProducts}
               />
             </div>
           </CollapsibleContent>

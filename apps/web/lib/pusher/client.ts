@@ -32,6 +32,9 @@ export function subscribeToMenu(
   menuId: string,
   callbacks: {
     onMenuUpdated?: (data: unknown) => void;
+    onMenuPublished?: (data: unknown) => void;
+    onMenuUnpublished?: (data: unknown) => void;
+    onMenuDeleted?: (data: unknown) => void;
     onCategoryCreated?: (data: unknown) => void;
     onCategoryUpdated?: (data: unknown) => void;
     onCategoryDeleted?: (data: unknown) => void;
@@ -54,6 +57,15 @@ export function subscribeToMenu(
   // Bind event handlers
   if (callbacks.onMenuUpdated) {
     channel.bind('menu:updated', callbacks.onMenuUpdated);
+  }
+  if (callbacks.onMenuPublished) {
+    channel.bind('menu:published', callbacks.onMenuPublished);
+  }
+  if (callbacks.onMenuUnpublished) {
+    channel.bind('menu:unpublished', callbacks.onMenuUnpublished);
+  }
+  if (callbacks.onMenuDeleted) {
+    channel.bind('menu:deleted', callbacks.onMenuDeleted);
   }
   if (callbacks.onCategoryCreated) {
     channel.bind('category:created', callbacks.onCategoryCreated);

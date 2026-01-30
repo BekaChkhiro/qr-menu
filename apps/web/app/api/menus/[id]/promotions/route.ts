@@ -10,6 +10,7 @@ import {
 import { createPromotionSchema, promotionQuerySchema } from '@/lib/validations';
 import { hasFeature } from '@/lib/auth/permissions';
 import { invalidateMenuCache } from '@/lib/cache/redis';
+import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -171,6 +172,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Invalidate cache
     await invalidateMenuCache(menuId, menu.slug);
+
+    // Broadcast real-time update
+    await triggerMenuEvent(menuId, EVENTS.PROMOTION_CREATED, promotion);
 
     return createSuccessResponse(promotion, 201);
   } catch (error) {

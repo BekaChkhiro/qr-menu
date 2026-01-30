@@ -9,6 +9,7 @@ import {
 } from '@/lib/api';
 import { publishMenuSchema } from '@/lib/validations';
 import { invalidateMenuCache, cacheSet, CACHE_KEYS, CACHE_TTL } from '@/lib/cache/redis';
+import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -121,6 +122,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       // Invalidate cache when unpublishing
       await invalidateMenuCache(id, menu.slug);
     }
+
+    // Broadcast real-time update
+    await triggerMenuEvent(
+      id,
+      publish ? EVENTS.MENU_PUBLISHED : EVENTS.MENU_UNPUBLISHED,
+      menu
+    );
 
     return createSuccessResponse(menu);
   } catch (error) {

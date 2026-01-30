@@ -10,6 +10,7 @@ import {
 import { updateProductSchema } from '@/lib/validations';
 import { hasFeature } from '@/lib/auth/permissions';
 import { invalidateMenuCache } from '@/lib/cache/redis';
+import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 
 interface RouteParams {
   params: Promise<{ id: string; pid: string }>;
@@ -212,6 +213,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Invalidate cache
     await invalidateMenuCache(menuId, menu.slug);
 
+    // Broadcast real-time update
+    await triggerMenuEvent(menuId, EVENTS.PRODUCT_UPDATED, product);
+
     return createSuccessResponse(product);
   } catch (error) {
     return handleApiError(error);
@@ -281,6 +285,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // Invalidate cache
     await invalidateMenuCache(menuId, menu.slug);
+
+    // Broadcast real-time update
+    await triggerMenuEvent(menuId, EVENTS.PRODUCT_DELETED, { id: productId });
 
     return createSuccessResponse({ deleted: true });
   } catch (error) {

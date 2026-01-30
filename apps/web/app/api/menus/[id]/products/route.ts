@@ -11,6 +11,7 @@ import {
 import { createProductSchema, productQuerySchema } from '@/lib/validations';
 import { canCreateProduct, hasFeature } from '@/lib/auth/permissions';
 import { invalidateMenuCache } from '@/lib/cache/redis';
+import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -243,6 +244,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Invalidate cache
     await invalidateMenuCache(menuId, menu.slug);
+
+    // Broadcast real-time update
+    await triggerMenuEvent(menuId, EVENTS.PRODUCT_CREATED, product);
 
     return createSuccessResponse(product, 201);
   } catch (error) {

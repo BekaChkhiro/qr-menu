@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { QueryProvider } from '@/lib/query/query-provider';
 import { GoogleAnalytics } from '@/components/analytics/google-analytics';
+import { Toaster } from '@/components/ui/sonner';
 import { getLocaleFromCookie, LOCALE_COOKIE_NAME, defaultLocale } from '@/i18n/config';
 import './globals.css';
 
@@ -33,6 +34,7 @@ export default async function RootLayout({
       <body className={inter.className}>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <QueryProvider>{children}</QueryProvider>
+          <Toaster />
         </NextIntlClientProvider>
         <GoogleAnalytics />
       </body>

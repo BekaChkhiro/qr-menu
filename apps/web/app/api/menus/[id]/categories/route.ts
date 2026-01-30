@@ -10,6 +10,7 @@ import {
 import { createCategorySchema } from '@/lib/validations';
 import { canCreateCategory } from '@/lib/auth/permissions';
 import { invalidateMenuCache } from '@/lib/cache/redis';
+import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -163,6 +164,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Invalidate cache
     await invalidateMenuCache(menuId, menu.slug);
+
+    // Broadcast real-time update
+    await triggerMenuEvent(menuId, EVENTS.CATEGORY_CREATED, category);
 
     return createSuccessResponse(category, 201);
   } catch (error) {

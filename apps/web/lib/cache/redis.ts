@@ -32,6 +32,7 @@ export const CACHE_KEYS = {
   menuProducts: (menuId: string) => `menu:products:${menuId}`,
   userMenus: (userId: string) => `user:menus:${userId}`,
   analytics: (menuId: string, date: string) => `analytics:${menuId}:${date}`,
+  viewDebounce: (menuId: string, fingerprint: string) => `view:debounce:${menuId}:${fingerprint}`,
 } as const;
 
 /**

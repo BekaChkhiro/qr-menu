@@ -9,6 +9,7 @@ import {
 } from '@/lib/api';
 import { reorderCategoriesSchema } from '@/lib/validations';
 import { invalidateMenuCache } from '@/lib/cache/redis';
+import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -102,6 +103,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Invalidate cache
     await invalidateMenuCache(menuId, menu.slug);
+
+    // Broadcast real-time update
+    await triggerMenuEvent(menuId, EVENTS.CATEGORY_REORDERED, updatedCategories);
 
     return createSuccessResponse(updatedCategories);
   } catch (error) {

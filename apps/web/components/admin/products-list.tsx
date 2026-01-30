@@ -28,7 +28,9 @@ import {
   Package,
   EyeOff,
   ImageIcon,
+  Lock,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +46,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ProductDialog } from './product-dialog';
+import { UpgradePrompt } from './upgrade-prompt';
 import { type ProductFormValues } from './product-form';
 import {
   useProductsByCategory,
@@ -52,6 +55,7 @@ import {
   useDeleteProduct,
   useReorderProducts,
 } from '@/hooks/use-products';
+import { useUserPlan } from '@/hooks/use-user-plan';
 import type { Product, Category } from '@/types/menu';
 
 interface ProductsListProps {
@@ -59,6 +63,7 @@ interface ProductsListProps {
   categoryId: string;
   categories: Category[];
   showAllergens?: boolean;
+  totalMenuProducts?: number;
 }
 
 export function ProductsList({
@@ -66,6 +71,7 @@ export function ProductsList({
   categoryId,
   categories,
   showAllergens = false,
+  totalMenuProducts = 0,
 }: ProductsListProps) {
   const t = useTranslations('admin.products');
   const tActions = useTranslations('actions');
@@ -73,12 +79,16 @@ export function ProductsList({
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   const { data: products, isLoading, error } = useProductsByCategory(menuId, categoryId);
   const createProduct = useCreateProduct(menuId);
   const updateProduct = useUpdateProduct(menuId, productToEdit?.id || '');
   const deleteProduct = useDeleteProduct(menuId);
   const reorderProducts = useReorderProducts(menuId, categoryId);
+
+  const { plan, canCreate } = useUserPlan();
+  const canAddProduct = canCreate('product', totalMenuProducts);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -121,8 +131,13 @@ export function ProductsList({
       allergens: (data.allergens || []) as ('GLUTEN' | 'DAIRY' | 'EGGS' | 'NUTS' | 'SEAFOOD' | 'SOY' | 'PORK')[],
       isAvailable: data.isAvailable,
     };
-    await createProduct.mutateAsync(productData);
-    setIsCreateOpen(false);
+    try {
+      await createProduct.mutateAsync(productData);
+      setIsCreateOpen(false);
+      toast.success(t('toast.created'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('toast.createError'));
+    }
   };
 
   const handleUpdate = async (data: ProductFormValues) => {
@@ -140,14 +155,24 @@ export function ProductsList({
       allergens: (data.allergens || []) as ('GLUTEN' | 'DAIRY' | 'EGGS' | 'NUTS' | 'SEAFOOD' | 'SOY' | 'PORK')[],
       isAvailable: data.isAvailable,
     };
-    await updateProduct.mutateAsync(productData);
-    setProductToEdit(null);
+    try {
+      await updateProduct.mutateAsync(productData);
+      setProductToEdit(null);
+      toast.success(t('toast.updated'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('toast.updateError'));
+    }
   };
 
   const handleDelete = async () => {
     if (!productToDelete) return;
-    await deleteProduct.mutateAsync(productToDelete.id);
-    setProductToDelete(null);
+    try {
+      await deleteProduct.mutateAsync(productToDelete.id);
+      setProductToDelete(null);
+      toast.success(t('toast.deleted'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('toast.deleteError'));
+    }
   };
 
   if (isLoading) {
@@ -162,14 +187,30 @@ export function ProductsList({
     );
   }
 
+  const handleAddProduct = () => {
+    if (!canAddProduct) {
+      setShowUpgradePrompt(true);
+      return;
+    }
+    setIsCreateOpen(true);
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">
           {products?.length || 0} {t('title').toLowerCase()}
         </span>
-        <Button onClick={() => setIsCreateOpen(true)} size="sm" variant="outline">
-          <Plus className="mr-1 h-3 w-3" />
+        <Button
+          onClick={handleAddProduct}
+          size="sm"
+          variant={canAddProduct ? 'outline' : 'secondary'}
+        >
+          {canAddProduct ? (
+            <Plus className="mr-1 h-3 w-3" />
+          ) : (
+            <Lock className="mr-1 h-3 w-3" />
+          )}
           {t('add')}
         </Button>
       </div>
@@ -181,7 +222,7 @@ export function ProductsList({
             {t('empty.description')}
           </p>
           <Button
-            onClick={() => setIsCreateOpen(true)}
+            onClick={handleAddProduct}
             className="mt-3"
             size="sm"
             variant="outline"
@@ -262,6 +303,15 @@ export function ProductsList({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Upgrade Prompt */}
+      <UpgradePrompt
+        open={showUpgradePrompt}
+        onOpenChange={setShowUpgradePrompt}
+        currentPlan={plan}
+        reason="product_limit"
+        currentCount={totalMenuProducts}
+      />
     </div>
   );
 }

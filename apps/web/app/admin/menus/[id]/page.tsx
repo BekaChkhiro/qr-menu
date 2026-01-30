@@ -27,6 +27,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { useMenu, usePublishMenu } from '@/hooks/use-menus';
+import { useMenuRealtime } from '@/hooks/use-menu-realtime';
+import { useUserPlan } from '@/hooks/use-user-plan';
 
 interface MenuDetailPageProps {
   params: Promise<{ id: string }>;
@@ -39,6 +41,16 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
   const t = useTranslations('admin');
   const tStatus = useTranslations('status');
   const tActions = useTranslations('actions');
+  const { hasFeature } = useUserPlan();
+
+  // Subscribe to real-time updates for this menu
+  useMenuRealtime(id);
+
+  // Calculate total products across all categories
+  const totalMenuProducts = menu?.categories.reduce(
+    (acc, cat) => acc + (cat._count?.products ?? cat.products?.length ?? 0),
+    0
+  ) ?? 0;
 
   const handleTogglePublish = async () => {
     if (!menu) return;
@@ -182,7 +194,11 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
           <CardTitle>{t('categories.title')} & {t('products.title')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <CategoriesList menuId={id} />
+          <CategoriesList
+            menuId={id}
+            showAllergens={hasFeature('allergens')}
+            totalMenuProducts={totalMenuProducts}
+          />
         </CardContent>
       </Card>
 

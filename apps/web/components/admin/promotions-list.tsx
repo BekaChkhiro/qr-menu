@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { format, isPast, isFuture, isWithinInterval } from 'date-fns';
 import { ka, enUS, ru } from 'date-fns/locale';
@@ -13,7 +14,10 @@ import {
   Calendar,
   Eye,
   EyeOff,
+  Lock,
+  Sparkles,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -36,6 +40,7 @@ import {
   useUpdatePromotion,
   useDeletePromotion,
 } from '@/hooks/use-promotions';
+import { useUserPlan } from '@/hooks/use-user-plan';
 import type { Promotion } from '@/types/menu';
 import type { CreatePromotionInput } from '@/lib/validations/promotion';
 
@@ -99,6 +104,8 @@ function getStatusBadge(status: PromotionStatus) {
 export function PromotionsList({ menuId }: PromotionsListProps) {
   const t = useTranslations('admin.promotions');
   const tActions = useTranslations('actions');
+  const tFeatures = useTranslations('admin.features');
+  const tUpgrade = useTranslations('admin.upgrade');
   const locale = useLocale();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -108,6 +115,9 @@ export function PromotionsList({ menuId }: PromotionsListProps) {
   const [promotionToDelete, setPromotionToDelete] = useState<Promotion | null>(
     null
   );
+
+  const { hasFeature } = useUserPlan();
+  const canUsePromotions = hasFeature('promotions');
 
   const {
     data: promotions,
@@ -122,20 +132,35 @@ export function PromotionsList({ menuId }: PromotionsListProps) {
   const deletePromotion = useDeletePromotion(menuId);
 
   const handleCreate = async (data: CreatePromotionInput) => {
-    await createPromotion.mutateAsync(data);
-    setIsCreateOpen(false);
+    try {
+      await createPromotion.mutateAsync(data);
+      setIsCreateOpen(false);
+      toast.success(t('toast.created'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('toast.createError'));
+    }
   };
 
   const handleUpdate = async (data: CreatePromotionInput) => {
     if (!promotionToEdit) return;
-    await updatePromotion.mutateAsync(data);
-    setPromotionToEdit(null);
+    try {
+      await updatePromotion.mutateAsync(data);
+      setPromotionToEdit(null);
+      toast.success(t('toast.updated'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('toast.updateError'));
+    }
   };
 
   const handleDelete = async () => {
     if (!promotionToDelete) return;
-    await deletePromotion.mutateAsync(promotionToDelete.id);
-    setPromotionToDelete(null);
+    try {
+      await deletePromotion.mutateAsync(promotionToDelete.id);
+      setPromotionToDelete(null);
+      toast.success(t('toast.deleted'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('toast.deleteError'));
+    }
   };
 
   const formatDate = (date: string) => {
@@ -158,6 +183,30 @@ export function PromotionsList({ menuId }: PromotionsListProps) {
           onClick={() => window.location.reload()}
         >
           {tActions('tryAgain')}
+        </Button>
+      </div>
+    );
+  }
+
+  // Show upgrade prompt for FREE users
+  if (!canUsePromotions) {
+    return (
+      <div className="rounded-lg border border-dashed p-8 text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+          <Lock className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <h4 className="text-base font-semibold">{tUpgrade('reasons.promotions.title')}</h4>
+        <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
+          {tUpgrade('reasons.promotions.description')}
+        </p>
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <Badge variant="secondary">{tFeatures('requiresStarter')}</Badge>
+        </div>
+        <Button asChild className="mt-4">
+          <Link href="/admin/settings">
+            <Sparkles className="mr-2 h-4 w-4" />
+            {tUpgrade('upgradeNow')}
+          </Link>
         </Button>
       </div>
     );

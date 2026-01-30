@@ -9,6 +9,7 @@ import {
 } from '@/lib/api';
 import { updatePromotionSchema } from '@/lib/validations';
 import { invalidateMenuCache } from '@/lib/cache/redis';
+import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 
 interface RouteParams {
   params: Promise<{ id: string; pid: string }>;
@@ -158,6 +159,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Invalidate cache
     await invalidateMenuCache(menuId, menu.slug);
 
+    // Broadcast real-time update
+    await triggerMenuEvent(menuId, EVENTS.PROMOTION_UPDATED, promotion);
+
     return createSuccessResponse(promotion);
   } catch (error) {
     return handleApiError(error);
@@ -227,6 +231,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // Invalidate cache
     await invalidateMenuCache(menuId, menu.slug);
+
+    // Broadcast real-time update
+    await triggerMenuEvent(menuId, EVENTS.PROMOTION_DELETED, { id: promotionId });
 
     return createSuccessResponse({ deleted: true });
   } catch (error) {

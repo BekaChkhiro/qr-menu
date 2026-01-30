@@ -7,6 +7,20 @@ import {
   ERROR_CODES,
 } from '@/lib/api';
 import { headers } from 'next/headers';
+import { cacheGet, cacheSet, cacheDelete, CACHE_KEYS } from '@/lib/cache/redis';
+
+// Debounce window in seconds (15 minutes)
+const VIEW_DEBOUNCE_SECONDS = 15 * 60;
+
+// Generate a unique key for debouncing based on menu + IP + user agent hash
+function getViewDebounceKey(menuId: string, ipAddress?: string, userAgent?: string): string {
+  // Create a simple hash from user agent to keep key short
+  const uaHash = userAgent
+    ? Buffer.from(userAgent).toString('base64').slice(0, 16)
+    : 'unknown';
+  const ip = ipAddress || 'unknown';
+  return `view:debounce:${menuId}:${ip}:${uaHash}`;
+}
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -51,6 +65,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const realIp = headersList.get('x-real-ip');
     const ipAddress = forwardedFor?.split(',')[0]?.trim() || realIp || undefined;
 
+    // Check for debounce - prevent duplicate views from same user within time window
+    const debounceKey = getViewDebounceKey(id, ipAddress, userAgent);
+    const recentView = await cacheGet<boolean>(debounceKey);
+
+    if (recentView) {
+      // Already tracked a view from this user recently
+      return createSuccessResponse({ tracked: false, reason: 'debounced' }, 200);
+    }
+
     // Parse user agent for device and browser info
     let device: string | undefined;
     let browser: string | undefined;
@@ -94,6 +117,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         browser,
       },
     });
+
+    // Set debounce flag to prevent duplicate views
+    await cacheSet(debounceKey, true, VIEW_DEBOUNCE_SECONDS);
+
+    // Invalidate analytics cache for this menu (so dashboard shows updated counts)
+    const today = new Date().toISOString().split('T')[0];
+    await cacheDelete(CACHE_KEYS.analytics(id, today));
 
     return createSuccessResponse({ tracked: true, viewId: view.id }, 201);
   } catch (error) {
