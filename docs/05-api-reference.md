@@ -348,7 +348,7 @@ POST /api/menus/:menuId/categories
 ### Update Category
 
 ```http
-PUT /api/categories/:id
+PUT /api/menus/:menuId/categories/:categoryId
 ```
 
 **Auth:** Required (must own menu)
@@ -367,7 +367,7 @@ PUT /api/categories/:id
 ### Delete Category
 
 ```http
-DELETE /api/categories/:id
+DELETE /api/menus/:menuId/categories/:categoryId
 ```
 
 **Auth:** Required (must own menu)
@@ -379,7 +379,7 @@ DELETE /api/categories/:id
 ### Reorder Categories
 
 ```http
-POST /api/categories/reorder
+POST /api/menus/:menuId/categories/reorder
 ```
 
 **Auth:** Required (must own menu)
@@ -387,7 +387,6 @@ POST /api/categories/reorder
 **Body:**
 ```json
 {
-  "menuId": "cm1abc123",
   "order": ["cat3", "cat1", "cat2"]
 }
 ```
@@ -529,7 +528,7 @@ DELETE /api/products/:id
 ### Reorder Products
 
 ```http
-POST /api/products/reorder
+POST /api/menus/:menuId/products/reorder
 ```
 
 **Auth:** Required (must own menu)
@@ -539,6 +538,128 @@ POST /api/products/reorder
 {
   "categoryId": "cat1",
   "order": ["prod3", "prod1", "prod2"]
+}
+```
+
+---
+
+## Product Variations
+
+### List Variations
+
+```http
+GET /api/menus/:menuId/products/:productId/variations
+```
+
+**Auth:** Required (must own menu)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "var1",
+      "productId": "prod1",
+      "nameKa": "პატარა",
+      "nameEn": "Small",
+      "nameRu": "Маленький",
+      "price": "2.50",
+      "sortOrder": 0
+    },
+    {
+      "id": "var2",
+      "productId": "prod1",
+      "nameKa": "დიდი",
+      "nameEn": "Large",
+      "nameRu": "Большой",
+      "price": "4.00",
+      "sortOrder": 1
+    }
+  ]
+}
+```
+
+---
+
+### Create Variation
+
+```http
+POST /api/menus/:menuId/products/:productId/variations
+```
+
+**Auth:** Required (must own menu)
+
+**Body:**
+```json
+{
+  "nameKa": "საშუალო",
+  "nameEn": "Medium",
+  "nameRu": "Средний",
+  "price": 3.50
+}
+```
+
+**Validation:**
+- `nameKa`: required, 2-50 characters
+- `price`: required, positive decimal
+- `nameEn`, `nameRu`: optional, max 50 characters
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "var3",
+    "nameKa": "საშუალო",
+    "price": "3.50",
+    "sortOrder": 2
+  }
+}
+```
+
+---
+
+### Update Variation
+
+```http
+PUT /api/menus/:menuId/products/:productId/variations/:variationId
+```
+
+**Auth:** Required (must own menu)
+
+**Body:**
+```json
+{
+  "nameKa": "საშუალო ზომა",
+  "price": 3.75
+}
+```
+
+---
+
+### Delete Variation
+
+```http
+DELETE /api/menus/:menuId/products/:productId/variations/:variationId
+```
+
+**Auth:** Required (must own menu)
+
+---
+
+### Reorder Variations
+
+```http
+POST /api/menus/:menuId/products/:productId/variations/reorder
+```
+
+**Auth:** Required (must own menu)
+
+**Body:**
+```json
+{
+  "order": ["var2", "var3", "var1"]
 }
 ```
 
@@ -820,11 +941,138 @@ curl -X POST http://localhost:3000/api/menus \
 
 ---
 
+## Health Check
+
+### Check System Health
+
+```http
+GET /api/health
+```
+
+**Auth:** Not required
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-01-30T10:00:00Z",
+  "services": {
+    "database": "ok",
+    "redis": "ok"
+  }
+}
+```
+
+**Error Response (503):**
+```json
+{
+  "status": "unhealthy",
+  "error": "Database connection failed"
+}
+```
+
+---
+
+## Menu Views
+
+### Track Menu View
+
+```http
+POST /api/menus/:menuId/views
+```
+
+**Auth:** Not required (public endpoint)
+
+**Body:**
+```json
+{
+  "language": "KA"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "viewed": true
+  }
+}
+```
+
+**Note:** Views are debounced to prevent duplicate tracking from the same session.
+
+---
+
+## Public Menu
+
+### Get Public Menu
+
+```http
+GET /api/menus/public/:slug
+```
+
+**Auth:** Not required
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "cm1abc123",
+    "name": "Main Menu",
+    "slug": "main-menu",
+    "description": "Our main menu",
+    "categories": [
+      {
+        "id": "cat1",
+        "nameKa": "ცხელი სასმელები",
+        "nameEn": "Hot Drinks",
+        "sortOrder": 0,
+        "products": [
+          {
+            "id": "prod1",
+            "nameKa": "ესპრესო",
+            "nameEn": "Espresso",
+            "price": "3.50",
+            "image": "https://...",
+            "variations": []
+          }
+        ]
+      }
+    ],
+    "promotions": [
+      {
+        "id": "promo1",
+        "title": "Happy Hour",
+        "description": "30% off drinks",
+        "validFrom": "2026-01-30T17:00:00Z",
+        "validTo": "2026-01-30T20:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+**Errors:**
+- `404 NOT_FOUND` - Menu not found or not published
+
+**Note:** Response is cached in Redis for 5 minutes.
+
+---
+
 ## API Changelog
 
-### v1.0.0 (MVP - Week 10)
+### v1.0.0 (MVP - 2026-01-30)
 - Initial release
 - All core endpoints
+- Menu, Category, Product CRUD
+- Product Variations
+- Promotions
+- QR Code Generation
+- Analytics
+- Public Menu with caching
+- Health check endpoint
 
 ### Future
 - v1.1.0: Rate limiting
@@ -833,4 +1081,4 @@ curl -X POST http://localhost:3000/api/menus \
 
 ---
 
-**ბოლო განახლება:** 2026-01-26
+**ბოლო განახლება:** 2026-01-30
