@@ -140,6 +140,27 @@
     animation: pulse-urgent 2s ease-in-out infinite;
   }
 
+  /* Shimmer effect for skeleton loaders */
+  @keyframes shimmer {
+    0% {
+      background-position: -400px 0;
+    }
+    100% {
+      background-position: 400px 0;
+    }
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted-foreground) / 0.08) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 400px 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+  }
+
   /* Touch feedback for mobile */
   .touch-feedback {
     -webkit-tap-highlight-color: transparent;
@@ -164,7 +185,8 @@
 
   .animate-fade-in,
   .animate-slide-in-left,
-  .animate-pulse-urgent {
+  .animate-pulse-urgent,
+  .animate-shimmer {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;

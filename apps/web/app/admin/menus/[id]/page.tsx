@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import {
@@ -51,6 +51,16 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
 
   // Subscribe to real-time updates for this menu
   useMenuRealtime(id);
+
+  // Track menu data changes to refresh phone preview
+  const [previewVersion, setPreviewVersion] = useState(0);
+  const prevMenuRef = useRef(menu);
+  useEffect(() => {
+    if (menu && prevMenuRef.current && menu !== prevMenuRef.current) {
+      setPreviewVersion((v) => v + 1);
+    }
+    prevMenuRef.current = menu;
+  }, [menu]);
 
   // Calculate total products across all categories
   const totalMenuProducts = menu?.categories.reduce(
@@ -327,7 +337,7 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
         <div className="hidden w-[340px] shrink-0 lg:block">
           <div className="sticky top-0">
             {isPublished ? (
-              <PhonePreview url={publicUrl} />
+              <PhonePreview url={publicUrl} refreshKey={previewVersion} />
             ) : (
               <PhonePreview>
                 <MenuPreviewContent menu={menu} locale={locale} />

@@ -1,13 +1,12 @@
 'use client';
 
-import { type ReactNode, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { type ReactNode, useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 // --- Frame geometry (matching mobile-component.png proportions) ---
 const FRAME_WIDTH = 300;
 const FRAME_HEIGHT = 629; // aspect ratio 144:302
-const BORDER = 4;
+const BORDER = 9;
 const OUTER_RADIUS = 46;
 const INNER_RADIUS = OUTER_RADIUS - BORDER; // 42
 
@@ -36,6 +35,8 @@ interface PhonePreviewProps {
   children?: ReactNode;
   url?: string;
   className?: string;
+  /** Change this value to trigger an iframe reload */
+  refreshKey?: number;
 }
 
 function StatusBar() {
@@ -72,8 +73,122 @@ function StatusBar() {
   );
 }
 
-export function PhonePreview({ children, url, className }: PhonePreviewProps) {
+/** Skeleton that mimics a menu loading inside the phone screen */
+function MenuScreenSkeleton() {
+  return (
+    <div className="p-4" style={{ paddingTop: STATUS_BAR_H + 12 }}>
+      {/* Restaurant header */}
+      <div className="flex items-center gap-3 pb-4">
+        <div className="h-10 w-10 rounded-full animate-shimmer" />
+        <div className="space-y-2 flex-1">
+          <div className="h-4 w-28 rounded animate-shimmer" />
+          <div className="h-3 w-20 rounded animate-shimmer" />
+        </div>
+      </div>
+
+      {/* Category pills */}
+      <div className="flex gap-2 pb-5 border-b border-border/30">
+        <div className="h-7 w-16 rounded-full animate-shimmer" />
+        <div className="h-7 w-20 rounded-full animate-shimmer animation-delay-100" />
+        <div className="h-7 w-14 rounded-full animate-shimmer animation-delay-200" />
+        <div className="h-7 w-18 rounded-full animate-shimmer animation-delay-300" />
+      </div>
+
+      {/* Category title */}
+      <div className="pt-5 pb-3">
+        <div className="h-5 w-24 rounded animate-shimmer" />
+      </div>
+
+      {/* Product cards */}
+      <div className="space-y-3">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="flex gap-3 rounded-xl border border-border/20 p-3"
+          >
+            <div className="flex-1 space-y-2">
+              <div
+                className="h-4 rounded animate-shimmer"
+                style={{
+                  width: `${70 - i * 10}%`,
+                  animationDelay: `${i * 150}ms`,
+                }}
+              />
+              <div
+                className="h-3 rounded animate-shimmer"
+                style={{
+                  width: `${90 - i * 15}%`,
+                  animationDelay: `${i * 150 + 75}ms`,
+                }}
+              />
+              <div
+                className="h-3.5 w-14 rounded animate-shimmer"
+                style={{ animationDelay: `${i * 150 + 150}ms` }}
+              />
+            </div>
+            <div
+              className="h-16 w-16 flex-shrink-0 rounded-lg animate-shimmer"
+              style={{ animationDelay: `${i * 150}ms` }}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Second category */}
+      <div className="pt-6 pb-3">
+        <div className="h-5 w-32 rounded animate-shimmer animation-delay-300" />
+      </div>
+      <div className="space-y-3">
+        {[0, 1].map((i) => (
+          <div
+            key={i}
+            className="flex gap-3 rounded-xl border border-border/20 p-3"
+          >
+            <div className="flex-1 space-y-2">
+              <div
+                className="h-4 rounded animate-shimmer"
+                style={{
+                  width: `${65 - i * 15}%`,
+                  animationDelay: `${400 + i * 150}ms`,
+                }}
+              />
+              <div
+                className="h-3 rounded animate-shimmer"
+                style={{
+                  width: `${85 - i * 20}%`,
+                  animationDelay: `${400 + i * 150 + 75}ms`,
+                }}
+              />
+            </div>
+            <div
+              className="h-16 w-16 flex-shrink-0 rounded-lg animate-shimmer"
+              style={{ animationDelay: `${400 + i * 150}ms` }}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function PhonePreview({ children, url, className, refreshKey }: PhonePreviewProps) {
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const isFirstRender = useRef(true);
+
+  const reloadIframe = useCallback(() => {
+    if (!iframeRef.current?.contentWindow) return;
+    setIframeLoaded(false);
+    iframeRef.current.contentWindow.location.reload();
+  }, []);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    reloadIframe();
+  }, [refreshKey, reloadIframe]);
 
   return (
     <div className={cn('hidden lg:block', className)}>
@@ -83,7 +198,7 @@ export function PhonePreview({ children, url, className }: PhonePreviewProps) {
         style={{
           width: FRAME_WIDTH,
           height: FRAME_HEIGHT,
-          border: `${BORDER}px solid #2e2e2e`,
+          border: `${BORDER}px solid #000000`,
           borderRadius: OUTER_RADIUS,
           boxShadow: '0 0 0 1.5px #adadad',
         }}
@@ -117,6 +232,7 @@ export function PhonePreview({ children, url, className }: PhonePreviewProps) {
               <>
                 {/* Scaled iframe (always in DOM to avoid layout shift) */}
                 <div
+                  className="overflow-hidden"
                   style={{
                     width: CONTENT_WIDTH,
                     height: IFRAME_HEIGHT,
@@ -125,23 +241,24 @@ export function PhonePreview({ children, url, className }: PhonePreviewProps) {
                   }}
                 >
                   <iframe
+                    ref={iframeRef}
                     src={url}
                     title="Menu preview"
                     className={cn(
                       'border-0 transition-opacity duration-300',
                       iframeLoaded ? 'opacity-100' : 'opacity-0',
                     )}
-                    style={{ width: CONTENT_WIDTH, height: IFRAME_HEIGHT }}
+                    style={{ width: CONTENT_WIDTH + 20, height: IFRAME_HEIGHT }}
                     onLoad={() => setIframeLoaded(true)}
                   />
                 </div>
 
                 {/* Loading overlay (on top of iframe, disappears when loaded) */}
                 {!iframeLoaded && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-950"
-                    style={{ top: STATUS_BAR_H }}
+                  <div className="absolute inset-0 overflow-hidden bg-white dark:bg-gray-950"
+                    style={{ top: 0 }}
                   >
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <MenuScreenSkeleton />
                   </div>
                 )}
               </>
@@ -177,7 +294,7 @@ export function PhonePreviewSkeleton() {
         style={{
           width: FRAME_WIDTH,
           height: FRAME_HEIGHT,
-          border: `${BORDER}px solid #2e2e2e`,
+          border: `${BORDER}px solid #000000`,
           borderRadius: OUTER_RADIUS,
           boxShadow: '0 0 0 1.5px #adadad',
         }}
@@ -197,18 +314,10 @@ export function PhonePreviewSkeleton() {
           />
 
           <div className="absolute inset-x-0 top-0 z-10 bg-white dark:bg-gray-950">
-            <div
-              className="flex items-end justify-between px-7 pb-1.5"
-              style={{ height: STATUS_BAR_H }}
-            >
-              <div className="h-2.5 w-8 animate-pulse rounded bg-muted" />
-              <div className="h-2.5 w-14 animate-pulse rounded bg-muted" />
-            </div>
+            <StatusBar />
           </div>
 
-          <div className="flex h-full items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
+          <MenuScreenSkeleton />
         </div>
       </div>
     </div>
