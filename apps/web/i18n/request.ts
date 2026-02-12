@@ -15,12 +15,17 @@ import ruAdmin from '@/messages/ru/admin.json';
 import kaMenu from '@/messages/ka/menu.json';
 import enMenu from '@/messages/en/menu.json';
 import ruMenu from '@/messages/ru/menu.json';
+import kaMarketing from '@/messages/ka/marketing.json';
+import enMarketing from '@/messages/en/marketing.json';
+import ruMarketing from '@/messages/ru/marketing.json';
 
 // Merge all message namespaces
+// Spread common at root for useTranslations('actions'), useTranslations('status'), etc.
+// Also keep common namespace for useTranslations('common') and useTranslations('common.accessibility')
 const messages = {
-  ka: { ...kaCommon, auth: kaAuth, admin: kaAdmin, menu: kaMenu },
-  en: { ...enCommon, auth: enAuth, admin: enAdmin, menu: enMenu },
-  ru: { ...ruCommon, auth: ruAuth, admin: ruAdmin, menu: ruMenu },
+  ka: { ...kaCommon, common: kaCommon, auth: kaAuth, admin: kaAdmin, menu: kaMenu, marketing: kaMarketing },
+  en: { ...enCommon, common: enCommon, auth: enAuth, admin: enAdmin, menu: enMenu, marketing: enMarketing },
+  ru: { ...ruCommon, common: ruCommon, auth: ruAuth, admin: ruAdmin, menu: ruMenu, marketing: ruMarketing },
 } as const;
 
 export type Messages = (typeof messages)['ka'];

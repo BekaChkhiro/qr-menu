@@ -15,6 +15,9 @@ import {
 import { CategoriesList } from '@/components/admin/categories-list';
 import { PromotionsList } from '@/components/admin/promotions-list';
 import { QRCodeDialog } from '@/components/admin/qr-code-dialog';
+import { PhonePreview, PhonePreviewSkeleton } from '@/components/admin/phone-preview';
+import { MenuPreviewContent } from '@/components/admin/menu-preview-content';
+import { AnalyticsContent } from '@/components/admin/analytics-content';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -26,9 +29,11 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMenu, usePublishMenu } from '@/hooks/use-menus';
 import { useMenuRealtime } from '@/hooks/use-menu-realtime';
 import { useUserPlan } from '@/hooks/use-user-plan';
+import { useLocale } from '@/hooks/use-locale';
 
 interface MenuDetailPageProps {
   params: Promise<{ id: string }>;
@@ -42,6 +47,7 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
   const tStatus = useTranslations('status');
   const tActions = useTranslations('actions');
   const { hasFeature } = useUserPlan();
+  const locale = useLocale();
 
   // Subscribe to real-time updates for this menu
   useMenuRealtime(id);
@@ -89,199 +95,317 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
   const publicUrl = `/m/${menu.slug}`;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/admin/menus">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight">{menu.name}</h1>
-              <Badge variant={isPublished ? 'success' : 'secondary'}>
-                {isPublished ? tStatus('published') : tStatus('draft')}
-              </Badge>
-            </div>
-            <p className="text-muted-foreground">/{menu.slug}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={handleTogglePublish}
-            disabled={publishMenu.isPending}
-          >
-            {isPublished ? (
-              <>
-                <EyeOff className="mr-2 h-4 w-4" />
-                {tActions('unpublish')}
-              </>
-            ) : (
-              <>
-                <Eye className="mr-2 h-4 w-4" />
-                {tActions('publish')}
-              </>
-            )}
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href={`/admin/menus/${id}/edit`}>
-              <Edit className="mr-2 h-4 w-4" />
-              {tActions('edit')}
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href={`/admin/menus/${id}/analytics`}>
-              <BarChart3 className="mr-2 h-4 w-4" />
-              {t('sidebar.analytics')}
-            </Link>
-          </Button>
-          {isPublished && (
-            <Button variant="outline" asChild>
-              <Link href={publicUrl} target="_blank">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                View
+    <div className="flex h-[calc(100vh-3rem)] flex-col">
+      {/* Header (fixed) */}
+      <div className="shrink-0">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/admin/menus">
+                <ArrowLeft className="h-4 w-4" />
               </Link>
             </Button>
-          )}
-          <QRCodeDialog menuId={id} menuName={menu.name} menuSlug={menu.slug} />
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">{t('categories.title')}</CardTitle>
-            <FolderPlus className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{menu._count.categories}</div>
-            <p className="text-xs text-muted-foreground">
-              {menu.categories.reduce((acc, cat) => acc + (cat._count?.products ?? cat.products?.length ?? 0), 0)} {t('products.title').toLowerCase()}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">{t('dashboard.stats.totalViews')}</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{menu._count.views}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">{t('promotions.title')}</CardTitle>
-            <Badge variant="outline" className="text-xs">
-              {menu.promotions.length} {tStatus('active').toLowerCase()}
-            </Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{menu.promotions.length}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Separator />
-
-      {/* Categories Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('categories.title')} & {t('products.title')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <CategoriesList
-            menuId={id}
-            showAllergens={hasFeature('allergens')}
-            totalMenuProducts={totalMenuProducts}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Promotions Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('promotions.title')}</CardTitle>
-          <CardDescription>
-            Manage special offers and promotions for this menu
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <PromotionsList menuId={id} />
-        </CardContent>
-      </Card>
-
-      {/* Info Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('menus.info.title')}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {menu.description && (
             <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                {t('menus.form.description')}
-              </p>
-              <p className="mt-1">{menu.description}</p>
-            </div>
-          )}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                {t('menus.info.publicUrl')}
-              </p>
-              <p className="mt-1 font-mono text-sm">
-                {typeof window !== 'undefined' && window.location.origin}
-                {publicUrl}
-              </p>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold tracking-tight">{menu.name}</h1>
+                <Badge variant={isPublished ? 'success' : 'secondary'}>
+                  {isPublished ? tStatus('published') : tStatus('draft')}
+                </Badge>
+              </div>
+              <p className="text-muted-foreground">/{menu.slug}</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleTogglePublish}
+              disabled={publishMenu.isPending}
+            >
+              {isPublished ? (
+                <>
+                  <EyeOff className="mr-2 h-4 w-4" />
+                  {tActions('unpublish')}
+                </>
+              ) : (
+                <>
+                  <Eye className="mr-2 h-4 w-4" />
+                  {tActions('publish')}
+                </>
+              )}
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/admin/menus/${id}/edit`}>
+                <Edit className="mr-2 h-4 w-4" />
+                {tActions('edit')}
+              </Link>
+            </Button>
+            {isPublished && (
+              <Button variant="outline" asChild>
+                <Link href={publicUrl} target="_blank">
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  View
+                </Link>
+              </Button>
+            )}
+            <QRCodeDialog menuId={id} menuName={menu.name} menuSlug={menu.slug} />
+          </div>
+        </div>
+
+        <Separator className="mt-6" />
+      </div>
+
+      {/* Two-column layout: scrollable left + fixed right */}
+      <div className="flex min-h-0 flex-1 gap-6 pt-6">
+        {/* Left column: scrollable editor content */}
+        <div className="scrollbar-hide flex min-w-0 flex-1 flex-col overflow-y-auto pb-6">
+          {/* Tabs */}
+          <Tabs defaultValue="overview" className="flex-1">
+            <TabsList className="w-full">
+              <TabsTrigger value="overview" className="flex-1">
+                {t('sidebar.dashboard')}
+              </TabsTrigger>
+              <TabsTrigger value="categories" className="flex-1">
+                {t('categories.title')} & {t('products.title')}
+              </TabsTrigger>
+              <TabsTrigger value="promotions" className="flex-1">
+                {t('promotions.title')}
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex-1">
+                {t('sidebar.analytics')}
+              </TabsTrigger>
+              <TabsTrigger value="info" className="flex-1">
+                {t('menus.info.title')}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="mt-4 space-y-4">
+              {/* Stats Cards */}
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium">{t('categories.title')}</CardTitle>
+                    <FolderPlus className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{menu._count.categories}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {menu.categories.reduce((acc, cat) => acc + (cat._count?.products ?? cat.products?.length ?? 0), 0)} {t('products.title').toLowerCase()}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium">{t('dashboard.stats.totalViews')}</CardTitle>
+                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{menu._count.views}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium">{t('promotions.title')}</CardTitle>
+                    <Badge variant="outline" className="text-xs">
+                      {menu.promotions.length} {tStatus('active').toLowerCase()}
+                    </Badge>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{menu.promotions.length}</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Categories preview */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">{t('categories.title')} & {t('products.title')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CategoriesList
+                    menuId={id}
+                    showAllergens={hasFeature('allergens')}
+                    totalMenuProducts={totalMenuProducts}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Promotions preview */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">{t('promotions.title')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <PromotionsList menuId={id} />
+                </CardContent>
+              </Card>
+
+              {/* Info preview */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">{t('menus.info.title')}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {menu.description && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        {t('menus.form.description')}
+                      </p>
+                      <p className="mt-1">{menu.description}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {t('menus.info.publicUrl')}
+                    </p>
+                    <p className="mt-1 font-mono text-sm">
+                      {typeof window !== 'undefined' && window.location.origin}
+                      {publicUrl}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="categories" className="mt-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <CategoriesList
+                    menuId={id}
+                    showAllergens={hasFeature('allergens')}
+                    totalMenuProducts={totalMenuProducts}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="promotions" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardDescription>
+                    Manage special offers and promotions for this menu
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <PromotionsList menuId={id} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="analytics" className="mt-4">
+              <AnalyticsContent menuId={id} />
+            </TabsContent>
+
+            <TabsContent value="info" className="mt-4">
+              <Card>
+                <CardContent className="space-y-4 pt-6">
+                  {menu.description && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        {t('menus.form.description')}
+                      </p>
+                      <p className="mt-1">{menu.description}</p>
+                    </div>
+                  )}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        {t('menus.info.publicUrl')}
+                      </p>
+                      <p className="mt-1 font-mono text-sm">
+                        {typeof window !== 'undefined' && window.location.origin}
+                        {publicUrl}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Right column: sticky phone preview (desktop only) */}
+        <div className="hidden w-[340px] shrink-0 lg:block">
+          <div className="sticky top-0">
+            {isPublished ? (
+              <PhonePreview url={publicUrl} />
+            ) : (
+              <PhonePreview>
+                <MenuPreviewContent menu={menu} locale={locale} />
+              </PhonePreview>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
 function MenuDetailSkeleton() {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Skeleton className="h-10 w-10" />
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-5 w-32" />
+    <div className="flex h-[calc(100vh-3rem)] flex-col">
+      {/* Header skeleton */}
+      <div className="shrink-0">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-10 w-10 rounded-md" />
+            <div>
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+              <Skeleton className="mt-1 h-4 w-28" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-9 w-28 rounded-md" />
+            <Skeleton className="h-9 w-24 rounded-md" />
+            <Skeleton className="h-9 w-9 rounded-md" />
+          </div>
         </div>
+
+        <Separator className="mt-6" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i}>
-            <CardHeader className="pb-2">
-              <Skeleton className="h-4 w-24" />
+      {/* Two-column skeleton */}
+      <div className="flex min-h-0 flex-1 gap-6 pt-6">
+        {/* Left column */}
+        <div className="min-w-0 flex-1 space-y-4">
+          {/* Tabs skeleton */}
+          <Skeleton className="h-10 w-full rounded-md" />
+
+          {/* Stats cards skeleton */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-4 w-24" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-16" />
+                  <Skeleton className="mt-1 h-3 w-32" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Content card skeleton */}
+          <Card>
+            <CardHeader className="pb-3">
+              <Skeleton className="h-5 w-40" />
             </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-16" />
-              <Skeleton className="mt-1 h-3 w-32" />
+            <CardContent className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full rounded-lg" />
+              ))}
             </CardContent>
           </Card>
-        ))}
+        </div>
+
+        {/* Right column: phone preview skeleton */}
+        <div className="hidden w-[340px] shrink-0 lg:block">
+          <PhonePreviewSkeleton />
+        </div>
       </div>
-
-      <Separator />
-
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-64" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-48 w-full" />
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -34,7 +34,7 @@ export function Sidebar({ userName, userPlan = 'FREE' }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const locale = useLocale();
   const t = useTranslations('admin.sidebar');
-  const tNav = useTranslations('nav');
+  const tCommon = useTranslations('common');
   const tPlan = useTranslations('admin.settings.plan');
   const tA11y = useTranslations('common.accessibility');
 
@@ -124,12 +124,12 @@ export function Sidebar({ userName, userPlan = 'FREE' }: SidebarProps) {
             collapsed && 'justify-center px-2'
           )}
           onClick={() => signOut({ callbackUrl: '/login' })}
-          title={collapsed ? tNav('logout') : undefined}
-          aria-label={tNav('logout')}
+          title={collapsed ? tCommon('nav.logout') : undefined}
+          aria-label={tCommon('nav.logout')}
         >
           <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />
-          {!collapsed && <span>{tNav('logout')}</span>}
-          {collapsed && <span className="sr-only">{tNav('logout')}</span>}
+          {!collapsed && <span>{tCommon('nav.logout')}</span>}
+          {collapsed && <span className="sr-only">{tCommon('nav.logout')}</span>}
         </Button>
       </div>
     </aside>

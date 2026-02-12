@@ -1,0 +1,142 @@
+{
+  "header": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "demo": "Demo",
+    "login": "Log In",
+    "getStarted": "Get Started Free"
+  },
+  "footer": {
+    "product": "Product",
+    "features": "Features",
+    "pricing": "Pricing",
+    "demo": "Demo",
+    "company": "Company",
+    "about": "About Us",
+    "contact": "Contact",
+    "blog": "Blog",
+    "legal": "Legal",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "cookies": "Cookie Policy",
+    "followUs": "Follow us",
+    "copyright": "© {year} Digital Menu. All rights reserved.",
+    "tagline": "Create beautiful digital menus for your restaurant or cafe. Customers scan a QR code and view your menu instantly."
+  },
+  "hero": {
+    "title": "Digital Menus Made Simple",
+    "subtitle": "Create, manage, and share your restaurant menu with a simple QR code. No app downloads needed for your customers.",
+    "cta": "Start Free Trial",
+    "secondaryCta": "View Demo",
+    "trustedBy": "Trusted by 500+ restaurants in Georgia"
+  },
+  "features": {
+    "title": "Everything You Need",
+    "subtitle": "Powerful features to manage your digital menu effortlessly",
+    "qrCode": {
+      "title": "QR Code Generation",
+      "description": "Generate beautiful QR codes that link directly to your menu. Download in multiple formats and sizes."
+    },
+    "multilingual": {
+      "title": "Multi-Language Support",
+      "description": "Reach more customers with menus in Georgian, English, and Russian. Automatic language detection."
+    },
+    "realtime": {
+      "title": "Real-Time Updates",
+      "description": "Update prices, add items, or hide sold-out dishes instantly. Changes appear immediately."
+    },
+    "analytics": {
+      "title": "Menu Analytics",
+      "description": "Track menu views, popular items, and customer engagement. Make data-driven decisions."
+    },
+    "mobile": {
+      "title": "Mobile Optimized",
+      "description": "Beautiful, fast-loading menus that work perfectly on any device. No app required."
+    },
+    "branding": {
+      "title": "Custom Branding",
+      "description": "Add your logo, colors, and style to match your restaurant's brand identity."
+    }
+  },
+  "howItWorks": {
+    "title": "How It Works",
+    "subtitle": "Get your digital menu up and running in minutes",
+    "step1": {
+      "title": "Create Your Menu",
+      "description": "Sign up and add your categories, products, and prices. Upload photos to make items look delicious."
+    },
+    "step2": {
+      "title": "Generate QR Code",
+      "description": "Get your unique QR code instantly. Download and print it for your tables, window, or takeout bags."
+    },
+    "step3": {
+      "title": "Customers Scan & View",
+      "description": "Customers scan the code with their phone camera. Your menu opens instantly in their browser."
+    }
+  },
+  "pricing": {
+    "title": "Simple, Transparent Pricing",
+    "subtitle": "Choose the plan that fits your business. No hidden fees.",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "free": {
+      "name": "Free",
+      "price": "0",
+      "description": "Perfect for trying out",
+      "features": [
+        "1 Menu",
+        "3 Categories",
+        "15 Products",
+        "Basic QR Code",
+        "Mobile-Optimized Menu"
+      ],
+      "cta": "Get Started"
+    },
+    "starter": {
+      "name": "Starter",
+      "price": "29",
+      "description": "For small restaurants",
+      "popular": true,
+      "features": [
+        "3 Menus",
+        "Unlimited Categories",
+        "Unlimited Products",
+        "Promotions & Specials",
+        "Custom Colors",
+        "Priority Support"
+      ],
+      "cta": "Start Free Trial"
+    },
+    "pro": {
+      "name": "Pro",
+      "price": "59",
+      "description": "For growing businesses",
+      "features": [
+        "Unlimited Menus",
+        "Multi-Language Support",
+        "Advanced Analytics",
+        "Allergen Information",
+        "QR Code with Logo",
+        "API Access",
+        "Dedicated Support"
+      ],
+      "cta": "Start Free Trial"
+    },
+    "currency": "₾",
+    "perMonth": "/month"
+  },
+  "testimonials": {
+    "title": "Loved by Restaurant Owners",
+    "subtitle": "See what our customers have to say"
+  },
+  "cta": {
+    "title": "Ready to Go Digital?",
+    "subtitle": "Join hundreds of restaurants already using Digital Menu. Start your free trial today.",
+    "button": "Get Started Free",
+    "noCard": "No credit card required"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Got questions? We've got answers."
+  }
+}

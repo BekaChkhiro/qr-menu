@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { Prisma } from '@prisma/client';
+import * as Sentry from '@sentry/nextjs';
 
 // Error codes for consistent API responses
 export const ERROR_CODES = {
@@ -152,7 +153,7 @@ export function handleApiError(error: unknown): NextResponse<ErrorResponse> {
 
     // Log to Sentry in production
     if (process.env.NODE_ENV === 'production' && process.env.SENTRY_DSN) {
-      // Sentry.captureException(error);
+      Sentry.captureException(error);
     }
 
     return createErrorResponse(

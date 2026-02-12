@@ -7,7 +7,7 @@
 **Status**: 🟢 In Progress
 **Team Size**: Small (2-3 developers)
 **Created**: 2026-01-26
-**Last Updated**: 2026-01-30
+**Last Updated**: 2026-02-12
 
 ### Description
 
@@ -754,17 +754,207 @@ digital-menu/
 
 ---
 
+### Phase 7: Admin Live Preview
+**Goal**: Add a live phone mockup preview to the menu editing page that updates in real-time as admin edits content
+
+#### T7.1: Phone Preview Frame Component
+- [x] **Status**: DONE ✅
+- **Complexity**: Medium
+- **Estimated**: 3 hours
+- **Dependencies**: T2.2
+- **Files**: `apps/web/components/admin/phone-preview.tsx`
+- **Description**:
+  - Create pure CSS phone mockup component (300px wide, no image assets)
+  - Rounded corners, dark border simulating device bezel
+  - Dynamic island/notch at top, home indicator at bottom
+  - Inner screen: content rendered at 375px width, scaled to 0.8 to fit frame
+  - Scrollable screen area (overflow-y-auto with scrollbar-hide)
+  - "Preview" label above the phone
+  - Desktop only (hidden below `lg` breakpoint)
+
+#### T7.2: Menu Preview Content Component
+- [x] **Status**: DONE ✅
+- **Complexity**: High
+- **Estimated**: 5 hours
+- **Dependencies**: T7.1, T4.2
+- **Files**: `apps/web/components/admin/menu-preview-content.tsx`
+- **Description**:
+  - Accept `MenuWithDetails` from `useMenu()` hook + locale
+  - Data transformation via `useMemo`: filter unavailable products, empty categories, expired promotions
+  - Reuse public components: `CategorySection`, `ProductCard`, `PromotionBanner`
+  - Create simplified private sub-components:
+    - `PreviewHeader` - menu header without sticky positioning
+    - `PreviewCategoryNav` - static category pills (no scroll-spy)
+    - `PreviewFooter` - simplified footer
+    - `PreviewSkeleton` - loading skeleton matching phone layout
+    - `EmptyMenuPreview` - empty state message
+  - No new API calls — all data from existing `useMenu(id)` cache
+
+#### T7.3: Integrate Live Preview into Menu Detail Page
+- [x] **Status**: DONE ✅
+- **Complexity**: Medium
+- **Estimated**: 3 hours
+- **Dependencies**: T7.1, T7.2
+- **Files**: `apps/web/app/admin/menus/[id]/page.tsx`
+- **Description**:
+  - Convert single-column layout to two-column on `lg+` screens
+  - Header and Stats Cards remain full-width above separator
+  - Left column: Categories, Promotions, Info cards (flex-1 min-w-0)
+  - Right column: PhonePreview > MenuPreviewContent (w-[340px] sticky top-6)
+  - Hidden below `lg` breakpoint via `hidden lg:block`
+  - Preview reactively updates from same TanStack Query cache the editor uses
+  - Update `MenuDetailSkeleton` to include phone skeleton on lg+
+  - No modifications to public components needed
+
+---
+
+### Phase 8: Marketing Website
+**Goal**: Build a professional marketing landing page with full SEO optimization
+
+#### T8.1: Landing Page Foundation & Layout
+- [x] **Status**: DONE ✅
+- **Complexity**: Medium
+- **Estimated**: 4 hours
+- **Dependencies**: T6.6
+- **Description**:
+  - Create `app/(marketing)/page.tsx` landing page structure
+  - Set up Framer Motion for animations
+  - Create responsive layout components (Container, Section)
+  - Implement mobile-first design with Tailwind CSS
+  - Add navigation header with language switcher
+  - Create footer component with links and social media
+
+#### T8.2: Hero Section with Demo Preview
+- [ ] **Status**: TODO
+- **Complexity**: High
+- **Estimated**: 5 hours
+- **Dependencies**: T8.1
+- **Description**:
+  - Design compelling hero section with headline and CTA
+  - Create interactive QR menu demo preview component
+  - Add Framer Motion entrance animations
+  - Implement phone mockup showing live menu demo
+  - Add "Try Demo" and "Start Free" CTA buttons
+  - Create gradient backgrounds and visual effects
+
+#### T8.3: Features Section
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 4 hours
+- **Dependencies**: T8.1
+- **Description**:
+  - Create features grid layout (6-8 features)
+  - Design feature cards with icons (Lucide icons)
+  - Add scroll-triggered animations with Framer Motion
+  - Highlight key features: QR codes, multi-language, analytics
+  - Create "How it works" 3-step process section
+  - Add feature comparison table
+
+#### T8.4: Pricing Section
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 4 hours
+- **Dependencies**: T8.1
+- **Description**:
+  - Create pricing cards for FREE, STARTER (29₾), PRO (59₾) plans
+  - Highlight recommended plan (STARTER)
+  - List features for each plan with checkmarks
+  - Add "Most Popular" badge
+  - Implement toggle for monthly/yearly pricing (future)
+  - Add CTA buttons to register
+
+#### T8.5: Testimonials & Social Proof
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 3 hours
+- **Dependencies**: T8.1
+- **Description**:
+  - Create testimonials carousel/grid
+  - Design testimonial cards with photos and quotes
+  - Add company logos section "Trusted by"
+  - Create statistics section (users, menus, scans)
+  - Implement smooth carousel with Framer Motion
+  - Add star ratings display
+
+#### T8.6: FAQ Section
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 2 hours
+- **Dependencies**: T8.1
+- **Description**:
+  - Create accordion FAQ component with shadcn/ui
+  - Write 8-10 common questions and answers
+  - Add smooth expand/collapse animations
+  - Organize by categories (General, Pricing, Technical)
+  - Support multi-language FAQ content
+  - Add "Contact Us" link for more questions
+
+#### T8.7: Contact Form & Newsletter
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 4 hours
+- **Dependencies**: T8.1
+- **Description**:
+  - Create contact form with React Hook Form + Zod validation
+  - Set up POST /api/contact endpoint
+  - Integrate Resend for email notifications
+  - Create newsletter signup form
+  - Add success/error toast notifications
+  - Implement honeypot spam protection
+
+#### T8.8: SEO & Meta Tags
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 3 hours
+- **Dependencies**: T8.1
+- **Description**:
+  - Configure Next.js metadata API for all pages
+  - Add Open Graph tags for social sharing
+  - Create Twitter Card meta tags
+  - Implement JSON-LD structured data (Organization, Product)
+  - Generate dynamic sitemap.xml
+  - Create robots.txt
+  - Add canonical URLs
+
+#### T8.9: Multi-language Landing Content
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 4 hours
+- **Dependencies**: T8.2, T8.3, T8.4, T8.5, T8.6
+- **Description**:
+  - Create translation files for marketing content (ka, en, ru)
+  - Translate all landing page text
+  - Implement language switcher in header
+  - Add hreflang tags for SEO
+  - Test all languages for proper display
+  - Handle Georgian typography properly
+
+#### T8.10: Live Chat Widget Integration
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 2 hours
+- **Dependencies**: T8.1
+- **Description**:
+  - Integrate Crisp/Tawk.to/Intercom chat widget
+  - Configure widget appearance and position
+  - Set up automated greeting message
+  - Add chat to all marketing pages
+  - Configure mobile-friendly chat button
+  - Test across all supported languages
+
+---
+
 ## 📊 Progress Tracking
 
 ### Overall Progress
-- **Total Tasks**: 31
-- **Completed**: 31
+- **Total Tasks**: 44
+- **Completed**: 35
 - **In Progress**: 0
 - **Blocked**: 0
-- **Progress**: 100%
+- **Progress**: 80%
 
 ```
-Progress: 🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩 100%
+Progress: 🟩🟩🟩🟩🟩🟩🟩🟩🟨🟨 80%
 ```
 
 ### Phase Breakdown
@@ -774,11 +964,13 @@ Progress: 🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩 100%
 - **Phase 4 - Public Menu & QR**: 4/4 (100%) ✅
 - **Phase 5 - Real-time & Polish**: 5/5 (100%) ✅
 - **Phase 6 - Testing & Deployment**: 6/6 (100%) ✅
+- **Phase 7 - Admin Live Preview**: 3/3 (100%) ✅
+- **Phase 8 - Marketing Website**: 1/10 (10%) 🔄
 
 ### Current Focus
-🎉 **Status**: PROJECT COMPLETE!
-📅 **All Phases**: Completed
-✅ **All 31 Tasks**: Done
+🎯 **Status**: Phase 8 - Marketing Website
+📅 **Current Task**: T8.2 - Hero Section with Demo Preview
+✨ **Goal**: Build a professional marketing landing page with full SEO optimization
 
 ---
 

@@ -5,9 +5,10 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { QueryProvider } from '@/lib/query/query-provider';
 import { GoogleAnalytics } from '@/components/analytics/google-analytics';
+import { WebVitals } from '@/components/analytics/web-vitals';
 import { Toaster } from '@/components/ui/sonner';
 import { SkipLink, AnnouncerProvider } from '@/components/accessibility';
-import { getLocaleFromCookie, LOCALE_COOKIE_NAME, defaultLocale } from '@/i18n/config';
+import { getLocaleFromCookie, LOCALE_COOKIE_NAME } from '@/i18n/config';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic', 'cyrillic-ext'] });
@@ -41,6 +42,7 @@ export default async function RootLayout({
           </AnnouncerProvider>
         </NextIntlClientProvider>
         <GoogleAnalytics />
+        <WebVitals />
       </body>
     </html>
   );
