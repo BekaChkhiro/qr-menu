@@ -16,7 +16,6 @@ import { CategoriesList } from '@/components/admin/categories-list';
 import { PromotionsList } from '@/components/admin/promotions-list';
 import { QRCodeDialog } from '@/components/admin/qr-code-dialog';
 import { PhonePreview, PhonePreviewSkeleton } from '@/components/admin/phone-preview';
-import { MenuPreviewContent } from '@/components/admin/menu-preview-content';
 import { AnalyticsContent } from '@/components/admin/analytics-content';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,7 +32,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMenu, usePublishMenu } from '@/hooks/use-menus';
 import { useMenuRealtime } from '@/hooks/use-menu-realtime';
 import { useUserPlan } from '@/hooks/use-user-plan';
-import { useLocale } from '@/hooks/use-locale';
 
 interface MenuDetailPageProps {
   params: Promise<{ id: string }>;
@@ -47,8 +45,6 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
   const tStatus = useTranslations('status');
   const tActions = useTranslations('actions');
   const { hasFeature } = useUserPlan();
-  const locale = useLocale();
-
   // Subscribe to real-time updates for this menu
   useMenuRealtime(id);
 
@@ -170,7 +166,7 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
         <div className="scrollbar-hide flex min-w-0 flex-1 flex-col overflow-y-auto pb-6">
           {/* Tabs */}
           <Tabs defaultValue="overview" className="flex-1">
-            <TabsList className="w-full">
+            <TabsList className="sticky top-0 z-10 w-full">
               <TabsTrigger value="overview" className="flex-1">
                 {t('sidebar.dashboard')}
               </TabsTrigger>
@@ -336,13 +332,10 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
         {/* Right column: sticky phone preview (desktop only) */}
         <div className="hidden w-[340px] shrink-0 lg:block">
           <div className="sticky top-0">
-            {isPublished ? (
-              <PhonePreview url={publicUrl} refreshKey={previewVersion} />
-            ) : (
-              <PhonePreview>
-                <MenuPreviewContent menu={menu} locale={locale} />
-              </PhonePreview>
-            )}
+            <PhonePreview
+              url={isPublished ? publicUrl : `${publicUrl}?preview=true`}
+              refreshKey={previewVersion}
+            />
           </div>
         </div>
       </div>

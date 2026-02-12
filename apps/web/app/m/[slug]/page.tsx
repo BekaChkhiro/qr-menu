@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
+import { auth } from '@/lib/auth/auth';
 import { cacheGetOrSet, CACHE_KEYS, CACHE_TTL } from '@/lib/cache/redis';
 import { getLocaleFromCookie, LOCALE_COOKIE_NAME, type Locale } from '@/i18n/config';
 import { MenuHeader } from '@/components/public/menu-header';
@@ -13,6 +14,7 @@ import { ViewTracker } from '@/components/public/view-tracker';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }
 
 // Serialized types for client components (Decimal serializes to string via JSON)
@@ -175,6 +177,91 @@ async function getPublicMenu(slug: string) {
   );
 }
 
+/**
+ * Fetch menu for preview mode (owner only, skips publish check and cache)
+ */
+async function getPreviewMenu(slug: string, userId: string) {
+  return prisma.menu.findUnique({
+    where: {
+      slug,
+      userId,
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      logoUrl: true,
+      primaryColor: true,
+      accentColor: true,
+      status: true,
+      publishedAt: true,
+      categories: {
+        orderBy: { sortOrder: 'asc' },
+        select: {
+          id: true,
+          nameKa: true,
+          nameEn: true,
+          nameRu: true,
+          descriptionKa: true,
+          descriptionEn: true,
+          descriptionRu: true,
+          sortOrder: true,
+          products: {
+            where: { isAvailable: true },
+            orderBy: { sortOrder: 'asc' },
+            select: {
+              id: true,
+              nameKa: true,
+              nameEn: true,
+              nameRu: true,
+              descriptionKa: true,
+              descriptionEn: true,
+              descriptionRu: true,
+              price: true,
+              currency: true,
+              imageUrl: true,
+              allergens: true,
+              sortOrder: true,
+              variations: {
+                orderBy: { sortOrder: 'asc' },
+                select: {
+                  id: true,
+                  nameKa: true,
+                  nameEn: true,
+                  nameRu: true,
+                  price: true,
+                  sortOrder: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      promotions: {
+        where: {
+          isActive: true,
+          startDate: { lte: new Date() },
+          endDate: { gte: new Date() },
+        },
+        orderBy: { startDate: 'asc' },
+        select: {
+          id: true,
+          titleKa: true,
+          titleEn: true,
+          titleRu: true,
+          descriptionKa: true,
+          descriptionEn: true,
+          descriptionRu: true,
+          imageUrl: true,
+          startDate: true,
+          endDate: true,
+        },
+      },
+    },
+  });
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const menu = await getPublicMenu(slug);
@@ -197,9 +284,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function PublicMenuPage({ params }: PageProps) {
+export default async function PublicMenuPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const rawMenu = await getPublicMenu(slug);
+  const { preview } = await searchParams;
+  const isPreview = preview === 'true';
+
+  let rawMenu: Awaited<ReturnType<typeof getPublicMenu>> = null;
+
+  if (isPreview) {
+    // Preview mode: check auth and menu ownership
+    const session = await auth();
+    if (session?.user?.id) {
+      rawMenu = await getPreviewMenu(slug, session.user.id);
+    }
+  }
+
+  // Fall back to normal published menu fetch
+  if (!rawMenu) {
+    rawMenu = await getPublicMenu(slug);
+  }
 
   if (!rawMenu) {
     notFound();
@@ -227,8 +330,8 @@ export default async function PublicMenuPage({ params }: PageProps) {
         '--accent-color': menu.accentColor || '#666666',
       } as React.CSSProperties}
     >
-      {/* Track menu view */}
-      <ViewTracker menuId={menu.id} />
+      {/* Track menu view (skip in preview mode) */}
+      {!isPreview && <ViewTracker menuId={menu.id} />}
 
       {/* Menu Header */}
       <MenuHeader

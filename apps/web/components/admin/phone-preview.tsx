@@ -42,7 +42,7 @@ interface PhonePreviewProps {
 function StatusBar() {
   return (
     <div
-      className="relative flex items-end justify-between px-7 pb-1.5"
+      className="relative flex items-center justify-between px-4 pt-[5px]"
       style={{ height: STATUS_BAR_H }}
     >
       {/* Time */}
@@ -248,7 +248,7 @@ export function PhonePreview({ children, url, className, refreshKey }: PhonePrev
                       'border-0 transition-opacity duration-300',
                       iframeLoaded ? 'opacity-100' : 'opacity-0',
                     )}
-                    style={{ width: CONTENT_WIDTH + 20, height: IFRAME_HEIGHT }}
+                    style={{ width: CONTENT_WIDTH, height: IFRAME_HEIGHT }}
                     onLoad={() => setIframeLoaded(true)}
                   />
                 </div>
