@@ -205,9 +205,8 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
         </div>
         <Button
           onClick={handleAddCategory}
-          size="sm"
           variant={canAddCategory ? 'default' : 'secondary'}
-          className="focus-ring"
+          className="rounded-full focus-ring"
         >
           {canAddCategory ? (
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -219,13 +218,13 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
       </div>
 
       {!categories || categories.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-8 text-center" role="region" aria-label={t('empty.title')}>
+        <div className="rounded-2xl border border-dashed px-8 py-10 text-center" role="region" aria-label={t('empty.title')}>
           <FolderOpen className="mx-auto h-10 w-10 text-muted-foreground" aria-hidden="true" />
-          <h4 className="mt-3 text-base font-semibold">{t('empty.title')}</h4>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h4 className="mt-4 text-base font-semibold">{t('empty.title')}</h4>
+          <p className="mt-1.5 text-sm text-muted-foreground">
             {t('empty.description')}
           </p>
-          <Button onClick={handleAddCategory} className="mt-4 focus-ring" size="sm">
+          <Button onClick={handleAddCategory} className="mt-4 rounded-full focus-ring">
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             {tActions('create')}
           </Button>
@@ -364,11 +363,11 @@ function SortableCategoryItem({
       <Card
         ref={setNodeRef}
         style={style}
-        className={`${isDragging ? 'opacity-50 shadow-lg' : ''}`}
+        className={`rounded-2xl ${isDragging ? 'opacity-50 shadow-lg' : ''}`}
       >
         <CardContent className="p-0">
           {/* Category Header */}
-          <div className="flex items-center gap-3 p-3">
+          <div className="flex items-center gap-3 px-4 py-3">
             <button
               {...attributes}
               {...listeners}
@@ -461,7 +460,7 @@ function CategoriesListSkeleton() {
       </div>
       <div className="space-y-2">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i}>
+          <Card key={i} className="rounded-2xl">
             <CardContent className="flex items-center gap-3 p-3">
               <Skeleton className="h-5 w-5" />
               <Skeleton className="h-4 w-4" />

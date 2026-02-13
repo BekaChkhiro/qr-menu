@@ -825,7 +825,7 @@ digital-menu/
   - Create footer component with links and social media
 
 #### T8.2: Hero Section with Demo Preview
-- [ ] **Status**: TODO
+- [ ] **Status**: IN_PROGRESS 🔄
 - **Complexity**: High
 - **Estimated**: 5 hours
 - **Dependencies**: T8.1
@@ -949,7 +949,7 @@ digital-menu/
 ### Overall Progress
 - **Total Tasks**: 44
 - **Completed**: 35
-- **In Progress**: 0
+- **In Progress**: 1
 - **Blocked**: 0
 - **Progress**: 80%
 
@@ -965,11 +965,11 @@ Progress: 🟩🟩🟩🟩🟩🟩🟩🟩🟨🟨 80%
 - **Phase 5 - Real-time & Polish**: 5/5 (100%) ✅
 - **Phase 6 - Testing & Deployment**: 6/6 (100%) ✅
 - **Phase 7 - Admin Live Preview**: 3/3 (100%) ✅
-- **Phase 8 - Marketing Website**: 1/10 (10%) 🔄
+- **Phase 8 - Marketing Website**: 1/10 (10%) 🔄 ← current
 
 ### Current Focus
 🎯 **Status**: Phase 8 - Marketing Website
-📅 **Current Task**: T8.2 - Hero Section with Demo Preview
+📅 **Current Task**: T8.2 - Hero Section with Demo Preview 🔄
 ✨ **Goal**: Build a professional marketing landing page with full SEO optimization
 
 ---

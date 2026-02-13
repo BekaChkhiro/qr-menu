@@ -78,7 +78,7 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
+          <Button variant="ghost" size="icon" className="rounded-full" asChild>
             <Link href="/admin/menus">
               <ArrowLeft className="h-4 w-4" />
             </Link>
@@ -106,24 +106,25 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
       <div className="shrink-0">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" asChild>
+            <Button variant="ghost" size="icon" className="rounded-full" asChild>
               <Link href="/admin/menus">
                 <ArrowLeft className="h-4 w-4" />
               </Link>
             </Button>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold tracking-tight">{menu.name}</h1>
+                <h1 className="text-[28px] font-bold leading-[1.2] tracking-tight">{menu.name}</h1>
                 <Badge variant={isPublished ? 'success' : 'secondary'}>
                   {isPublished ? tStatus('published') : tStatus('draft')}
                 </Badge>
               </div>
-              <p className="text-muted-foreground">/{menu.slug}</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">/{menu.slug}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
+              className="rounded-full bg-white"
               onClick={handleTogglePublish}
               disabled={publishMenu.isPending}
             >
@@ -139,14 +140,14 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
                 </>
               )}
             </Button>
-            <Button variant="outline" asChild>
+            <Button variant="outline" className="rounded-full bg-white" asChild>
               <Link href={`/admin/menus/${id}/edit`}>
                 <Edit className="mr-2 h-4 w-4" />
                 {tActions('edit')}
               </Link>
             </Button>
             {isPublished && (
-              <Button variant="outline" asChild>
+              <Button variant="outline" className="rounded-full bg-white" asChild>
                 <Link href={publicUrl} target="_blank">
                   <ExternalLink className="mr-2 h-4 w-4" />
                   View
@@ -157,13 +158,13 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
           </div>
         </div>
 
-        <Separator className="mt-6" />
+        <Separator className="mt-2" />
       </div>
 
       {/* Two-column layout: scrollable left + fixed right */}
       <div className="flex min-h-0 flex-1 gap-6 pt-6">
         {/* Left column: scrollable editor content */}
-        <div className="scrollbar-hide flex min-w-0 flex-1 flex-col overflow-y-auto pb-6">
+        <div className="scrollbar-hide flex min-w-0 flex-1 flex-col overflow-y-auto">
           {/* Tabs */}
           <Tabs defaultValue="overview" className="flex-1">
             <TabsList className="sticky top-0 z-10 w-full">
@@ -187,46 +188,43 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
             <TabsContent value="overview" className="mt-4 space-y-4">
               {/* Stats Cards */}
               <div className="grid gap-4 sm:grid-cols-3">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <Card className="rounded-2xl">
+                  <CardHeader className="flex flex-row items-center justify-between px-6 pb-2 pt-4">
                     <CardTitle className="text-sm font-medium">{t('categories.title')}</CardTitle>
                     <FolderPlus className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="px-6 pb-4 pt-0">
                     <div className="text-2xl font-bold">{menu._count.categories}</div>
                     <p className="text-xs text-muted-foreground">
                       {menu.categories.reduce((acc, cat) => acc + (cat._count?.products ?? cat.products?.length ?? 0), 0)} {t('products.title').toLowerCase()}
                     </p>
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <Card className="rounded-2xl">
+                  <CardHeader className="flex flex-row items-center justify-between px-6 pb-2 pt-4">
                     <CardTitle className="text-sm font-medium">{t('dashboard.stats.totalViews')}</CardTitle>
                     <BarChart3 className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="px-6 pb-4 pt-0">
                     <div className="text-2xl font-bold">{menu._count.views}</div>
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <Card className="rounded-2xl">
+                  <CardHeader className="flex flex-row items-center justify-between px-6 pb-2 pt-4">
                     <CardTitle className="text-sm font-medium">{t('promotions.title')}</CardTitle>
-                    <Badge variant="outline" className="text-xs">
-                      {menu.promotions.length} {tStatus('active').toLowerCase()}
-                    </Badge>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="px-6 pb-4 pt-0">
                     <div className="text-2xl font-bold">{menu.promotions.length}</div>
                   </CardContent>
                 </Card>
               </div>
 
               {/* Categories preview */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">{t('categories.title')} & {t('products.title')}</CardTitle>
+              <Card className="rounded-2xl">
+                <CardHeader className="border-b px-6 pb-4 pt-5">
+                  <CardTitle className="text-base font-semibold">{t('categories.title')} & {t('products.title')}</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-6 pb-6 pt-4">
                   <CategoriesList
                     menuId={id}
                     showAllergens={hasFeature('allergens')}
@@ -236,21 +234,21 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
               </Card>
 
               {/* Promotions preview */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">{t('promotions.title')}</CardTitle>
+              <Card className="rounded-2xl">
+                <CardHeader className="border-b px-6 pb-4 pt-5">
+                  <CardTitle className="text-base font-semibold">{t('promotions.title')}</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-6 pb-6 pt-4">
                   <PromotionsList menuId={id} />
                 </CardContent>
               </Card>
 
               {/* Info preview */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">{t('menus.info.title')}</CardTitle>
+              <Card className="rounded-2xl">
+                <CardHeader className="border-b px-6 pb-4 pt-5">
+                  <CardTitle className="text-base font-semibold">{t('menus.info.title')}</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 px-6 pb-6 pt-4">
                   {menu.description && (
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">
@@ -273,8 +271,8 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
             </TabsContent>
 
             <TabsContent value="categories" className="mt-4">
-              <Card>
-                <CardContent className="pt-6">
+              <Card className="rounded-2xl">
+                <CardContent className="px-6 pt-6">
                   <CategoriesList
                     menuId={id}
                     showAllergens={hasFeature('allergens')}
@@ -285,13 +283,13 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
             </TabsContent>
 
             <TabsContent value="promotions" className="mt-4">
-              <Card>
-                <CardHeader>
+              <Card className="rounded-2xl">
+                <CardHeader className="border-b px-6 pb-4 pt-5">
                   <CardDescription>
                     Manage special offers and promotions for this menu
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-6 pb-6 pt-4">
                   <PromotionsList menuId={id} />
                 </CardContent>
               </Card>
@@ -302,8 +300,8 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
             </TabsContent>
 
             <TabsContent value="info" className="mt-4">
-              <Card>
-                <CardContent className="space-y-4 pt-6">
+              <Card className="rounded-2xl">
+                <CardContent className="space-y-4 px-6 pt-6">
                   {menu.description && (
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">
@@ -350,7 +348,7 @@ function MenuDetailSkeleton() {
       <div className="shrink-0">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <Skeleton className="h-10 w-10 rounded-md" />
+            <Skeleton className="h-10 w-10 rounded-full" />
             <div>
               <div className="flex items-center gap-3">
                 <Skeleton className="h-8 w-48" />
@@ -360,13 +358,13 @@ function MenuDetailSkeleton() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Skeleton className="h-9 w-28 rounded-md" />
-            <Skeleton className="h-9 w-24 rounded-md" />
-            <Skeleton className="h-9 w-9 rounded-md" />
+            <Skeleton className="h-10 w-28 rounded-full" />
+            <Skeleton className="h-10 w-24 rounded-full" />
+            <Skeleton className="h-10 w-10 rounded-full" />
           </div>
         </div>
 
-        <Separator className="mt-6" />
+        <Separator className="mt-2" />
       </div>
 
       {/* Two-column skeleton */}
@@ -374,16 +372,16 @@ function MenuDetailSkeleton() {
         {/* Left column */}
         <div className="min-w-0 flex-1 space-y-4">
           {/* Tabs skeleton */}
-          <Skeleton className="h-10 w-full rounded-md" />
+          <Skeleton className="h-10 w-full rounded-full" />
 
           {/* Stats cards skeleton */}
           <div className="grid gap-4 sm:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i}>
-                <CardHeader className="pb-2">
+              <Card key={i} className="rounded-2xl">
+                <CardHeader className="px-6 pb-2 pt-4">
                   <Skeleton className="h-4 w-24" />
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-6 pb-4 pt-0">
                   <Skeleton className="h-8 w-16" />
                   <Skeleton className="mt-1 h-3 w-32" />
                 </CardContent>
@@ -392,8 +390,8 @@ function MenuDetailSkeleton() {
           </div>
 
           {/* Content card skeleton */}
-          <Card>
-            <CardHeader className="pb-3">
+          <Card className="rounded-2xl">
+            <CardHeader className="border-b px-6 pb-4 pt-5">
               <Skeleton className="h-5 w-40" />
             </CardHeader>
             <CardContent className="space-y-3">

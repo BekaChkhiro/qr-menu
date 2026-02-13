@@ -86,7 +86,7 @@ export function QRCodeDialog({ menuId, menuName, menuSlug }: QRCodeDialogProps) 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" className="rounded-full bg-white">
           <QrCode className="mr-2 h-4 w-4" />
           {t('qr.button')}
         </Button>

@@ -41,24 +41,24 @@ export function Sidebar({ userName, userPlan = 'FREE' }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'flex flex-col border-r bg-card transition-all duration-300',
+        'flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300',
         collapsed ? 'w-16' : 'w-64'
       )}
       aria-label={tA11y('mainNavigation')}
     >
       {/* Header */}
-      <div className="flex h-16 items-center justify-between border-b px-4">
+      <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-6">
         {!collapsed && (
           <Link href="/admin/dashboard" className="flex items-center gap-2">
-            <UtensilsCrossed className="h-6 w-6 text-primary" />
-            <span className="font-semibold">Digital Menu</span>
+            <UtensilsCrossed className="h-6 w-6 text-sidebar-primary" />
+            <span className="text-lg font-bold text-sidebar-primary">Digital Menu</span>
           </Link>
         )}
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setCollapsed(!collapsed)}
-          className={cn('h-8 w-8', collapsed && 'mx-auto')}
+          className={cn('h-8 w-8 text-sidebar-foreground', collapsed && 'mx-auto')}
           aria-expanded={!collapsed}
           aria-label={collapsed ? tA11y('openMenu') : tA11y('closeMenu')}
         >
@@ -71,7 +71,7 @@ export function Sidebar({ userName, userPlan = 'FREE' }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-2" role="navigation">
+      <nav className="flex-1 space-y-1 px-4 pt-6" role="navigation">
         {navigation.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -81,11 +81,11 @@ export function Sidebar({ userName, userPlan = 'FREE' }: SidebarProps) {
               key={item.name}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-ring',
+                'flex items-center gap-4 rounded-full px-3.5 py-2.5 text-base font-medium transition-colors focus-ring',
                 isActive
                   ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                collapsed && 'justify-center px-2'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                collapsed && 'justify-center px-3'
               )}
               title={collapsed ? label : undefined}
               aria-current={isActive ? 'page' : undefined}
@@ -99,38 +99,40 @@ export function Sidebar({ userName, userPlan = 'FREE' }: SidebarProps) {
       </nav>
 
       {/* Language Switcher */}
-      <div className="border-t p-2">
+      <div className="border-t border-sidebar-border px-4 py-2">
         <LanguageSwitcher
           currentLocale={locale}
           variant={collapsed ? 'compact' : 'default'}
-          className={cn('w-full', collapsed ? 'justify-center' : 'justify-start')}
+          className={cn('w-full text-sidebar-foreground', collapsed ? 'justify-center' : 'justify-start')}
         />
       </div>
 
       {/* User Section */}
-      <div className="border-t p-2">
+      <div className="border-t border-sidebar-border">
         {!collapsed && (
-          <div className="mb-2 px-3 py-2">
-            <p className="text-sm font-medium truncate">{userName || 'User'}</p>
-            <p className="text-xs text-muted-foreground">
+          <div className="px-4 pt-2.5 pb-1.5">
+            <p className="text-sm font-medium truncate text-sidebar-accent-foreground">{userName || 'User'}</p>
+            <p className="text-xs text-sidebar-foreground">
               {tPlan(userPlan.toLowerCase() as 'free' | 'starter' | 'pro')}
             </p>
           </div>
         )}
-        <Button
-          variant="ghost"
-          className={cn(
-            'w-full justify-start gap-3 text-muted-foreground hover:text-destructive focus-ring',
-            collapsed && 'justify-center px-2'
-          )}
-          onClick={() => signOut({ callbackUrl: '/login' })}
-          title={collapsed ? tCommon('nav.logout') : undefined}
-          aria-label={tCommon('nav.logout')}
-        >
-          <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />
-          {!collapsed && <span>{tCommon('nav.logout')}</span>}
-          {collapsed && <span className="sr-only">{tCommon('nav.logout')}</span>}
-        </Button>
+        <div className="px-4 pb-2.5">
+          <Button
+            variant="ghost"
+            className={cn(
+              'w-full justify-start gap-3 text-sidebar-foreground hover:text-destructive focus-ring',
+              collapsed && 'justify-center px-2'
+            )}
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            title={collapsed ? tCommon('nav.logout') : undefined}
+            aria-label={tCommon('nav.logout')}
+          >
+            <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />
+            {!collapsed && <span>{tCommon('nav.logout')}</span>}
+            {collapsed && <span className="sr-only">{tCommon('nav.logout')}</span>}
+          </Button>
+        </div>
       </div>
     </aside>
   );

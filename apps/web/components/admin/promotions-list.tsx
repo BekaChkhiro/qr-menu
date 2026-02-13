@@ -191,7 +191,7 @@ export function PromotionsList({ menuId }: PromotionsListProps) {
   // Show upgrade prompt for FREE users
   if (!canUsePromotions) {
     return (
-      <div className="rounded-lg border border-dashed p-8 text-center">
+      <div className="rounded-2xl border border-dashed px-8 py-10 text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
           <Lock className="h-6 w-6 text-muted-foreground" />
         </div>
@@ -216,23 +216,22 @@ export function PromotionsList({ menuId }: PromotionsListProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">{t('title')}</h3>
-        <Button onClick={() => setIsCreateOpen(true)} size="sm">
+        <Button onClick={() => setIsCreateOpen(true)} className="rounded-full">
           <Plus className="mr-2 h-4 w-4" />
           {t('add')}
         </Button>
       </div>
 
       {!promotions || promotions.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-8 text-center">
+        <div className="rounded-2xl border border-dashed px-8 py-10 text-center">
           <Tag className="mx-auto h-10 w-10 text-muted-foreground" />
-          <h4 className="mt-3 text-base font-semibold">{t('empty.title')}</h4>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h4 className="mt-4 text-base font-semibold">{t('empty.title')}</h4>
+          <p className="mt-1.5 text-sm text-muted-foreground">
             {t('empty.description')}
           </p>
           <Button
             onClick={() => setIsCreateOpen(true)}
-            className="mt-4"
-            size="sm"
+            className="mt-4 rounded-full"
           >
             <Plus className="mr-2 h-4 w-4" />
             {tActions('create')}
