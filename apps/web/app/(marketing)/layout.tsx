@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
-import { Header, Footer } from '@/components/marketing';
+import { Header, Footer, SmoothScroll } from '@/components/marketing';
 import { getLocaleFromCookie, LOCALE_COOKIE_NAME } from '@/i18n/config';
 
 export default async function MarketingLayout({
@@ -43,12 +43,14 @@ export default async function MarketingLayout({
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header locale={locale} translations={headerTranslations} />
-      <main id="main-content" tabIndex={-1} className="flex-1">
-        {children}
-      </main>
-      <Footer translations={footerTranslations} />
-    </div>
+    <SmoothScroll>
+      <div className="flex min-h-screen flex-col">
+        <Header locale={locale} translations={headerTranslations} />
+        <main id="main-content" tabIndex={-1} className="flex-1">
+          {children}
+        </main>
+        <Footer translations={footerTranslations} />
+      </div>
+    </SmoothScroll>
   );
 }
