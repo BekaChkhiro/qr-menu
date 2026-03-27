@@ -699,8 +699,7 @@ export function PhoneJourney({ hero, scenes, pricing, cta }: PhoneJourneyProps) 
       const bgLightRays2 = container.querySelector<HTMLElement>('.bg-light-rays-2');
       const bgShapes = container.querySelector<HTMLElement>('.bg-shapes');
       const bgAurora = container.querySelector<HTMLElement>('.bg-aurora');
-      const bgGridLines = container.querySelector<HTMLElement>('.bg-grid-lines');
-      const bgParticles = container.querySelectorAll<HTMLElement>('.floating-particle');
+      const bgWaves = container.querySelector<HTMLElement>('.bg-waves');
 
       let prevStep = 0;
 
@@ -799,44 +798,23 @@ export function PhoneJourney({ hero, scenes, pricing, cta }: PhoneJourneyProps) 
             scrollIndicator.style.opacity = progress < 0.03 ? '1' : '0';
           }
 
-          // Scroll-linked background animations — every frame
-          if (bgLightBand) {
-            bgLightBand.style.top = `${10 + progress * 70}%`;
-          }
-          if (bgLightBand2) {
-            bgLightBand2.style.top = `${75 - progress * 55}%`;
-          }
-          if (bgLightBandV) {
-            bgLightBandV.style.left = `${35 + progress * 30}%`;
-          }
-          if (bgMesh) {
-            bgMesh.style.transform = `rotate(${progress * 15}deg) scale(${1 + progress * 0.2})`;
-            bgMesh.style.opacity = `${0.012 + Math.sin(progress * Math.PI) * 0.008}`;
-          }
-          if (bgLightRays) {
-            bgLightRays.style.opacity = `${0.015 + Math.sin(progress * Math.PI * 2) * 0.02}`;
-          }
-          if (bgLightRays2) {
-            bgLightRays2.style.opacity = `${0.008 + Math.cos(progress * Math.PI * 2) * 0.012}`;
-          }
-          if (bgShapes) {
-            bgShapes.style.transform = `rotate(${progress * 20}deg)`;
-            bgShapes.style.opacity = `${0.7 + Math.sin(progress * Math.PI) * 0.3}`;
-          }
-          if (bgAurora) {
-            bgAurora.style.top = `${25 + progress * 20}%`;
-            bgAurora.style.opacity = `${0.02 + Math.sin(progress * Math.PI) * 0.025}`;
-          }
-          if (bgGridLines) {
-            bgGridLines.style.opacity = `${0.006 + Math.sin(progress * Math.PI * 3) * 0.004}`;
-          }
-          // Particles react to scroll — drift + scale
-          bgParticles.forEach((p, i) => {
-            const driftY = Math.sin(progress * Math.PI * 2 + i * 0.4) * 12;
-            const driftX = Math.cos(progress * Math.PI * 1.5 + i * 0.6) * 6;
-            const pScale = 1 + Math.sin(progress * Math.PI + i * 0.3) * 0.3;
-            p.style.transform = `translate(${driftX}px, ${driftY}px) scale(${pScale})`;
-          });
+          // Scroll-linked background — GPU-friendly transforms only
+          const sinP = Math.sin(progress * Math.PI);
+          const sin2P = Math.sin(progress * Math.PI * 2);
+
+          if (bgLightBand) bgLightBand.style.transform = `translateY(${progress * 70}vh)`;
+          if (bgLightBand2) bgLightBand2.style.transform = `translateY(${-progress * 55}vh)`;
+          if (bgLightBandV) bgLightBandV.style.transform = `translateX(${progress * 30}vw)`;
+          if (bgMesh) bgMesh.style.transform = `rotate(${progress * 15}deg) scale(${1 + progress * 0.2})`;
+          if (bgShapes) bgShapes.style.transform = `rotate(${progress * 20}deg)`;
+          if (bgWaves) bgWaves.style.transform = `translateY(${progress * -30}px)`;
+          if (bgAurora) bgAurora.style.transform = `translateY(${progress * 20}vh)`;
+
+          // Opacity changes — less frequent, only when noticeable
+          if (bgLightRays) bgLightRays.style.opacity = `${0.015 + sin2P * 0.02}`;
+          if (bgLightRays2) bgLightRays2.style.opacity = `${0.008 + Math.cos(progress * Math.PI * 2) * 0.012}`;
+          if (bgWaves) bgWaves.style.opacity = `${0.7 + sinP * 0.3}`;
+          if (bgAurora) bgAurora.style.opacity = `${0.02 + sinP * 0.025}`;
 
           if (currentStep !== prevStep) {
             // Animate background per scene — all layers
@@ -870,10 +848,6 @@ export function PhoneJourney({ hero, scenes, pricing, cta }: PhoneJourneyProps) 
               if (bgMesh) {
                 gsap.to(bgMesh, { rotation: sceneBg.meshAngle, duration: 1.5, ease: 'power1.inOut' });
               }
-              // Particle opacity shift per scene
-              bgParticles.forEach((p) => {
-                gsap.to(p, { opacity: sceneBg.particleOpacity, duration: 0.8, ease: 'power1.inOut' });
-              });
               // Rays intensity per scene
               if (bgLightRays) {
                 gsap.to(bgLightRays, { opacity: sceneBg.raysOpacity, duration: 1, ease: 'power1.inOut' });
@@ -1161,7 +1135,7 @@ export function PhoneJourney({ hero, scenes, pricing, cta }: PhoneJourneyProps) 
           />
 
           {/* Layer 2: Crosshatch / mesh grid — moves with scroll */}
-          <svg className="bg-mesh absolute inset-0 w-full h-full opacity-[0.015]" xmlns="http://www.w3.org/2000/svg">
+          <svg className="bg-mesh absolute inset-0 w-full h-full opacity-[0.015] will-change-transform" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="mesh" width="60" height="60" patternUnits="userSpaceOnUse">
                 <path d="M60 0L0 60M45 0L0 45M60 15L15 60M30 0L0 30M60 30L30 60" stroke="currentColor" strokeWidth="0.5" fill="none" />
@@ -1229,7 +1203,7 @@ export function PhoneJourney({ hero, scenes, pricing, cta }: PhoneJourneyProps) 
           />
 
           {/* Layer 8: Geometric shapes — mixed animations */}
-          <div className="bg-shapes absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="bg-shapes absolute inset-0 pointer-events-none overflow-hidden will-change-transform">
             {/* Rotating rings — different sizes */}
             <div className="absolute top-[20%] left-[8%] w-[120px] h-[120px] rounded-full border border-primary/[0.06]" style={{ animation: 'spin-slow 30s linear infinite' }} />
             <div className="absolute bottom-[25%] right-[10%] w-[80px] h-[80px] rounded-full border border-primary/[0.04]" style={{ animation: 'spin-slow 20s linear infinite reverse' }} />
@@ -1286,24 +1260,23 @@ export function PhoneJourney({ hero, scenes, pricing, cta }: PhoneJourneyProps) 
             })}
           </div>
 
-          {/* Layer 10: Horizontal light bands — scroll-linked */}
+          {/* Layer 10: Light bands — scroll-linked, GPU-accelerated */}
           <div
-            className="bg-light-band absolute left-0 right-0 h-[250px] blur-[80px] opacity-[0.035] bg-gradient-to-r from-transparent via-primary to-transparent"
-            style={{ top: '40%' }}
+            className="bg-light-band absolute left-0 right-0 h-[250px] blur-[80px] opacity-[0.035] bg-gradient-to-r from-transparent via-primary to-transparent will-change-transform"
+            style={{ top: '10%' }}
           />
           <div
-            className="bg-light-band-2 absolute left-0 right-0 h-[180px] blur-[60px] opacity-[0.02] bg-gradient-to-r from-transparent via-primary/50 to-transparent"
-            style={{ top: '60%' }}
+            className="bg-light-band-2 absolute left-0 right-0 h-[180px] blur-[60px] opacity-[0.02] bg-gradient-to-r from-transparent via-primary/50 to-transparent will-change-transform"
+            style={{ top: '75%' }}
           />
-          {/* Vertical light band */}
           <div
-            className="bg-light-band-v absolute top-0 bottom-0 w-[200px] blur-[70px] opacity-[0.02] bg-gradient-to-b from-transparent via-primary/40 to-transparent"
-            style={{ left: '50%', transform: 'translateX(-50%)' }}
+            className="bg-light-band-v absolute top-0 bottom-0 w-[200px] blur-[70px] opacity-[0.02] bg-gradient-to-b from-transparent via-primary/40 to-transparent will-change-transform"
+            style={{ left: '35%' }}
           />
 
           {/* Layer 11: Aurora / gradient wave */}
           <div
-            className="bg-aurora absolute w-full h-[40%] top-[30%] opacity-[0.03]"
+            className="bg-aurora absolute w-full h-[40%] top-[30%] opacity-[0.03] will-change-transform"
             style={{
               background: 'linear-gradient(90deg, transparent 0%, hsla(222,60%,50%,0.3) 20%, hsla(270,50%,50%,0.2) 40%, hsla(200,70%,50%,0.3) 60%, hsla(170,60%,40%,0.2) 80%, transparent 100%)',
               filter: 'blur(60px)',
@@ -1331,7 +1304,75 @@ export function PhoneJourney({ hero, scenes, pricing, cta }: PhoneJourneyProps) 
             }}
           />
 
-          {/* Layer 14: Vignette — darkens edges */}
+          {/* Layer 14: Flowing lines — curved strokes, different speeds */}
+          <div className="bg-waves absolute inset-0 pointer-events-none overflow-hidden will-change-transform">
+            {/* Horizontal flowing lines */}
+            {[
+              { y: '15%', opacity: 0.04, dur: 18, delay: 0 },
+              { y: '30%', opacity: 0.035, dur: 22, delay: -3 },
+              { y: '45%', opacity: 0.03, dur: 16, delay: -6 },
+              { y: '60%', opacity: 0.035, dur: 20, delay: -9 },
+              { y: '75%', opacity: 0.04, dur: 24, delay: -4 },
+              { y: '88%', opacity: 0.03, dur: 19, delay: -7 },
+            ].map((line, i) => (
+              <svg
+                key={`h-${i}`}
+                className="absolute left-0 w-[200%] h-[1px]"
+                style={{ top: line.y, opacity: line.opacity, animation: `line-flow-h ${line.dur}s linear infinite`, animationDelay: `${line.delay}s` }}
+                viewBox="0 0 2000 2"
+                preserveAspectRatio="none"
+              >
+                <path
+                  d={`M0,1 Q250,${i % 2 === 0 ? -8 : 10} 500,1 T1000,1 T1500,1 T2000,1`}
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="1"
+                  fill="none"
+                />
+              </svg>
+            ))}
+
+            {/* Vertical flowing lines */}
+            {[
+              { x: '12%', opacity: 0.03, dur: 25, delay: 0 },
+              { x: '35%', opacity: 0.025, dur: 20, delay: -5 },
+              { x: '65%', opacity: 0.025, dur: 22, delay: -3 },
+              { x: '88%', opacity: 0.03, dur: 28, delay: -8 },
+            ].map((line, i) => (
+              <svg
+                key={`v-${i}`}
+                className="absolute top-0 h-[200%] w-[1px]"
+                style={{ left: line.x, opacity: line.opacity, animation: `line-flow-v ${line.dur}s linear infinite`, animationDelay: `${line.delay}s` }}
+                viewBox="0 0 2 2000"
+                preserveAspectRatio="none"
+              >
+                <path
+                  d={`M1,0 Q${i % 2 === 0 ? -6 : 8},250 1,500 T1,1000 T1,1500 T1,2000`}
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="1"
+                  fill="none"
+                />
+              </svg>
+            ))}
+
+            {/* Diagonal flowing lines */}
+            {[
+              { x1: '-5%', y1: '0%', x2: '105%', y2: '100%', opacity: 0.02, dur: 30 },
+              { x1: '10%', y1: '0%', x2: '110%', y2: '80%', opacity: 0.015, dur: 26 },
+              { x1: '-10%', y1: '20%', x2: '100%', y2: '110%', opacity: 0.015, dur: 34 },
+            ].map((line, i) => (
+              <svg key={`d-${i}`} className="absolute inset-0 w-full h-full" style={{ opacity: line.opacity }}>
+                <line
+                  x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2}
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="0.5"
+                  strokeDasharray="8 16"
+                  style={{ animation: `line-dash ${line.dur}s linear infinite` }}
+                />
+              </svg>
+            ))}
+          </div>
+
+          {/* Layer 15: Vignette — darkens edges */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,hsl(var(--background))_100%)] opacity-40" />
         </div>
 

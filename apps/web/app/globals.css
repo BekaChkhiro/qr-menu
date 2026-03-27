@@ -222,6 +222,22 @@ html.lenis, html.lenis body {
     100% { transform: translateX(-15%) scaleY(1); }
   }
 
+  /* Line flow — horizontal drift */
+  @keyframes line-flow-h {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-50%); }
+  }
+  /* Line flow — vertical drift */
+  @keyframes line-flow-v {
+    0% { transform: translateY(0%); }
+    100% { transform: translateY(-50%); }
+  }
+  /* Line dash — stroke animation */
+  @keyframes line-dash {
+    0% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -48; }
+  }
+
   /* Floating particles — smaller, faster variant */
   .floating-particle {
     will-change: transform;
