@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { Upload, X, Loader2, ImageIcon, AlertCircle } from 'lucide-react';
+import { Upload, X, Loader2, ImageIcon, AlertCircle, Crop as CropIcon } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import {
   ALLOWED_MIME_TYPES,
 } from '@/lib/validations/upload';
 import type { ImagePreset } from '@/lib/cloudinary';
+import { ImageCropper, type CropAspect } from './image-cropper';
 
 interface ImageUploadProps {
   value?: string | null;
@@ -21,6 +22,7 @@ interface ImageUploadProps {
   disabled?: boolean;
   className?: string;
   aspectRatio?: 'square' | 'video' | 'wide';
+  enableCropper?: boolean;
 }
 
 const ASPECT_RATIOS = {
@@ -28,6 +30,12 @@ const ASPECT_RATIOS = {
   video: 'aspect-video',
   wide: 'aspect-[2/1]',
 } as const;
+
+const ASPECT_TO_CROP: Record<NonNullable<ImageUploadProps['aspectRatio']>, CropAspect> = {
+  square: 'square',
+  video: 'landscape',
+  wide: 'landscape',
+};
 
 export function ImageUpload({
   value,
@@ -37,10 +45,12 @@ export function ImageUpload({
   disabled = false,
   className,
   aspectRatio = 'square',
+  enableCropper = true,
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null);
 
   const { preview, createPreview, clearPreview } = useFilePreview();
   const { upload, isUploading } = useUpload({
@@ -55,28 +65,49 @@ export function ImageUpload({
     },
   });
 
+  const uploadBlob = useCallback(
+    async (blob: Blob, fileName: string) => {
+      const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+      const objUrl = URL.createObjectURL(file);
+      createPreview(file);
+      try {
+        await upload(file, { preset, folder });
+      } catch {
+        // handled in onError
+      }
+      URL.revokeObjectURL(objUrl);
+    },
+    [createPreview, upload, preset, folder]
+  );
+
   const handleFileSelect = useCallback(
     async (file: File) => {
       setError(null);
 
-      // Validate file
       const validation = validateFile(file);
       if (!validation.valid) {
         setError(validation.error);
         return;
       }
 
-      // Create preview
-      createPreview(file);
+      if (enableCropper) {
+        // Open cropper with this file
+        const reader = new FileReader();
+        reader.onload = () => {
+          setCropperSrc(String(reader.result));
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
 
-      // Upload file
+      createPreview(file);
       try {
         await upload(file, { preset, folder });
       } catch {
-        // Error handled in onError callback
+        // handled in onError
       }
     },
-    [upload, preset, folder, createPreview]
+    [upload, preset, folder, createPreview, enableCropper]
   );
 
   const handleInputChange = useCallback(
@@ -85,7 +116,6 @@ export function ImageUpload({
       if (file) {
         handleFileSelect(file);
       }
-      // Reset input to allow selecting the same file again
       e.target.value = '';
     },
     [handleFileSelect]
@@ -129,8 +159,14 @@ export function ImageUpload({
     }
   }, [disabled, isUploading]);
 
-  // Current display URL (preview takes precedence over value)
+  const handleRecrop = useCallback(async () => {
+    if (!value) return;
+    // Load current image into cropper (cross-origin must allow it)
+    setCropperSrc(value);
+  }, [value]);
+
   const displayUrl = preview || value;
+  const cropAspect: CropAspect = ASPECT_TO_CROP[aspectRatio];
 
   return (
     <div className={cn('space-y-2', className)}>
@@ -159,7 +195,6 @@ export function ImageUpload({
         }}
         aria-label={displayUrl ? 'Change image' : 'Upload image'}
       >
-        {/* Hidden file input */}
         <input
           ref={inputRef}
           type="file"
@@ -170,7 +205,6 @@ export function ImageUpload({
           aria-hidden="true"
         />
 
-        {/* Image preview */}
         {displayUrl && (
           <div className="absolute inset-0">
             <Image
@@ -180,7 +214,6 @@ export function ImageUpload({
               className="object-cover"
               sizes="(max-width: 768px) 100vw, 400px"
             />
-            {/* Overlay for hover state */}
             {!isUploading && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity hover:opacity-100">
                 <span className="text-sm font-medium text-white">Click to change</span>
@@ -189,7 +222,6 @@ export function ImageUpload({
           </div>
         )}
 
-        {/* Upload placeholder */}
         {!displayUrl && !isUploading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
             <div className="rounded-full bg-muted p-3">
@@ -210,7 +242,6 @@ export function ImageUpload({
           </div>
         )}
 
-        {/* Loading state */}
         {isUploading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/80">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -219,7 +250,6 @@ export function ImageUpload({
         )}
       </div>
 
-      {/* Error message */}
       {error && (
         <div className="flex items-center gap-2 text-sm text-destructive">
           <AlertCircle className="h-4 w-4" />
@@ -227,21 +257,49 @@ export function ImageUpload({
         </div>
       )}
 
-      {/* Remove button */}
       {displayUrl && !isUploading && !disabled && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleRemove();
+        <div className="flex gap-2">
+          {enableCropper && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRecrop();
+              }}
+              className="flex-1"
+            >
+              <CropIcon className="mr-2 h-4 w-4" />
+              Recrop
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRemove();
+            }}
+            className="flex-1"
+          >
+            <X className="mr-2 h-4 w-4" />
+            Remove
+          </Button>
+        </div>
+      )}
+
+      {cropperSrc && (
+        <ImageCropper
+          open={!!cropperSrc}
+          onOpenChange={(v) => !v && setCropperSrc(null)}
+          imageSrc={cropperSrc}
+          defaultAspect={cropAspect}
+          onCropConfirm={async (blob) => {
+            await uploadBlob(blob, `cropped-${Date.now()}.jpg`);
           }}
-          className="w-full"
-        >
-          <X className="mr-2 h-4 w-4" />
-          Remove Image
-        </Button>
+        />
       )}
     </div>
   );

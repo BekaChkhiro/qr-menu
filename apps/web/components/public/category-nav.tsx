@@ -9,6 +9,7 @@ interface Category {
   nameKa: string;
   nameEn: string | null;
   nameRu: string | null;
+  iconUrl?: string | null;
 }
 
 interface CategoryNavProps {
@@ -117,7 +118,7 @@ export function CategoryNav({ categories, locale }: CategoryNavProps) {
                 aria-selected={isActive}
                 aria-controls={`category-${category.id}`}
                 className={cn(
-                  'px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap flex-shrink-0',
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap flex-shrink-0',
                   'transition-all duration-200 touch-feedback',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
                   isActive
@@ -125,6 +126,15 @@ export function CategoryNav({ categories, locale }: CategoryNavProps) {
                     : 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground'
                 )}
               >
+                {category.iconUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={category.iconUrl}
+                    alt=""
+                    className="h-4 w-4 object-contain"
+                    aria-hidden
+                  />
+                )}
                 {getCategoryName(category, locale)}
               </button>
             );

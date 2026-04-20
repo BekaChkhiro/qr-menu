@@ -36,6 +36,7 @@ export const createPromotionSchema = z
     startDate: z.coerce.date(),
     endDate: z.coerce.date(),
     isActive: z.boolean().default(true),
+    sortOrder: z.number().int().nonnegative().optional(),
   })
   .refine((data) => data.endDate > data.startDate, {
     message: 'End date must be after start date',
@@ -79,6 +80,7 @@ export const updatePromotionSchema = z
     startDate: z.coerce.date().optional(),
     endDate: z.coerce.date().optional(),
     isActive: z.boolean().optional(),
+    sortOrder: z.number().int().nonnegative().optional(),
   })
   .refine(
     (data) => {
@@ -93,6 +95,16 @@ export const updatePromotionSchema = z
     }
   );
 
+// Reorder promotions schema
+export const reorderPromotionsSchema = z.object({
+  promotions: z.array(
+    z.object({
+      id: z.string().cuid(),
+      sortOrder: z.number().int().nonnegative(),
+    })
+  ),
+});
+
 // Promotion query params schema
 export const promotionQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -103,4 +115,5 @@ export const promotionQuerySchema = z.object({
 
 export type CreatePromotionInput = z.infer<typeof createPromotionSchema>;
 export type UpdatePromotionInput = z.infer<typeof updatePromotionSchema>;
+export type ReorderPromotionsInput = z.infer<typeof reorderPromotionsSchema>;
 export type PromotionQueryInput = z.infer<typeof promotionQuerySchema>;

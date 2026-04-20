@@ -17,6 +17,7 @@ import { PromotionsList } from '@/components/admin/promotions-list';
 import { QRCodeDialog } from '@/components/admin/qr-code-dialog';
 import { PhonePreview, PhonePreviewSkeleton } from '@/components/admin/phone-preview';
 import { AnalyticsContent } from '@/components/admin/analytics-content';
+import { MenuSettingsForm } from '@/components/admin/menu-settings-form';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -180,6 +181,9 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
               <TabsTrigger value="analytics" className="flex-1">
                 {t('sidebar.analytics')}
               </TabsTrigger>
+              <TabsTrigger value="settings" className="flex-1">
+                Settings
+              </TabsTrigger>
               <TabsTrigger value="info" className="flex-1">
                 {t('menus.info.title')}
               </TabsTrigger>
@@ -297,6 +301,14 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
 
             <TabsContent value="analytics" className="mt-4">
               <AnalyticsContent menuId={id} />
+            </TabsContent>
+
+            <TabsContent value="settings" className="mt-4">
+              <Card className="rounded-2xl">
+                <CardContent className="px-6 pt-6">
+                  <MenuSettingsForm menu={menu} />
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="info" className="mt-4">

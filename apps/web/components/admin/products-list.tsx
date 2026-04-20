@@ -29,6 +29,7 @@ import {
   EyeOff,
   ImageIcon,
   Lock,
+  Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -53,10 +54,50 @@ import {
   useCreateProduct,
   useUpdateProduct,
   useDeleteProduct,
+  useDuplicateProduct,
   useReorderProducts,
 } from '@/hooks/use-products';
 import { useUserPlan } from '@/hooks/use-user-plan';
-import type { Product, Category } from '@/types/menu';
+import type { Product, Category, Allergen, Ribbon } from '@/types/menu';
+
+/** Convert optional numeric form string to number or null. */
+function numOrNull(v: string | undefined): number | null {
+  if (!v || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function intOrNull(v: string | undefined): number | null {
+  if (!v || v === '') return null;
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formToApi(data: ProductFormValues) {
+  return {
+    categoryId: data.categoryId,
+    nameKa: data.nameKa,
+    nameEn: data.nameEn || null,
+    nameRu: data.nameRu || null,
+    descriptionKa: data.descriptionKa || null,
+    descriptionEn: data.descriptionEn || null,
+    descriptionRu: data.descriptionRu || null,
+    price: parseFloat(data.price),
+    oldPrice: numOrNull(data.oldPrice),
+    currency: 'GEL',
+    imageUrl: data.imageUrl || null,
+    allergens: (data.allergens || []) as Allergen[],
+    ribbons: (data.ribbons || []) as Ribbon[],
+    isVegan: data.isVegan ?? false,
+    isVegetarian: data.isVegetarian ?? false,
+    calories: intOrNull(data.calories),
+    protein: numOrNull(data.protein),
+    fats: numOrNull(data.fats),
+    carbs: numOrNull(data.carbs),
+    fiber: numOrNull(data.fiber),
+    isAvailable: data.isAvailable,
+  };
+}
 
 interface ProductsListProps {
   menuId: string;
@@ -85,6 +126,7 @@ export function ProductsList({
   const createProduct = useCreateProduct(menuId);
   const updateProduct = useUpdateProduct(menuId, productToEdit?.id || '');
   const deleteProduct = useDeleteProduct(menuId);
+  const duplicateProduct = useDuplicateProduct(menuId);
   const reorderProducts = useReorderProducts(menuId, categoryId);
 
   const { plan, canCreate } = useUserPlan();
@@ -117,22 +159,8 @@ export function ProductsList({
   };
 
   const handleCreate = async (data: ProductFormValues) => {
-    const productData = {
-      categoryId: data.categoryId,
-      nameKa: data.nameKa,
-      nameEn: data.nameEn || null,
-      nameRu: data.nameRu || null,
-      descriptionKa: data.descriptionKa || null,
-      descriptionEn: data.descriptionEn || null,
-      descriptionRu: data.descriptionRu || null,
-      price: parseFloat(data.price),
-      currency: 'GEL',
-      imageUrl: data.imageUrl || null,
-      allergens: (data.allergens || []) as ('GLUTEN' | 'DAIRY' | 'EGGS' | 'NUTS' | 'SEAFOOD' | 'SOY' | 'PORK')[],
-      isAvailable: data.isAvailable,
-    };
     try {
-      await createProduct.mutateAsync(productData);
+      await createProduct.mutateAsync(formToApi(data));
       setIsCreateOpen(false);
       toast.success(t('toast.created'));
     } catch (error) {
@@ -142,21 +170,8 @@ export function ProductsList({
 
   const handleUpdate = async (data: ProductFormValues) => {
     if (!productToEdit) return;
-    const productData = {
-      categoryId: data.categoryId,
-      nameKa: data.nameKa,
-      nameEn: data.nameEn || null,
-      nameRu: data.nameRu || null,
-      descriptionKa: data.descriptionKa || null,
-      descriptionEn: data.descriptionEn || null,
-      descriptionRu: data.descriptionRu || null,
-      price: parseFloat(data.price),
-      imageUrl: data.imageUrl || null,
-      allergens: (data.allergens || []) as ('GLUTEN' | 'DAIRY' | 'EGGS' | 'NUTS' | 'SEAFOOD' | 'SOY' | 'PORK')[],
-      isAvailable: data.isAvailable,
-    };
     try {
-      await updateProduct.mutateAsync(productData);
+      await updateProduct.mutateAsync(formToApi(data));
       setProductToEdit(null);
       toast.success(t('toast.updated'));
     } catch (error) {
@@ -172,6 +187,19 @@ export function ProductsList({
       toast.success(t('toast.deleted'));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('toast.deleteError'));
+    }
+  };
+
+  const handleDuplicate = async (product: Product) => {
+    if (!canAddProduct) {
+      setShowUpgradePrompt(true);
+      return;
+    }
+    try {
+      await duplicateProduct.mutateAsync(product.id);
+      toast.success('Product duplicated');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('toast.createError'));
     }
   };
 
@@ -248,7 +276,9 @@ export function ProductsList({
                   key={product.id}
                   product={product}
                   onEdit={() => setProductToEdit(product)}
+                  onDuplicate={() => handleDuplicate(product)}
                   onDelete={() => setProductToDelete(product)}
+                  isDuplicating={duplicateProduct.isPending}
                 />
               ))}
             </div>
@@ -320,10 +350,18 @@ export function ProductsList({
 interface SortableProductItemProps {
   product: Product;
   onEdit: () => void;
+  onDuplicate: () => void;
   onDelete: () => void;
+  isDuplicating?: boolean;
 }
 
-function SortableProductItem({ product, onEdit, onDelete }: SortableProductItemProps) {
+function SortableProductItem({
+  product,
+  onEdit,
+  onDuplicate,
+  onDelete,
+  isDuplicating = false,
+}: SortableProductItemProps) {
   const tStatus = useTranslations('status');
   const tVariations = useTranslations('admin.products.variations');
   const tA11y = useTranslations('common.accessibility');
@@ -419,6 +457,16 @@ function SortableProductItem({ product, onEdit, onDelete }: SortableProductItemP
             aria-label={`${tActions('edit')} ${product.nameKa}`}
           >
             <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 focus-ring"
+            onClick={onDuplicate}
+            disabled={isDuplicating}
+            aria-label={`Duplicate ${product.nameKa}`}
+          >
+            <Copy className="h-3.5 w-3.5" aria-hidden="true" />
           </Button>
           <Button
             variant="ghost"

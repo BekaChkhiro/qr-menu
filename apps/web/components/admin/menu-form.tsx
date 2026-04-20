@@ -105,7 +105,7 @@ export function MenuForm({ menu, onSubmit, isLoading }: MenuFormProps) {
                 </div>
               </FormControl>
               <FormDescription>
-                {t('slugHelp')}
+                {t('slugHelp', { slug: slugValue || 'your-slug' })}
               </FormDescription>
               <FormMessage />
             </FormItem>

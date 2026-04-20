@@ -28,6 +28,7 @@ import {
   ChevronDown,
   ChevronRight,
   Lock,
+  Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -58,6 +59,7 @@ import {
   useCreateCategory,
   useUpdateCategory,
   useDeleteCategory,
+  useDuplicateCategory,
   useReorderCategories,
 } from '@/hooks/use-categories';
 import { useUserPlan } from '@/hooks/use-user-plan';
@@ -85,6 +87,7 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
   const createCategory = useCreateCategory(menuId);
   const updateCategory = useUpdateCategory(menuId, categoryToEdit?.id || '');
   const deleteCategory = useDeleteCategory(menuId);
+  const duplicateCategory = useDuplicateCategory(menuId);
   const reorderCategories = useReorderCategories(menuId);
 
   const { plan, canCreate, getLimit } = useUserPlan();
@@ -159,6 +162,19 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
       toast.success(t('toast.deleted'));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('toast.deleteError'));
+    }
+  };
+
+  const handleDuplicate = async (category: Category) => {
+    if (!canAddCategory) {
+      setShowUpgradePrompt(true);
+      return;
+    }
+    try {
+      await duplicateCategory.mutateAsync(category.id);
+      toast.success('Category duplicated');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('toast.createError'));
     }
   };
 
@@ -249,7 +265,9 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
                   isExpanded={expandedCategories.has(category.id)}
                   onToggleExpand={() => toggleExpanded(category.id)}
                   onEdit={() => setCategoryToEdit(category)}
+                  onDuplicate={() => handleDuplicate(category)}
                   onDelete={() => setCategoryToDelete(category)}
+                  isDuplicating={duplicateCategory.isPending}
                   showAllergens={showAllergens}
                   totalMenuProducts={totalMenuProducts}
                 />
@@ -322,7 +340,9 @@ interface SortableCategoryItemProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
   onEdit: () => void;
+  onDuplicate: () => void;
   onDelete: () => void;
+  isDuplicating?: boolean;
   showAllergens?: boolean;
   totalMenuProducts?: number;
 }
@@ -334,7 +354,9 @@ function SortableCategoryItem({
   isExpanded,
   onToggleExpand,
   onEdit,
+  onDuplicate,
   onDelete,
+  isDuplicating = false,
   showAllergens = false,
   totalMenuProducts = 0,
 }: SortableCategoryItemProps) {
@@ -420,6 +442,16 @@ function SortableCategoryItem({
                 className="focus-ring"
               >
                 <Pencil className="h-4 w-4" aria-hidden="true" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onDuplicate}
+                disabled={isDuplicating}
+                aria-label={`Duplicate ${category.nameKa}`}
+                className="focus-ring"
+              >
+                <Copy className="h-4 w-4" aria-hidden="true" />
               </Button>
               <Button
                 variant="ghost"

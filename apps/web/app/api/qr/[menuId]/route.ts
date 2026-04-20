@@ -6,8 +6,10 @@ import {
   getPublicMenuUrl,
   isValidQRFormat,
   isValidQRSize,
+  isValidQRStyle,
   type QRFormat,
   type QRSize,
+  type QRStyle,
 } from '@/lib/qr';
 import {
   createErrorResponse,
@@ -21,12 +23,15 @@ interface RouteParams {
 
 /**
  * GET /api/qr/:menuId
- * Generate a QR code for a menu
+ * Generate a QR code for a menu.
  *
- * Query parameters:
- * - format: 'png' | 'svg' (default: 'png')
- * - size: 'small' | 'medium' | 'large' (default: 'medium')
- * - download: 'true' | 'false' (default: 'false') - triggers download with Content-Disposition
+ * Query params:
+ * - format: png | svg (default png)
+ * - size: small | medium | large (default medium)
+ * - download: true | false
+ * - fg / bg: hex overrides (falls back to menu settings)
+ * - style: SQUARE | ROUNDED | DOTS (falls back to menu settings)
+ * - logo: 'menu' | 'custom' | 'none' (default: 'menu' — use menu.qrLogoUrl)
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
@@ -43,80 +48,84 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { menuId } = await params;
     const { searchParams } = new URL(request.url);
 
-    // Parse query parameters
     const formatParam = searchParams.get('format') || 'png';
     const sizeParam = searchParams.get('size') || 'medium';
     const download = searchParams.get('download') === 'true';
+    const fgOverride = searchParams.get('fg');
+    const bgOverride = searchParams.get('bg');
+    const styleOverride = searchParams.get('style');
+    const logoMode = searchParams.get('logo') || 'menu';
 
-    // Validate format
     if (!isValidQRFormat(formatParam)) {
-      return createErrorResponse(
-        ERROR_CODES.VALIDATION_ERROR,
-        'Invalid format. Must be "png" or "svg"',
-        400
-      );
+      return createErrorResponse(ERROR_CODES.VALIDATION_ERROR, 'Invalid format', 400);
     }
-
-    // Validate size
     if (!isValidQRSize(sizeParam)) {
-      return createErrorResponse(
-        ERROR_CODES.VALIDATION_ERROR,
-        'Invalid size. Must be "small", "medium", or "large"',
-        400
-      );
+      return createErrorResponse(ERROR_CODES.VALIDATION_ERROR, 'Invalid size', 400);
+    }
+    if (styleOverride && !isValidQRStyle(styleOverride)) {
+      return createErrorResponse(ERROR_CODES.VALIDATION_ERROR, 'Invalid style', 400);
     }
 
-    const format: QRFormat = formatParam;
-    const size: QRSize = sizeParam;
-
-    // Fetch menu and verify ownership
     const menu = await prisma.menu.findUnique({
-      where: {
-        id: menuId,
-        userId: session.user.id,
-      },
+      where: { id: menuId, userId: session.user.id },
       select: {
         id: true,
         slug: true,
         name: true,
+        qrStyle: true,
+        qrForegroundColor: true,
+        qrBackgroundColor: true,
+        qrLogoUrl: true,
       },
     });
 
     if (!menu) {
-      return createErrorResponse(
-        ERROR_CODES.MENU_NOT_FOUND,
-        'Menu not found',
-        404
-      );
+      return createErrorResponse(ERROR_CODES.MENU_NOT_FOUND, 'Menu not found', 404);
     }
 
-    // Generate the public URL for this menu
     const publicUrl = getPublicMenuUrl(menu.slug);
 
-    // Generate the QR code
+    const darkColor =
+      (fgOverride && /^#[0-9A-Fa-f]{6}$/.test(fgOverride)
+        ? fgOverride
+        : menu.qrForegroundColor) || '#000000';
+    const lightColor =
+      (bgOverride && /^#[0-9A-Fa-f]{6}$/.test(bgOverride)
+        ? bgOverride
+        : menu.qrBackgroundColor) || '#ffffff';
+    const style = (styleOverride as QRStyle | null) || menu.qrStyle || 'SQUARE';
+
+    let logoUrl: string | null = null;
+    if (logoMode === 'menu') {
+      logoUrl = menu.qrLogoUrl;
+    } else if (logoMode.startsWith('http')) {
+      // caller passed a direct URL
+      logoUrl = logoMode;
+    }
+
     const { data, contentType, filename } = await generateQRCode({
       url: publicUrl,
-      format,
-      size,
+      format: formatParam as QRFormat,
+      size: sizeParam as QRSize,
+      darkColor,
+      lightColor,
+      style,
+      logoUrl,
     });
 
-    // Create response headers
     const headers: Record<string, string> = {
       'Content-Type': contentType,
-      'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+      'Cache-Control': 'private, max-age=60',
     };
 
-    // Add download header if requested
     if (download) {
       headers['Content-Disposition'] = `attachment; filename="${filename}"`;
     }
 
-    // Return the QR code
-    if (format === 'svg') {
+    if (formatParam === 'svg') {
       return new NextResponse(data as string, { headers });
     }
 
-    // Convert Buffer to Uint8Array for NextResponse compatibility
     return new NextResponse(new Uint8Array(data as Buffer), { headers });
   } catch (error) {
     return handleApiError(error);

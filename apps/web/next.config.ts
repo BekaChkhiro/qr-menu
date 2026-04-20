@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'res.cloudinary.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
     ],
   },
 };
@@ -47,4 +51,8 @@ const sentryWebpackPluginOptions = {
 // Apply both plugins - withNextIntl first, then Sentry
 const configWithIntl = withNextIntl(nextConfig);
 
-export default withSentryConfig(configWithIntl, sentryWebpackPluginOptions);
+// Only wrap with Sentry when DSN is configured — avoids breaking local dev
+// when Sentry deps are not fully installed.
+export default process.env.SENTRY_DSN
+  ? withSentryConfig(configWithIntl, sentryWebpackPluginOptions)
+  : configWithIntl;

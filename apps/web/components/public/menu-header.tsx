@@ -12,9 +12,10 @@ interface MenuHeaderProps {
   description: string | null;
   logoUrl: string | null;
   locale: Locale;
+  enabledLocales?: Locale[];
 }
 
-export function MenuHeader({ name, description, logoUrl, locale }: MenuHeaderProps) {
+export function MenuHeader({ name, description, logoUrl, locale, enabledLocales }: MenuHeaderProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
@@ -55,7 +56,11 @@ export function MenuHeader({ name, description, logoUrl, locale }: MenuHeaderPro
             </div>
           </div>
           <div aria-label={languageLabel}>
-            <LanguageSwitcher currentLocale={locale} variant="compact" />
+            <LanguageSwitcher
+              currentLocale={locale}
+              variant="compact"
+              enabledLocales={enabledLocales}
+            />
           </div>
         </div>
       </div>

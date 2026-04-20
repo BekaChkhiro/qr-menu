@@ -67,6 +67,23 @@ export function useUpdateCategory(menuId: string, categoryId: string) {
 }
 
 /**
+ * Hook to duplicate a category (with all its products)
+ */
+export function useDuplicateCategory(menuId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<Category, ApiError, string>({
+    mutationFn: (categoryId) =>
+      api.post<Category>(`/menus/${menuId}/categories/${categoryId}/duplicate`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories.list(menuId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.menus.detail(menuId) });
+    },
+  });
+}
+
+/**
  * Hook to delete a category
  */
 export function useDeleteCategory(menuId: string) {

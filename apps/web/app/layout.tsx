@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { cookies } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
@@ -16,6 +16,13 @@ const inter = Inter({ subsets: ['latin', 'cyrillic', 'cyrillic-ext'] });
 export const metadata: Metadata = {
   title: 'Digital Menu - QR Code Menu Management',
   description: 'Create and manage digital menus for cafes and restaurants with QR codes',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  // Critical: do NOT set maximumScale / userScalable=no — breaks pinch-zoom a11y (WCAG 1.4.4)
+  viewportFit: 'cover', // extend under iOS notch; pair with env(safe-area-inset-*) in CSS
 };
 
 export default async function RootLayout({

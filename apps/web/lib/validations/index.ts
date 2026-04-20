@@ -56,9 +56,11 @@ export {
 export {
   createPromotionSchema,
   updatePromotionSchema,
+  reorderPromotionsSchema,
   promotionQuerySchema,
   type CreatePromotionInput,
   type UpdatePromotionInput,
+  type ReorderPromotionsInput,
   type PromotionQueryInput,
 } from './promotion';
 

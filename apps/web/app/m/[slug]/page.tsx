@@ -6,9 +6,10 @@ import { auth } from '@/lib/auth/auth';
 import { cacheGetOrSet, CACHE_KEYS, CACHE_TTL } from '@/lib/cache/redis';
 import { getLocaleFromCookie, LOCALE_COOKIE_NAME, type Locale } from '@/i18n/config';
 import { MenuHeader } from '@/components/public/menu-header';
-import { CategoryNav } from '@/components/public/category-nav';
-import { CategorySection } from '@/components/public/category-section';
-import { PromotionBanner } from '@/components/public/promotion-banner';
+import { MenuInfoWidget } from '@/components/public/menu-info-widget';
+import { MenuBody } from '@/components/public/menu-body';
+import { PromotionCarousel } from '@/components/public/promotion-carousel';
+import { FeaturedCarousel } from '@/components/public/featured-carousel';
 import { MenuFooter } from '@/components/public/menu-footer';
 import { ViewTracker } from '@/components/public/view-tracker';
 
@@ -17,187 +18,55 @@ interface PageProps {
   searchParams: Promise<{ preview?: string }>;
 }
 
-// Serialized types for client components (Decimal serializes to string via JSON)
-interface SerializedVariation {
-  id: string;
-  nameKa: string;
-  nameEn: string | null;
-  nameRu: string | null;
-  price: number | string; // Prisma Decimal serializes to string
-  sortOrder: number;
-}
-
-interface SerializedProduct {
-  id: string;
-  nameKa: string;
-  nameEn: string | null;
-  nameRu: string | null;
-  descriptionKa: string | null;
-  descriptionEn: string | null;
-  descriptionRu: string | null;
-  price: number | string; // Prisma Decimal serializes to string
-  currency: string;
-  imageUrl: string | null;
-  allergens: string[];
-  sortOrder: number;
-  variations: SerializedVariation[];
-}
-
-interface SerializedCategory {
-  id: string;
-  nameKa: string;
-  nameEn: string | null;
-  nameRu: string | null;
-  descriptionKa: string | null;
-  descriptionEn: string | null;
-  descriptionRu: string | null;
-  sortOrder: number;
-  products: SerializedProduct[];
-}
-
-interface SerializedPromotion {
-  id: string;
-  titleKa: string;
-  titleEn: string | null;
-  titleRu: string | null;
-  descriptionKa: string | null;
-  descriptionEn: string | null;
-  descriptionRu: string | null;
-  imageUrl: string | null;
-  startDate: string;
-  endDate: string;
-}
-
-interface SerializedMenu {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  logoUrl: string | null;
-  primaryColor: string | null;
-  accentColor: string | null;
-  status: string;
-  publishedAt: string | null;
-  categories: SerializedCategory[];
-  promotions: SerializedPromotion[];
-}
-
-/**
- * Serialize menu data for client components (convert Decimals to numbers, dates to strings)
- */
-function serializeMenuData(data: NonNullable<Awaited<ReturnType<typeof getPublicMenu>>>): SerializedMenu {
-  return JSON.parse(JSON.stringify(data));
-}
-
-async function getPublicMenu(slug: string) {
-  return cacheGetOrSet(
-    CACHE_KEYS.publicMenu(slug),
-    async () => {
-      return prisma.menu.findUnique({
-        where: {
-          slug,
-          status: 'PUBLISHED',
-        },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          description: true,
-          logoUrl: true,
-          primaryColor: true,
-          accentColor: true,
-          status: true,
-          publishedAt: true,
-          categories: {
-            orderBy: { sortOrder: 'asc' },
-            select: {
-              id: true,
-              nameKa: true,
-              nameEn: true,
-              nameRu: true,
-              descriptionKa: true,
-              descriptionEn: true,
-              descriptionRu: true,
-              sortOrder: true,
-              products: {
-                where: { isAvailable: true },
-                orderBy: { sortOrder: 'asc' },
-                select: {
-                  id: true,
-                  nameKa: true,
-                  nameEn: true,
-                  nameRu: true,
-                  descriptionKa: true,
-                  descriptionEn: true,
-                  descriptionRu: true,
-                  price: true,
-                  currency: true,
-                  imageUrl: true,
-                  allergens: true,
-                  sortOrder: true,
-                  variations: {
-                    orderBy: { sortOrder: 'asc' },
-                    select: {
-                      id: true,
-                      nameKa: true,
-                      nameEn: true,
-                      nameRu: true,
-                      price: true,
-                      sortOrder: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-          promotions: {
-            where: {
-              isActive: true,
-              startDate: { lte: new Date() },
-              endDate: { gte: new Date() },
-            },
-            orderBy: { startDate: 'asc' },
-            select: {
-              id: true,
-              titleKa: true,
-              titleEn: true,
-              titleRu: true,
-              descriptionKa: true,
-              descriptionEn: true,
-              descriptionRu: true,
-              imageUrl: true,
-              startDate: true,
-              endDate: true,
-            },
-          },
-        },
-      });
-    },
-    CACHE_TTL.PUBLIC_MENU
-  );
-}
-
-/**
- * Fetch menu for preview mode (owner only, skips publish check and cache)
- */
-async function getPreviewMenu(slug: string, userId: string) {
-  return prisma.menu.findUnique({
-    where: {
-      slug,
-      userId,
-    },
+// Shared select shape for menu fetch queries — kept identical between public and preview
+const menuSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  logoUrl: true,
+  primaryColor: true,
+  accentColor: true,
+  currencySymbol: true,
+  headingFont: true,
+  bodyFont: true,
+  enabledLanguages: true,
+  allergenDisplay: true,
+  caloriesDisplay: true,
+  showNutrition: true,
+  showDiscount: true,
+  splitByType: true,
+  menuLayout: true,
+  menuTemplate: true,
+  productCardStyle: true,
+  productTouchEffect: true,
+  address: true,
+  phone: true,
+  wifiSsid: true,
+  wifiPassword: true,
+  wcDirection: true,
+  wcImageUrl: true,
+  locationLat: true,
+  locationLng: true,
+  status: true,
+  publishedAt: true,
+  categories: {
+    orderBy: { sortOrder: 'asc' as const },
     select: {
       id: true,
-      name: true,
-      slug: true,
-      description: true,
-      logoUrl: true,
-      primaryColor: true,
-      accentColor: true,
-      status: true,
-      publishedAt: true,
-      categories: {
-        orderBy: { sortOrder: 'asc' },
+      nameKa: true,
+      nameEn: true,
+      nameRu: true,
+      descriptionKa: true,
+      descriptionEn: true,
+      descriptionRu: true,
+      iconUrl: true,
+      brandLabel: true,
+      type: true,
+      sortOrder: true,
+      products: {
+        where: { isAvailable: true },
+        orderBy: { sortOrder: 'asc' as const },
         select: {
           id: true,
           nameKa: true,
@@ -206,70 +75,90 @@ async function getPreviewMenu(slug: string, userId: string) {
           descriptionKa: true,
           descriptionEn: true,
           descriptionRu: true,
+          price: true,
+          oldPrice: true,
+          currency: true,
+          imageUrl: true,
+          imageFocalX: true,
+          imageFocalY: true,
+          imageZoom: true,
+          allergens: true,
+          ribbons: true,
+          isVegan: true,
+          isVegetarian: true,
+          calories: true,
+          protein: true,
+          fats: true,
+          carbs: true,
+          fiber: true,
           sortOrder: true,
-          products: {
-            where: { isAvailable: true },
-            orderBy: { sortOrder: 'asc' },
+          variations: {
+            orderBy: { sortOrder: 'asc' as const },
             select: {
               id: true,
               nameKa: true,
               nameEn: true,
               nameRu: true,
-              descriptionKa: true,
-              descriptionEn: true,
-              descriptionRu: true,
               price: true,
-              currency: true,
-              imageUrl: true,
-              allergens: true,
               sortOrder: true,
-              variations: {
-                orderBy: { sortOrder: 'asc' },
-                select: {
-                  id: true,
-                  nameKa: true,
-                  nameEn: true,
-                  nameRu: true,
-                  price: true,
-                  sortOrder: true,
-                },
-              },
             },
           },
         },
       },
-      promotions: {
-        where: {
-          isActive: true,
-          startDate: { lte: new Date() },
-          endDate: { gte: new Date() },
-        },
-        orderBy: { startDate: 'asc' },
-        select: {
-          id: true,
-          titleKa: true,
-          titleEn: true,
-          titleRu: true,
-          descriptionKa: true,
-          descriptionEn: true,
-          descriptionRu: true,
-          imageUrl: true,
-          startDate: true,
-          endDate: true,
-        },
-      },
     },
+  },
+  promotions: {
+    where: {
+      isActive: true,
+      startDate: { lte: new Date() },
+      endDate: { gte: new Date() },
+    },
+    orderBy: [{ sortOrder: 'asc' as const }, { startDate: 'asc' as const }],
+    select: {
+      id: true,
+      titleKa: true,
+      titleEn: true,
+      titleRu: true,
+      descriptionKa: true,
+      descriptionEn: true,
+      descriptionRu: true,
+      imageUrl: true,
+      startDate: true,
+      endDate: true,
+      sortOrder: true,
+    },
+  },
+};
+
+async function getPublicMenu(slug: string) {
+  return cacheGetOrSet(
+    CACHE_KEYS.publicMenu(slug),
+    async () => {
+      return prisma.menu.findUnique({
+        where: { slug, status: 'PUBLISHED' },
+        select: menuSelect,
+      });
+    },
+    CACHE_TTL.PUBLIC_MENU
+  );
+}
+
+async function getPreviewMenu(slug: string, userId: string) {
+  return prisma.menu.findUnique({
+    where: { slug, userId },
+    select: menuSelect,
   });
 }
+
+// Serialize Prisma data (Decimals/Dates → primitives) for client components
+type RawMenu = NonNullable<Awaited<ReturnType<typeof getPublicMenu>>>;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const menu = await getPublicMenu(slug);
 
   if (!menu) {
-    return {
-      title: 'Menu Not Found',
-    };
+    return { title: 'Menu Not Found' };
   }
 
   return {
@@ -289,17 +178,15 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
   const { preview } = await searchParams;
   const isPreview = preview === 'true';
 
-  let rawMenu: Awaited<ReturnType<typeof getPublicMenu>> = null;
+  let rawMenu: RawMenu | null = null;
 
   if (isPreview) {
-    // Preview mode: check auth and menu ownership
     const session = await auth();
     if (session?.user?.id) {
       rawMenu = await getPreviewMenu(slug, session.user.id);
     }
   }
 
-  // Fall back to normal published menu fetch
   if (!rawMenu) {
     rawMenu = await getPublicMenu(slug);
   }
@@ -308,19 +195,39 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
     notFound();
   }
 
-  // Serialize menu data to convert Prisma Decimals to plain numbers
-  const menu = serializeMenuData(rawMenu);
+  const menu = JSON.parse(JSON.stringify(rawMenu)) as RawMenuSerialized;
 
   const cookieStore = await cookies();
   const locale = getLocaleFromCookie(cookieStore.get(LOCALE_COOKIE_NAME)?.value) as Locale;
 
-  // Filter out empty categories (categories with no available products)
-  const categoriesWithProducts = menu.categories.filter(
-    (category) => category.products.length > 0
-  );
-
+  const categoriesWithProducts = menu.categories.filter((c) => c.products.length > 0);
   const hasPromotions = menu.promotions.length > 0;
   const hasCategories = categoriesWithProducts.length > 0;
+  const hasInfo = Boolean(menu.address || menu.phone || menu.wifiSsid || menu.wcDirection);
+
+  // Collect "featured" products — those with POPULAR, CHEF_CHOICE, or DAILY_DISH ribbons
+  const featuredProducts = categoriesWithProducts
+    .flatMap((c) => c.products)
+    .filter((p) =>
+      p.ribbons?.some((r) => r === 'POPULAR' || r === 'CHEF_CHOICE' || r === 'DAILY_DISH')
+    )
+    .slice(0, 8);
+
+  const currencySymbol = menu.currencySymbol || '₾';
+
+  const displaySettings = {
+    currencySymbol,
+    allergenDisplay: menu.allergenDisplay || 'TEXT',
+    caloriesDisplay: menu.caloriesDisplay || 'DIRECT',
+    showNutrition: menu.showNutrition ?? false,
+    showDiscount: menu.showDiscount ?? true,
+    productCardStyle: menu.productCardStyle || 'BORDERED',
+    productTouchEffect: menu.productTouchEffect || 'SCALE',
+  };
+
+  const splitByType = menu.splitByType ?? false;
+  const menuLayout = menu.menuLayout || 'LINEAR';
+  const menuTemplate = menu.menuTemplate || 'CLASSIC';
 
   return (
     <div
@@ -328,55 +235,63 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
       style={{
         '--primary-color': menu.primaryColor || '#000000',
         '--accent-color': menu.accentColor || '#666666',
+        ...(menu.headingFont ? { '--heading-font': `"${menu.headingFont}"` } : {}),
+        ...(menu.bodyFont ? { '--body-font': `"${menu.bodyFont}"` } : {}),
       } as React.CSSProperties}
     >
-      {/* Track menu view (skip in preview mode) */}
       {!isPreview && <ViewTracker menuId={menu.id} />}
 
-      {/* Menu Header */}
       <MenuHeader
         name={menu.name}
         description={menu.description}
         logoUrl={menu.logoUrl}
         locale={locale}
+        enabledLocales={
+          menu.enabledLanguages
+            ?.map((l) => l.toLowerCase())
+            .filter((l): l is Locale => l === 'ka' || l === 'en' || l === 'ru')
+        }
       />
 
-      {/* Promotions */}
+      {hasInfo && (
+        <MenuInfoWidget
+          address={menu.address}
+          phone={menu.phone}
+          wifiSsid={menu.wifiSsid}
+          wifiPassword={menu.wifiPassword}
+          wcDirection={menu.wcDirection}
+          wcImageUrl={menu.wcImageUrl}
+          locationLat={menu.locationLat}
+          locationLng={menu.locationLng}
+          locale={locale}
+        />
+      )}
+
       {hasPromotions && (
-        <section className="px-4 py-4">
-          <div className="max-w-2xl mx-auto space-y-3">
-            {menu.promotions.map((promotion) => (
-              <PromotionBanner
-                key={promotion.id}
-                promotion={promotion}
-                locale={locale}
-              />
-            ))}
-          </div>
-        </section>
+        <PromotionCarousel promotions={menu.promotions} locale={locale} />
       )}
 
-      {/* Category Navigation */}
-      {hasCategories && (
-        <CategoryNav categories={categoriesWithProducts} locale={locale} />
+      {featuredProducts.length > 0 && (
+        <FeaturedCarousel
+          products={featuredProducts}
+          locale={locale}
+          settings={displaySettings}
+        />
       )}
 
-      {/* Menu Content */}
-      <main id="main-content" className="px-4 pb-8" tabIndex={-1}>
-        <div className="max-w-2xl mx-auto">
-          {hasCategories ? (
-            <div className="space-y-8">
-              {categoriesWithProducts.map((category, index) => (
-                <CategorySection
-                  key={category.id}
-                  category={category}
-                  locale={locale}
-                  index={index}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12" role="status" aria-label={locale === 'ka' ? 'მენიუ ცარიელია' : locale === 'ru' ? 'Меню пусто' : 'Menu is empty'}>
+      {hasCategories ? (
+        <MenuBody
+          categories={categoriesWithProducts}
+          locale={locale}
+          settings={displaySettings}
+          layout={menuLayout}
+          splitByType={splitByType}
+          template={menuTemplate}
+        />
+      ) : (
+        <main id="main-content" className="px-4 pb-8" tabIndex={-1}>
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center py-12" role="status">
               <p className="text-muted-foreground">
                 {locale === 'ka'
                   ? 'მენიუ ცარიელია'
@@ -385,12 +300,120 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
                   : 'Menu is empty'}
               </p>
             </div>
-          )}
-        </div>
-      </main>
+          </div>
+        </main>
+      )}
 
-      {/* Footer */}
-      <MenuFooter locale={locale} />
+      <MenuFooter
+        locale={locale}
+        currencySymbol={currencySymbol}
+        allergenMode={displaySettings.allergenDisplay}
+        hasAllergens={categoriesWithProducts.some((c) =>
+          c.products.some((p) => p.allergens.length > 0)
+        )}
+      />
     </div>
   );
+}
+
+// ── Serialized types (decimals/dates become strings after JSON) ─────
+interface RawMenuSerialized {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  logoUrl: string | null;
+  primaryColor: string | null;
+  accentColor: string | null;
+  currencySymbol: string | null;
+  headingFont: string | null;
+  bodyFont: string | null;
+  enabledLanguages: string[];
+  allergenDisplay: 'TEXT' | 'ICON' | 'WARNING';
+  caloriesDisplay: 'DIRECT' | 'FLIP_REVEAL' | 'HIDDEN';
+  showNutrition: boolean;
+  showDiscount: boolean;
+  splitByType: boolean;
+  menuLayout: 'LINEAR' | 'CATEGORIES_FIRST';
+  menuTemplate: 'CLASSIC' | 'MAGAZINE' | 'COMPACT';
+  productCardStyle: 'FLAT' | 'BORDERED' | 'ELEVATED' | 'MINIMAL';
+  productTouchEffect: 'NONE' | 'SCALE' | 'GLOW' | 'GRADIENT';
+  address: string | null;
+  phone: string | null;
+  wifiSsid: string | null;
+  wifiPassword: string | null;
+  wcDirection: string | null;
+  wcImageUrl: string | null;
+  locationLat: number | string | null;
+  locationLng: number | string | null;
+  status: string;
+  publishedAt: string | null;
+  categories: SerializedCategory[];
+  promotions: SerializedPromotion[];
+}
+
+interface SerializedCategory {
+  id: string;
+  nameKa: string;
+  nameEn: string | null;
+  nameRu: string | null;
+  descriptionKa: string | null;
+  descriptionEn: string | null;
+  descriptionRu: string | null;
+  iconUrl: string | null;
+  brandLabel: string | null;
+  type: 'FOOD' | 'DRINK' | 'OTHER';
+  sortOrder: number;
+  products: SerializedProduct[];
+}
+
+interface SerializedProduct {
+  id: string;
+  nameKa: string;
+  nameEn: string | null;
+  nameRu: string | null;
+  descriptionKa: string | null;
+  descriptionEn: string | null;
+  descriptionRu: string | null;
+  price: number | string;
+  oldPrice: number | string | null;
+  currency: string;
+  imageUrl: string | null;
+  imageFocalX: number | null;
+  imageFocalY: number | null;
+  imageZoom: number | null;
+  allergens: string[];
+  ribbons: string[];
+  isVegan: boolean;
+  isVegetarian: boolean;
+  calories: number | null;
+  protein: number | string | null;
+  fats: number | string | null;
+  carbs: number | string | null;
+  fiber: number | string | null;
+  sortOrder: number;
+  variations: SerializedVariation[];
+}
+
+interface SerializedVariation {
+  id: string;
+  nameKa: string;
+  nameEn: string | null;
+  nameRu: string | null;
+  price: number | string;
+  sortOrder: number;
+}
+
+interface SerializedPromotion {
+  id: string;
+  titleKa: string;
+  titleEn: string | null;
+  titleRu: string | null;
+  descriptionKa: string | null;
+  descriptionEn: string | null;
+  descriptionRu: string | null;
+  imageUrl: string | null;
+  startDate: string;
+  endDate: string;
+  sortOrder: number;
 }

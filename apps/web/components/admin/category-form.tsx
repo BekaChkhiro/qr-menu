@@ -10,11 +10,20 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ImageUpload } from '@/components/admin/image-upload';
 import { createCategorySchema, type CreateCategoryInput } from '@/lib/validations/category';
 import type { Category } from '@/types/menu';
 
@@ -38,6 +47,9 @@ export function CategoryForm({ category, onSubmit, onCancel, isLoading }: Catego
       descriptionKa: category?.descriptionKa || '',
       descriptionEn: category?.descriptionEn || '',
       descriptionRu: category?.descriptionRu || '',
+      iconUrl: category?.iconUrl || '',
+      brandLabel: category?.brandLabel || '',
+      type: category?.type || 'OTHER',
     },
   });
 
@@ -135,6 +147,77 @@ export function CategoryForm({ category, onSubmit, onCancel, isLoading }: Catego
               <FormControl>
                 <Textarea className="resize-none" rows={2} {...field} value={field.value || ''} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Category type (for Foods/Drinks split) */}
+        <FormField
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>ტიპი (type)</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value || 'OTHER'}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="FOOD">🍽️ საჭმელი (Food)</SelectItem>
+                  <SelectItem value="DRINK">🥤 სასმელი (Drink)</SelectItem>
+                  <SelectItem value="OTHER">📋 სხვა (Other)</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                გამოიყენება &ldquo;Foods/Drinks split&rdquo; layout-ისთვის
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Brand label (optional) */}
+        <FormField
+          control={form.control}
+          name="brandLabel"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>ბრენდი (optional)</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="მაგ: Starbucks"
+                  {...field}
+                  value={field.value || ''}
+                />
+              </FormControl>
+              <FormDescription>
+                გამოჩნდება კატეგორიის დასახელების წინ
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Category icon */}
+        <FormField
+          control={form.control}
+          name="iconUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>კატეგორიის ხატულა (optional)</FormLabel>
+              <FormControl>
+                <ImageUpload
+                  value={field.value || null}
+                  onChange={(url) => field.onChange(url || '')}
+                  preset="logo"
+                  aspectRatio="square"
+                  enableCropper={false}
+                />
+              </FormControl>
+              <FormDescription>პატარა icon-ი კატეგორიის nav-ში</FormDescription>
               <FormMessage />
             </FormItem>
           )}

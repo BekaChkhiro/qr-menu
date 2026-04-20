@@ -37,11 +37,20 @@ const multiLangDescriptionSchema = {
     .optional(),
 };
 
+const categoryTypeValues = ['FOOD', 'DRINK', 'OTHER'] as const;
+
+const categoryExtras = {
+  iconUrl: z.string().url().nullable().optional(),
+  brandLabel: z.string().max(50).nullable().optional(),
+  type: z.enum(categoryTypeValues).optional(),
+};
+
 // Create category schema
 export const createCategorySchema = z.object({
   ...multiLangNameSchema,
   ...multiLangDescriptionSchema,
   sortOrder: z.number().int().nonnegative().optional(),
+  ...categoryExtras,
 });
 
 // Update category schema
@@ -63,6 +72,7 @@ export const updateCategorySchema = z.object({
     .optional(),
   ...multiLangDescriptionSchema,
   sortOrder: z.number().int().nonnegative().optional(),
+  ...categoryExtras,
 });
 
 // Reorder categories schema

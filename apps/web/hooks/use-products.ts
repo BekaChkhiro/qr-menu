@@ -100,6 +100,23 @@ export function useUpdateProduct(menuId: string, productId: string) {
 }
 
 /**
+ * Hook to duplicate a product
+ */
+export function useDuplicateProduct(menuId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<Product, ApiError, string>({
+    mutationFn: (productId) =>
+      api.post<Product>(`/menus/${menuId}/products/${productId}/duplicate`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories.list(menuId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.menus.detail(menuId) });
+    },
+  });
+}
+
+/**
  * Hook to delete a product
  */
 export function useDeleteProduct(menuId: string) {

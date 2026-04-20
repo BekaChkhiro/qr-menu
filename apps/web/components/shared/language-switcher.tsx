@@ -22,12 +22,15 @@ interface LanguageSwitcherProps {
   currentLocale: Locale;
   variant?: 'default' | 'compact';
   className?: string;
+  /** Restrict available locales (e.g. from menu.enabledLanguages). If omitted, all supported locales are shown. */
+  enabledLocales?: Locale[];
 }
 
 export function LanguageSwitcher({
   currentLocale,
   variant = 'default',
   className,
+  enabledLocales,
 }: LanguageSwitcherProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -38,6 +41,16 @@ export function LanguageSwitcher({
       router.refresh();
     });
   };
+
+  const availableLocales =
+    enabledLocales && enabledLocales.length > 0
+      ? locales.filter((l) => enabledLocales.includes(l))
+      : locales;
+
+  // If only one locale is enabled, hide the switcher entirely
+  if (availableLocales.length <= 1) {
+    return null;
+  }
 
   return (
     <DropdownMenu>
@@ -60,7 +73,7 @@ export function LanguageSwitcher({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {locales.map((locale) => (
+        {availableLocales.map((locale) => (
           <DropdownMenuItem
             key={locale}
             onClick={() => handleLocaleChange(locale)}

@@ -36,9 +36,74 @@ enum Allergen {
   DAIRY
   EGGS
   NUTS
+  PEANUTS
   SEAFOOD
+  FISH
+  SHELLFISH
   SOY
   PORK
+  SESAME
+  MUSTARD
+  CELERY
+  LUPIN
+  SULPHITES
+}
+
+enum Ribbon {
+  POPULAR
+  CHEF_CHOICE
+  DAILY_DISH
+  NEW
+  SPICY
+}
+
+enum AllergenDisplay {
+  TEXT
+  ICON
+  WARNING
+}
+
+enum CaloriesDisplay {
+  DIRECT
+  FLIP_REVEAL
+  HIDDEN
+}
+
+enum QrStyle {
+  SQUARE
+  ROUNDED
+  DOTS
+}
+
+enum CategoryType {
+  FOOD
+  DRINK
+  OTHER
+}
+
+enum MenuLayout {
+  LINEAR
+  CATEGORIES_FIRST
+}
+
+enum MenuTemplate {
+  CLASSIC
+  MAGAZINE
+  COMPACT
+}
+
+enum ProductCardStyle {
+  FLAT
+  BORDERED
+  ELEVATED
+  MINIMAL
+}
+
+enum ProductTouchEffect {
+  NONE
+  SCALE
+  GLOW
+  GRADIENT
 }
 
 // ============================================================================
@@ -132,9 +197,48 @@ model Menu {
   publishedAt DateTime?
 
   // Branding (PRO features)
-  logoUrl     String?
-  primaryColor String?   @default("#000000")
-  accentColor  String?   @default("#f59e0b")
+  logoUrl         String?
+  primaryColor    String?   @default("#000000")
+  accentColor     String?   @default("#f59e0b")
+  currencySymbol  String?   @default("₾")
+
+  // Typography (PRO)
+  headingFont     String?   @default("Noto Sans Georgian")
+  bodyFont        String?   @default("Noto Sans Georgian")
+
+  // Language configuration
+  enabledLanguages Language[] @default([KA])
+  customLanguages  Json?      // [{code:"de", label:"Deutsch"}, ...] — future extension
+
+  // Display settings
+  allergenDisplay AllergenDisplay @default(TEXT)
+  caloriesDisplay CaloriesDisplay @default(DIRECT)
+  showNutrition   Boolean         @default(false)
+  showDiscount    Boolean         @default(true)
+
+  // Layout & visual style
+  splitByType        Boolean            @default(false)
+  menuLayout         MenuLayout         @default(LINEAR)
+  menuTemplate       MenuTemplate       @default(CLASSIC)
+  productCardStyle   ProductCardStyle   @default(BORDERED)
+  productTouchEffect ProductTouchEffect @default(SCALE)
+
+  // Header info widget (address/wifi/WC)
+  address         String?   @db.Text
+  phone           String?
+  wifiSsid        String?
+  wifiPassword    String?
+  wcDirection     String?   @db.Text
+  wcImageUrl      String?
+  locationLat     Decimal?  @db.Decimal(10, 7)
+  locationLng     Decimal?  @db.Decimal(10, 7)
+
+  // QR design
+  qrStyle           QrStyle  @default(SQUARE)
+  qrForegroundColor String?  @default("#000000")
+  qrBackgroundColor String?  @default("#ffffff")
+  qrLogoUrl         String?
+  qrTemplate        String?  // preset template name
 
   // Relations
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -169,6 +273,13 @@ model Category {
   descriptionKa String? @db.Text
   descriptionEn String? @db.Text
   descriptionRu String? @db.Text
+
+  // Optional icon for category nav (icon-based category display)
+  iconUrl     String?
+  brandLabel  String?   // e.g. "Starbucks" before category title
+
+  // Type (for Foods/Drinks split layout)
+  type        CategoryType @default(OTHER)
 
   // Ordering
   sortOrder   Int       @default(0)
@@ -206,13 +317,31 @@ model Product {
 
   // Pricing
   price       Decimal             @db.Decimal(10, 2)
+  oldPrice    Decimal?            @db.Decimal(10, 2)  // crossed-out price when discount is shown
   currency    String              @default("GEL")
 
-  // Image
+  // Image + crop focal point (0.0-1.0 normalized coords)
   imageUrl    String?
+  imageFocalX Float?              @default(0.5)
+  imageFocalY Float?              @default(0.5)
+  imageZoom   Float?              @default(1.0)
 
-  // Allergens (PRO feature)
+  // Ribbons / badges
+  ribbons     Ribbon[]
+
+  // Dietary flags
+  isVegan       Boolean           @default(false)
+  isVegetarian  Boolean           @default(false)
+
+  // Allergens
   allergens   Allergen[]
+
+  // Nutrition (optional, PRO)
+  calories    Int?
+  protein     Decimal?            @db.Decimal(6, 2)
+  fats        Decimal?            @db.Decimal(6, 2)
+  carbs       Decimal?            @db.Decimal(6, 2)
+  fiber       Decimal?            @db.Decimal(6, 2)
 
   // Availability
   isAvailable Boolean             @default(true)
@@ -272,7 +401,7 @@ model Promotion {
   id          String    @id @default(cuid())
   menuId      String
 
-  // Multi-language content
+  // Multi-language content (description kept optional — carousel can be image-only)
   titleKa     String
   titleEn     String?
   titleRu     String?
@@ -281,8 +410,11 @@ model Promotion {
   descriptionEn String? @db.Text
   descriptionRu String? @db.Text
 
-  // Image
+  // Image / GIF (media for the carousel)
   imageUrl    String?
+
+  // Carousel order
+  sortOrder   Int       @default(0)
 
   // Validity period
   startDate   DateTime
@@ -300,6 +432,7 @@ model Promotion {
 
   @@index([menuId])
   @@index([menuId, isActive])
+  @@index([menuId, sortOrder])
   @@index([startDate, endDate])
   @@map("promotions")
 }

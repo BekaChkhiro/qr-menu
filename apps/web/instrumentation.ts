@@ -3,13 +3,14 @@
  * This file is used to initialize monitoring and tracing on both server and edge runtimes
  */
 export async function register() {
+  // Skip Sentry initialization entirely when DSN not configured (e.g. local dev).
+  if (!process.env.SENTRY_DSN) return;
+
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    // Server-side Sentry initialization
     await import('./sentry.server.config');
   }
 
   if (process.env.NEXT_RUNTIME === 'edge') {
-    // Edge runtime Sentry initialization
     await import('./sentry.edge.config');
   }
 }

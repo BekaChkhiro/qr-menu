@@ -194,7 +194,22 @@ export function MenuPreviewContent({ menu, locale }: MenuPreviewContentProps) {
       {/* Categories & Products */}
       <div className="px-4 pb-4">
         {visibleCategories.map((cat, index) => (
-          <CategorySection key={cat.id} category={cat} locale={locale} index={index} />
+          <CategorySection
+            key={cat.id}
+            category={cat}
+            locale={locale}
+            index={index}
+            template={menu.menuTemplate || 'CLASSIC'}
+            settings={{
+              currencySymbol: menu.currencySymbol || '₾',
+              allergenDisplay: menu.allergenDisplay || 'TEXT',
+              caloriesDisplay: menu.caloriesDisplay || 'DIRECT',
+              showNutrition: menu.showNutrition ?? false,
+              showDiscount: menu.showDiscount ?? true,
+              productCardStyle: menu.productCardStyle || 'BORDERED',
+              productTouchEffect: menu.productTouchEffect || 'SCALE',
+            }}
+          />
         ))}
       </div>
 
