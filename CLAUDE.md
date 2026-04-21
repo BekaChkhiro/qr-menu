@@ -400,8 +400,92 @@ Required environment variables (see `TECHNICAL_SPEC.md` section 20.1 for complet
 
 Always enforce these limits in API routes and UI.
 
+## Design System & Redesign Implementation
+
+**Status**: Active. `PROJECT_PLAN.md` Phases 9-17 are a complete rewrite of the admin UI against the Claude Design handoff bundle. If you're implementing any task with ID `T9.x`–`T17.x`, this section is mandatory reading.
+
+### Canonical design bundle
+
+The full visual design for the admin redesign is committed at **`qr-menu-design/`** (repo root). It is a Claude Design (claude.ai/design) export — HTML + JSX prototypes, **not** Pencil `.pen` files and **not** production code.
+
+```
+qr-menu-design/
+├── Digital Menu Dashboard.html   ← open in a browser to view the full canvas
+├── design-canvas.jsx             ← pan/zoom viewport frame
+└── components/
+    ├── sidebar.jsx               ← dmTheme object + sidebar (lines 4-23 = token source)
+    ├── admin-shell.jsx           ← reusable admin frame (sidebar + top bar + crumbs)
+    ├── icons.jsx                 ← lucide-style icon set (36 icons)
+    ├── dashboard-top.jsx         ← dashboard: Welcome / PlanUsage / Analytics / Device
+    ├── dashboard-bottom.jsx      ← dashboard: YourMenus / Activity / TopItems / Upgrade
+    ├── menus-pages.jsx           ← /admin/menus (grid + table + empty)
+    ├── menu-editor.jsx           ← /admin/menus/[id] editor shell + 7 tabs
+    ├── product-drawer.jsx        ← product editor slide-over (540px)
+    ├── analytics-page.jsx        ← Analytics tab (KPIs/chart/heatmap/geography/traffic)
+    ├── promotions-page.jsx       ← Promotions tab (list + drawer + FREE locked)
+    ├── qr-page.jsx               ← QR tab (customize + download + templates)
+    ├── settings-shell.jsx        ← /admin/settings shell + left nav rail
+    ├── settings-artboards-a.jsx  ← Profile / Business / Billing
+    ├── settings-artboards-b.jsx  ← Team / Notifications / Security / Language / MenuSettings
+    ├── component-library-a.jsx   ← Section H: Buttons / Forms / Feedback / DataDisplay
+    ├── component-library-b.jsx   ← Section H: Overlays / Navigation / Utility / Tokens
+    └── mobile.jsx                ← 375px mobile variant
+```
+
+To view artboards visually, open `qr-menu-design/Digital Menu Dashboard.html` in a browser. Do **not** try to execute the JSX files as source — they use `@babel/standalone` UMD and are for visual reference only.
+
+### Design tokens — do not invent values
+
+All design tokens live in **`docs/design-tokens.md`**: 16 colors (with hex + HSL), 7 type levels, 6 radii, 10 spacing steps, 6 shadows, typography features.
+
+**Rule**: never introduce a new color, radius, or shadow that isn't in `docs/design-tokens.md`. If a task genuinely needs a new one, update that file first and document why.
+
+The source `dmTheme` object is at `qr-menu-design/components/sidebar.jsx` lines 4-23; the Section H token showcase is at `qr-menu-design/components/component-library-b.jsx` lines 446-553.
+
+### Artboard → source file map
+
+When a `PROJECT_PLAN.md` task cites an artboard ID (e.g. `editor-content`, `pd-basics`, `an-full`), it refers to this canvas. Map:
+
+| Phase / area | Artboard IDs | Source JSX file(s) |
+|---|---|---|
+| Dashboard (Phase 11) | `main`, `empty`, `free-locked`, `collapsed` | `dashboard-top.jsx` + `dashboard-bottom.jsx` + `sidebar.jsx` |
+| Menus list (Phase 12) | `menus-grid`, `menus-table`, `menus-empty` | `menus-pages.jsx` |
+| Editor + Content (Phase 13) | `editor-content`, `editor-branding`, `editor-languages` | `menu-editor.jsx` |
+| Product drawer (Phase 14) | `pd-basics`, `pd-basics-new`, `pd-basics-error`, `pd-variations`, `pd-allergens-locked` | `product-drawer.jsx` |
+| Analytics tab (Phase 15) | `an-full`, `an-range`, `an-locked`, `an-empty` | `analytics-page.jsx` |
+| Promotions tab (Phase 15) | `promo-list`, `promo-locked`, `promo-drawer` | `promotions-page.jsx` |
+| QR tab (Phase 15) | `qr-starter`, `qr-pro`, `qr-templates` | `qr-page.jsx` |
+| Menu settings tab (Phase 15) | `settings-menu-tab` | `settings-artboards-b.jsx` → `MenuSettingsTab` |
+| Account settings (Phase 16) | `settings-profile`, `settings-business`, `settings-billing`, `settings-team-locked`, `settings-notifications`, `settings-security`, `settings-language` | `settings-artboards-a.jsx` + `settings-artboards-b.jsx` + `settings-shell.jsx` |
+| Mobile (Phase 17) | `mobile-main` | `mobile.jsx` |
+| Component library (Phase 10) | `component-library-board` | `component-library-a.jsx` + `component-library-b.jsx` |
+
+### How to implement a redesign task
+
+1. **Read the matching source JSX** from the table above — it has exact padding, colors, typography, and component structure
+2. **Look up every value in `docs/design-tokens.md`** — don't eyeball colors from the JSX inline styles; use the token names
+3. **Port to Tailwind + shadcn/ui** — do not copy the inline-style React patterns. Rewrite using Tailwind utility classes and the existing shadcn primitives (wrap or extend them where Section H demands more states)
+4. **Ship with Playwright tests (mandatory)** — every Phase 9-17 task requires BOTH visual baseline (`toHaveScreenshot`) AND functional assertions against real API/DB. No hard-coded mocks in tests.
+5. **Respect plan tiers** — FREE / STARTER / PRO only; see `lib/auth/permissions.ts`
+
+### Non-negotiables for redesign work
+
+- **Plan tiers**: FREE (0₾) / STARTER (29₾/mo) / PRO (59₾/mo) — never introduce a Business tier or other variants
+- **Sidebar items**: exactly 3 (Dashboard · Menus · Settings). Analytics, Promotions, QR are editor tabs — never top-level sidebar items
+- **Menu editor tabs**: exactly 7 in order — Content · Branding · Languages · Analytics · Promotions · QR · Settings
+- **Identity for seed / demo data**: café owner is "Nino Kapanadze" (nino@cafelinville.ge), business is "Café Linville", domain `cafelinville.ge`. Never "Anna" or "linville.ge"
+- **Georgian content**: use real Georgian names for seed products (ხაჭაპური აჭარული, ბადრიჯანი ნიგვზით, თარხუნის ლიმონათი, ჩაქაფული, ჩურჩხელა, ხინკალი) and cities (Tbilisi, Batumi, Kutaisi, Rustavi). Currency `₾` suffix with tabular-nums
+- **Icons**: lucide-react, stroke width 1.5, sizes 14/17/20px by context (compact / default / prominent)
+- **Cards**: 12px border-radius, 1px `hsl(var(--border))` border, near-invisible shadows (rely on borders for separation)
+- **Multi-language content fields** (product names, category names, descriptions): KA always enabled; EN/RU are locked on STARTER and unlocked on PRO — reflect this in every multi-language input
+
+---
+
 ## Additional Resources
 
+- Design tokens: `docs/design-tokens.md` ← start here for any redesign task
+- Design bundle: `qr-menu-design/` (open `Digital Menu Dashboard.html` in a browser)
+- Project plan: `PROJECT_PLAN.md` (Phases 9-17 are the redesign)
 - Full technical specification: `TECHNICAL_SPEC.md`
 - Functional specification (Georgian): `technical.md`
 - Prisma schema: `packages/database/prisma/schema.prisma`

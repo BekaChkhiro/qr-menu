@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Digital Menu — Admin Dashboard (Print)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;550;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-feature-settings: 'cv11', 'ss01';
+    }
+    html, body { margin: 0; padding: 0; background: #EDEBE6; }
+    body { font-family: inherit; color: #18181B; -webkit-font-smoothing: antialiased; }
+    * { box-sizing: border-box; }
+    button { font-family: inherit; }
+    h1, h2, h3 { font-family: inherit; }
+
+    /* Page wrapper — one per artboard */
+    .print-page {
+      width: 100vw;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 36px 48px;
+      page-break-after: always;
+      break-after: page;
+      background: #EDEBE6;
+    }
+    .print-page:last-child { page-break-after: auto; break-after: auto; }
+
+    .print-meta {
+      width: 100%;
+      max-width: 1440px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      font-size: 12px;
+      color: #71717A;
+    }
+    .print-meta .label {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #18181B;
+      letterspacing: -0.2px;
+    }
+    .print-meta .section {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #A1A1AA;
+      font-weight: 600;
+    }
+
+    .print-frame {
+      background: #fff;
+      border: 1px solid #E6E4DE;
+      border-radius: 14px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      overflow: hidden;
+    }
+
+    /* Phone pages center the device */
+    .print-page.phone .print-frame {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+
+    @page {
+      size: landscape;
+      margin: 0.4cm;
+    }
+    @page phone {
+      size: portrait;
+      margin: 0.4cm;
+    }
+
+    @media print {
+      html, body { background: #fff !important; }
+      .print-page {
+        padding: 0;
+        min-height: auto;
+        height: auto;
+        background: #fff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .print-meta { display: none; }
+      .print-frame {
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      .print-page.phone { page: phone; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="components/icons.jsx"></script>
+  <script type="text/babel" src="components/sidebar.jsx"></script>
+  <script type="text/babel" src="components/dashboard-top.jsx"></script>
+  <script type="text/babel" src="components/dashboard-bottom.jsx"></script>
+  <script type="text/babel" src="components/mobile.jsx"></script>
+  <script type="text/babel" src="components/admin-shell.jsx"></script>
+  <script type="text/babel" src="components/menus-pages.jsx"></script>
+  <script type="text/babel" src="components/menu-editor.jsx"></script>
+
+  <script type="text/babel">
+    // DashboardFrame local copy (no DesignCanvas needed in print)
+    function DashboardFrame({ plan = 'STARTER', collapsed = false, state = 'main' }) {
+      const showUpgrade = plan !== 'PRO';
+      return (
+        <div style={{
+          width: 1440, height: 980,
+          display: 'flex', background: dmTheme.bg,
+          fontSize: 14, color: dmTheme.text, overflow: 'hidden',
+        }}>
+          <DMSidebar collapsed={collapsed} plan={plan} activePath="dashboard" />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <DMTopBar />
+            <div style={{ flex: 1, overflow: 'hidden', padding: 24 }}>
+              <WelcomeHeader />
+              <PlanUsageStrip plan={plan} />
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 24 }}>
+                <AnalyticsCard locked={state === 'locked'} />
+                <DeviceCard />
+              </div>
+              {state === 'empty' ? <EmptyMenusCard /> : <YourMenus />}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: showUpgrade ? 24 : 0 }}>
+                <ActivityFeed />
+                <TopItems />
+              </div>
+              {showUpgrade && <UpgradeCard />}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // A scaled page — the frame is rendered at native size, then scaled to fit the paper.
+    // On screen we pick the larger-fit; in print the CSS rule overrides.
+    function ScaledFrame({ width, height, scale = 0.62, children }) {
+      return (
+        <div className="print-frame" style={{
+          width: width * scale,
+          height: height * scale,
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            width, height,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
+          }}>
+            {children}
+          </div>
+        </div>
+      );
+    }
+
+    function Page({ section, label, width, height, phone, children }) {
+      // landscape slides scale: 1440→fits ~270mm = ~1020px at 96dpi; target 0.62 for screen
+      const scale = phone ? 0.85 : 0.62;
+      return (
+        <div className={`print-page${phone ? ' phone' : ''}`}>
+          <div className="print-meta" style={{ maxWidth: width * scale + 40 }}>
+            <span className="label">{label}</span>
+            <span className="section">{section}</span>
+          </div>
+          <ScaledFrame width={width} height={height} scale={scale}>
+            {children}
+          </ScaledFrame>
+        </div>
+      );
+    }
+
+    function PrintApp() {
+      return (
+        <>
+          {/* ─── Primary dashboard ─── */}
+          <Page section="Primary" label="Dashboard · PRO · expanded" width={1440} height={980}>
+            <DashboardFrame plan="PRO" collapsed={false} state="main" />
+          </Page>
+
+          {/* ─── State variations ─── */}
+          <Page section="State variations" label="Empty state · 0 menus" width={1440} height={980}>
+            <DashboardFrame plan="STARTER" collapsed={false} state="empty" />
+          </Page>
+          <Page section="State variations" label="FREE · Analytics locked" width={1440} height={980}>
+            <DashboardFrame plan="FREE" collapsed={false} state="locked" />
+          </Page>
+          <Page section="State variations" label="Sidebar collapsed · 64px" width={1440} height={980}>
+            <DashboardFrame plan="PRO" collapsed={true} state="main" />
+          </Page>
+
+          {/* ─── A · Menus ─── */}
+          <Page section="A · Menus" label="/admin/menus · grid" width={1440} height={980}>
+            <AdminShell plan="STARTER" collapsed={false} activePath="menus"
+              crumbs={['Café Linville', 'Menus']}>
+              <MenusGridPage />
+            </AdminShell>
+          </Page>
+          <Page section="A · Menus" label="/admin/menus · table" width={1440} height={980}>
+            <AdminShell plan="STARTER" collapsed={false} activePath="menus"
+              crumbs={['Café Linville', 'Menus']}>
+              <MenusTablePage />
+            </AdminShell>
+          </Page>
+          <Page section="A · Menus" label="/admin/menus · empty" width={1440} height={980}>
+            <AdminShell plan="STARTER" collapsed={false} activePath="menus"
+              crumbs={['Café Linville', 'Menus']}>
+              <MenusEmptyPage />
+            </AdminShell>
+          </Page>
+
+          {/* ─── B · Menu editor ─── */}
+          <Page section="B · Menu editor" label="Editor · Content" width={1440} height={980}>
+            <AdminShell plan="PRO" collapsed={false} activePath="menus"
+              crumbs={['Café Linville', 'Menus', 'Main menu — All day']}>
+              <EditorContentPage />
+            </AdminShell>
+          </Page>
+          <Page section="B · Menu editor" label="Editor · Branding" width={1440} height={980}>
+            <AdminShell plan="PRO" collapsed={false} activePath="menus"
+              crumbs={['Café Linville', 'Menus', 'Main menu — All day']}>
+              <EditorBrandingPage />
+            </AdminShell>
+          </Page>
+          <Page section="B · Menu editor" label="Editor · Languages (STARTER locked)" width={1440} height={980}>
+            <AdminShell plan="STARTER" collapsed={false} activePath="menus"
+              crumbs={['Café Linville', 'Menus', 'Main menu — All day']}>
+              <EditorLanguagesPage plan="STARTER" />
+            </AdminShell>
+          </Page>
+
+          {/* ─── Mobile ─── */}
+          <Page section="Mobile · 375px" label="iPhone · Dashboard" width={375} height={812} phone>
+            <MobileDashboard />
+          </Page>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<PrintApp />);
+
+    // Auto-print after fonts + Babel + a safety delay
+    (async () => {
+      try {
+        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      } catch (e) {}
+      // Wait for React render to settle
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await new Promise(r => setTimeout(r, 800));
+      window.print();
+    })();
+  </script>
+</body>
+</html>

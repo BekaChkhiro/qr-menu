@@ -11,7 +11,15 @@ import { SkipLink, AnnouncerProvider } from '@/components/accessibility';
 import { getLocaleFromCookie, LOCALE_COOKIE_NAME } from '@/i18n/config';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin', 'cyrillic', 'cyrillic-ext'] });
+// Note: Inter supports discrete weights 100-900 in steps of 100 via Google Fonts.
+// Section H spec requests 450 and 550 which are not available as discrete weights
+// (they would require the variable font axis). Using 400, 500, 600, 700 instead.
+const inter = Inter({
+  subsets: ['latin', 'cyrillic', 'cyrillic-ext'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Digital Menu - QR Code Menu Management',
@@ -39,7 +47,7 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale}>
+    <html lang={locale} className={inter.variable}>
       <body className={inter.className}>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <AnnouncerProvider>
