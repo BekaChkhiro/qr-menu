@@ -822,7 +822,7 @@ digital-menu/
 **Testing Mandate**: Every UI task in phases 9-17 MUST ship with Playwright tests that verify **both** visual fidelity (against a committed baseline screenshot, 5% threshold) **and** functional behavior (real data flowing through real API endpoints — no hard-coded mocks).
 
 #### T9.1: Design Tokens Migration
-- [ ] **Status**: IN_PROGRESS 🔄
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 3 hours
 - **Dependencies**: None
@@ -1997,13 +1997,13 @@ digital-menu/
 
 ### Overall Progress
 - **Total Tasks**: 112
-- **Completed**: 35
-- **In Progress**: 2
+- **Completed**: 36
+- **In Progress**: 1
 - **Blocked**: 0
-- **Progress**: 31%
+- **Progress**: 32%
 
 ```
-Progress: 🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜ 31%
+Progress: 🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜ 32%
 ```
 
 ### Phase Breakdown
@@ -2014,7 +2014,7 @@ Progress: 🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜ 31%
 - **Phase 5 - Real-time & Polish**: 5/5 (100%) ✅
 - **Phase 6 - Testing & Deployment**: 6/6 (100%) ✅
 - **Phase 7 - Admin Live Preview**: 3/3 (100%) ✅
-- **Phase 9 - Design Foundation & Test Infra**: 0/4 (0%) ← **next**
+- **Phase 9 - Design Foundation & Test Infra**: 1/4 (25%) ← **in progress**
 - **Phase 10 - Component Library**: 0/7 (0%)
 - **Phase 11 - Admin Shell + Dashboard**: 0/9 (0%)
 - **Phase 12 - Menus List Redesign**: 0/5 (0%)
@@ -2027,7 +2027,8 @@ Progress: 🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜ 31%
 
 ### Current Focus
 🎯 **Status**: Phase 9 in progress — Design Foundation & Test Infrastructure
-📅 **Current Task**: T9.1 — Design Tokens Migration (IN_PROGRESS 🔄)
+📅 **Next Task**: T9.2 — Playwright Setup + Visual Regression Infrastructure
+✅ **Recently Done**: T9.1 — Design Tokens Migration (merged 2026-04-21, commit c8744cc)
 ✨ **Goal**: Port the Claude Design handoff bundle (36 artboards) into the real codebase with Playwright tests verifying both visual fidelity and functional behavior for every task
 
 ---
