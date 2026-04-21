@@ -7,7 +7,7 @@
 **Status**: 🟢 In Progress
 **Team Size**: Small (2-3 developers)
 **Created**: 2026-01-26
-**Last Updated**: 2026-04-21
+**Last Updated**: 2026-04-21 (T9.2 merged)
 
 ### Description
 
@@ -837,7 +837,7 @@ digital-menu/
   - Functional: page reads computed CSS values and asserts each token resolves to the expected hex / px
 
 #### T9.2: Playwright Setup + Visual Regression Infrastructure
-- [ ] **Status**: IN_PROGRESS 🔄
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 2 hours
 - **Dependencies**: None
@@ -1997,13 +1997,13 @@ digital-menu/
 
 ### Overall Progress
 - **Total Tasks**: 112
-- **Completed**: 36
-- **In Progress**: 2
+- **Completed**: 37
+- **In Progress**: 1
 - **Blocked**: 0
-- **Progress**: 32%
+- **Progress**: 33%
 
 ```
-Progress: 🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜ 32%
+Progress: 🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜ 33%
 ```
 
 ### Phase Breakdown
@@ -2014,7 +2014,7 @@ Progress: 🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜ 32%
 - **Phase 5 - Real-time & Polish**: 5/5 (100%) ✅
 - **Phase 6 - Testing & Deployment**: 6/6 (100%) ✅
 - **Phase 7 - Admin Live Preview**: 3/3 (100%) ✅
-- **Phase 9 - Design Foundation & Test Infra**: 1/4 (25%) ← **in progress**
+- **Phase 9 - Design Foundation & Test Infra**: 2/4 (50%) ← **in progress**
 - **Phase 10 - Component Library**: 0/7 (0%)
 - **Phase 11 - Admin Shell + Dashboard**: 0/9 (0%)
 - **Phase 12 - Menus List Redesign**: 0/5 (0%)
@@ -2027,9 +2027,9 @@ Progress: 🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜ 32%
 
 ### Current Focus
 🎯 **Status**: Phase 9 in progress — Design Foundation & Test Infrastructure
-🔄 **Active Task**: T9.2 — Playwright Setup + Visual Regression Infrastructure (in progress)
-📅 **Next Task**: T9.3 — Test Data Seeding + Auth Bypass (after T9.2)
-✅ **Recently Done**: T9.1 — Design Tokens Migration (merged 2026-04-21, commit c8744cc)
+📅 **Next Task**: T9.3 — Test Data Seeding + Auth Bypass
+✅ **Recently Done**: T9.2 — Playwright Setup + Visual Regression Infrastructure (merged 2026-04-21, PR #2, commit 43cf2e0)
+✅ **Previously**: T9.1 — Design Tokens Migration (merged 2026-04-21, commit c8744cc)
 ✨ **Goal**: Port the Claude Design handoff bundle (36 artboards) into the real codebase with Playwright tests verifying both visual fidelity and functional behavior for every task
 
 ---
