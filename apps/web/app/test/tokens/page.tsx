@@ -181,10 +181,10 @@ export default function TokensShowcasePage() {
             </div>
             <div className="flex flex-col gap-1 border-t border-border-soft pt-4">
               <span className="text-caption text-text-muted uppercase tracking-wider">Without tabular-nums</span>
-              <p className="text-h2 text-text-default font-mono" style={{ fontVariantNumeric: 'normal' }}>
+              <p className="text-h2 text-text-default font-mono" data-testid="tabular-nums-without" style={{ fontVariantNumeric: 'normal' }}>
                 1234567890
               </p>
-              <p className="text-h2 text-text-default font-mono" style={{ fontVariantNumeric: 'normal' }}>
+              <p className="text-h2 text-text-default font-mono" data-testid="tabular-nums-without" style={{ fontVariantNumeric: 'normal' }}>
                 9876543210
               </p>
             </div>

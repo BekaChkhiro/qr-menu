@@ -837,7 +837,7 @@ digital-menu/
   - Functional: page reads computed CSS values and asserts each token resolves to the expected hex / px
 
 #### T9.2: Playwright Setup + Visual Regression Infrastructure
-- [ ] **Status**: TODO
+- [ ] **Status**: IN_PROGRESS 🔄
 - **Complexity**: Medium
 - **Estimated**: 2 hours
 - **Dependencies**: None
@@ -1998,7 +1998,7 @@ digital-menu/
 ### Overall Progress
 - **Total Tasks**: 112
 - **Completed**: 36
-- **In Progress**: 1
+- **In Progress**: 2
 - **Blocked**: 0
 - **Progress**: 32%
 
@@ -2027,7 +2027,8 @@ Progress: 🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜ 32%
 
 ### Current Focus
 🎯 **Status**: Phase 9 in progress — Design Foundation & Test Infrastructure
-📅 **Next Task**: T9.2 — Playwright Setup + Visual Regression Infrastructure
+🔄 **Active Task**: T9.2 — Playwright Setup + Visual Regression Infrastructure (in progress)
+📅 **Next Task**: T9.3 — Test Data Seeding + Auth Bypass (after T9.2)
 ✅ **Recently Done**: T9.1 — Design Tokens Migration (merged 2026-04-21, commit c8744cc)
 ✨ **Goal**: Port the Claude Design handoff bundle (36 artboards) into the real codebase with Playwright tests verifying both visual fidelity and functional behavior for every task
 
