@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Digital Menu — Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;550;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-feature-settings: 'cv11', 'ss01';
+    }
+    html, body { margin: 0; padding: 0; background: #f0eee9; }
+    body { font-family: inherit; color: #18181B; -webkit-font-smoothing: antialiased; }
+    * { box-sizing: border-box; }
+    button { font-family: inherit; }
+    h1, h2, h3 { font-family: inherit; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="components/icons.jsx"></script>
+  <script type="text/babel" src="components/sidebar.jsx"></script>
+  <script type="text/babel" src="components/dashboard-top.jsx"></script>
+  <script type="text/babel" src="components/dashboard-bottom.jsx"></script>
+  <script type="text/babel" src="components/mobile.jsx"></script>
+  <script type="text/babel" src="components/admin-shell.jsx"></script>
+  <script type="text/babel" src="components/menus-pages.jsx"></script>
+  <script type="text/babel" src="components/menu-editor.jsx"></script>
+  <script type="text/babel" src="components/product-drawer.jsx"></script>
+  <script type="text/babel" src="components/analytics-page.jsx"></script>
+  <script type="text/babel" src="components/promotions-page.jsx"></script>
+  <script type="text/babel" src="components/qr-page.jsx"></script>
+  <script type="text/babel" src="components/settings-shell.jsx"></script>
+  <script type="text/babel" src="components/settings-artboards-a.jsx"></script>
+  <script type="text/babel" src="components/settings-artboards-b.jsx"></script>
+  <script type="text/babel" src="components/component-library-a.jsx"></script>
+  <script type="text/babel" src="components/component-library-b.jsx"></script>
+
+  <script type="text/babel">
+    // TWEAKS
+    const TWEAKS = /*EDITMODE-BEGIN*/{
+      "plan": "PRO",
+      "sidebarCollapsed": false,
+      "accentColor": "#B8633D"
+    }/*EDITMODE-END*/;
+
+    // ─── Full dashboard frame ─────────────────────────────
+    function DashboardFrame({ plan = 'STARTER', collapsed = false, state = 'main' }) {
+      // state: 'main' | 'empty' | 'locked'
+      const showUpgrade = plan !== 'PRO';
+      return (
+        <div style={{
+          width: 1440, height: 980,
+          display: 'flex', background: dmTheme.bg,
+          fontSize: 14, color: dmTheme.text,
+          overflow: 'hidden',
+        }}>
+          <DMSidebar collapsed={collapsed} plan={plan} activePath="dashboard" />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <DMTopBar />
+            <div style={{
+              flex: 1, overflow: 'hidden', padding: 24,
+            }}>
+              <WelcomeHeader />
+              <PlanUsageStrip plan={plan} />
+
+              {/* Analytics + device */}
+              <div style={{
+                display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 24,
+              }}>
+                <AnalyticsCard locked={state === 'locked'} />
+                <DeviceCard />
+              </div>
+
+              {/* Menus or empty */}
+              {state === 'empty' ? <EmptyMenusCard /> : <YourMenus />}
+
+              {/* Two column */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: showUpgrade ? 24 : 0 }}>
+                <ActivityFeed />
+                <TopItems />
+              </div>
+
+              {showUpgrade && <UpgradeCard />}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── Tweaks panel ─────────────────────────────
+    function TweaksPanel({ open, state, setState }) {
+      if (!open) return null;
+      const patch = (k, v) => {
+        setState(s => ({ ...s, [k]: v }));
+        window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*');
+      };
+      const row = { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 };
+      const btnGroup = { display: 'flex', gap: 4, background: '#F4F3EE', padding: 3, borderRadius: 7 };
+      const btn = (active) => ({
+        padding: '5px 10px', fontSize: 12, fontWeight: 500,
+        border: 'none', borderRadius: 5, cursor: 'pointer', flex: 1,
+        background: active ? '#fff' : 'transparent',
+        color: active ? '#18181B' : '#71717A',
+        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+        fontFamily: 'inherit',
+      });
+      return (
+        <div style={{
+          position: 'fixed', bottom: 20, right: 20, width: 260,
+          background: '#fff', border: '1px solid #EAEAE6',
+          borderRadius: 12, padding: 16, zIndex: 1000,
+          boxShadow: '0 10px 40px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04)',
+          fontSize: 13, fontFamily: 'inherit',
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#18181B', marginBottom: 12, letterSpacing: -0.2 }}>
+            Tweaks
+          </div>
+
+          <div style={row}>
+            <label style={{ fontSize: 11, color: '#71717A', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.4 }}>Plan tier</label>
+            <div style={btnGroup}>
+              {['FREE', 'STARTER', 'PRO'].map(p => (
+                <button key={p} style={btn(state.plan === p)} onClick={() => patch('plan', p)}>{p}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={row}>
+            <label style={{ fontSize: 11, color: '#71717A', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.4 }}>Sidebar</label>
+            <div style={btnGroup}>
+              <button style={btn(!state.sidebarCollapsed)} onClick={() => patch('sidebarCollapsed', false)}>Expanded</button>
+              <button style={btn(state.sidebarCollapsed)} onClick={() => patch('sidebarCollapsed', true)}>Collapsed 64px</button>
+            </div>
+          </div>
+
+          <div style={{ fontSize: 11, color: '#A1A1AA', marginTop: 14, paddingTop: 12, borderTop: '1px solid #F0EFEA', lineHeight: 1.4 }}>
+            Variants on the canvas also show FREE (locked analytics), empty state, and 375px mobile.
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [tweaksOpen, setTweaksOpen] = React.useState(false);
+      const [state, setState] = React.useState(TWEAKS);
+
+      React.useEffect(() => {
+        const onMsg = (e) => {
+          if (!e.data || typeof e.data !== 'object') return;
+          if (e.data.type === '__activate_edit_mode') setTweaksOpen(true);
+          if (e.data.type === '__deactivate_edit_mode') setTweaksOpen(false);
+        };
+        window.addEventListener('message', onMsg);
+        window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+        return () => window.removeEventListener('message', onMsg);
+      }, []);
+
+      return (
+        <>
+          <DesignCanvas>
+            <DCSection id="primary" title="Digital Menu · Admin dashboard"
+              subtitle="Café owner (STARTER plan) · default state. Adjust plan & sidebar via Tweaks.">
+              <DCArtboard id="main" label="STARTER · Tweakable" width={1440} height={980}>
+                <DashboardFrame plan={state.plan} collapsed={state.sidebarCollapsed} state="main" />
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="states" title="State variations"
+              subtitle="Empty onboarding, FREE-tier locked analytics, and collapsed sidebar.">
+              <DCArtboard id="empty" label="Empty state · 0 menus" width={1440} height={980}>
+                <DashboardFrame plan="STARTER" collapsed={false} state="empty" />
+              </DCArtboard>
+              <DCArtboard id="free-locked" label="FREE · Analytics locked" width={1440} height={980}>
+                <DashboardFrame plan="FREE" collapsed={false} state="locked" />
+              </DCArtboard>
+              <DCArtboard id="collapsed" label="Sidebar collapsed · 64px" width={1440} height={980}>
+                <DashboardFrame plan="PRO" collapsed={true} state="main" />
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="menus" title="A · Menus"
+              subtitle="The /admin/menus index — grid, table, and empty state.">
+              <DCArtboard id="menus-grid" label="/admin/menus · grid" width={1440} height={980}>
+                <AdminShell plan="STARTER" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus']}>
+                  <MenusGridPage />
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="menus-table" label="/admin/menus · table" width={1440} height={980}>
+                <AdminShell plan="STARTER" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus']}>
+                  <MenusTablePage />
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="menus-empty" label="/admin/menus · empty" width={1440} height={980}>
+                <AdminShell plan="STARTER" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus']}>
+                  <MenusEmptyPage />
+                </AdminShell>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="editor" title="B · Menu editor"
+              subtitle="Two-column editor workspace — structure on the left, live phone preview on the right.">
+              <DCArtboard id="editor-content" label="Editor · Content" width={1440} height={980}>
+                <AdminShell plan="PRO" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus', 'Main menu — All day']}>
+                  <EditorContentPage />
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="editor-branding" label="Editor · Branding" width={1440} height={980}>
+                <AdminShell plan="PRO" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus', 'Main menu — All day']}>
+                  <EditorBrandingPage />
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="editor-languages" label="Editor · Languages (STARTER locked)" width={1440} height={980}>
+                <AdminShell plan="STARTER" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus', 'Main menu — All day']}>
+                  <EditorLanguagesPage plan="STARTER" />
+                </AdminShell>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="product-drawer" title="C · Product editor drawer"
+              subtitle="Side drawer opened over the menu editor — five variations across tabs, states, and plans.">
+              <DCArtboard id="pd-basics" label="Basics · filled" width={1440} height={980}>
+                <ProductDrawerPage tab="basics" plan="PRO" />
+              </DCArtboard>
+              <DCArtboard id="pd-basics-new" label="Basics · new product" width={1440} height={980}>
+                <ProductDrawerPage tab="basics" plan="PRO" newProduct={true} />
+              </DCArtboard>
+              <DCArtboard id="pd-basics-error" label="Basics · price error + saving" width={1440} height={980}>
+                <ProductDrawerPage tab="basics" plan="PRO" priceError={true} saving={true} />
+              </DCArtboard>
+              <DCArtboard id="pd-variations" label="Variations + modifiers" width={1440} height={980}>
+                <ProductDrawerPage tab="variations" plan="PRO" />
+              </DCArtboard>
+              <DCArtboard id="pd-allergens-locked" label="Allergens · STARTER locked" width={1440} height={980}>
+                <ProductDrawerPage tab="allergens" plan="STARTER" />
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="analytics" title="D · Menu analytics (editor tab)"
+              subtitle="Analytics lives inside the menu editor as a tab — KPIs, chart, heatmap, geography, traffic and FREE-locked state.">
+              <DCArtboard id="an-full" label="Analytics · PRO · hover tooltip" width={1440} height={1600}>
+                <AdminShell plan="PRO" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus', 'Main menu — All day']}>
+                  <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <EditorHeader activeTab="analytics" />
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                      <AnalyticsFullPage showTooltip={true} noDataOneKpi={true} inEditor={true} />
+                    </div>
+                  </div>
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="an-range" label="Analytics · date range popover" width={1440} height={1600}>
+                <AdminShell plan="PRO" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus', 'Main menu — All day']}>
+                  <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <EditorHeader activeTab="analytics" />
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                      <AnalyticsFullPage showTooltip={false} noDataOneKpi={false} showDatePicker={true} inEditor={true} />
+                    </div>
+                  </div>
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="an-locked" label="Analytics · FREE locked" width={1440} height={980}>
+                <AdminShell plan="FREE" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus', 'Main menu — All day']}>
+                  <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <EditorHeader activeTab="analytics" />
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                      <AnalyticsLockedPage inEditor={true} />
+                    </div>
+                  </div>
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="an-empty" label="Analytics · empty (new menu)" width={1440} height={980}>
+                <AdminShell plan="PRO" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus', 'Weekend brunch']}>
+                  <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <EditorHeader activeTab="analytics" />
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                      <AnalyticsEmptyPage inEditor={true} />
+                    </div>
+                  </div>
+                </AdminShell>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="promotions" title="E · Promotions (editor tab)"
+              subtitle="Timed offers, happy hours and seasonal specials. List, STARTER-locked state, and new-promotion drawer.">
+              <DCArtboard id="promo-list" label="Promotions · list" width={1440} height={980}>
+                <AdminShell plan="PRO" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus', 'Main menu — All day']}>
+                  <EditorPromotionsListPage />
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="promo-locked" label="Promotions · FREE locked" width={1440} height={980}>
+                <AdminShell plan="FREE" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus', 'Main menu — All day']}>
+                  <EditorPromotionsLockedPage />
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="promo-drawer" label="Promotions · new promotion drawer" width={1440} height={980}>
+                <AdminShell plan="PRO" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus', 'Main menu — All day']}>
+                  <EditorPromotionsDrawerPage />
+                </AdminShell>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="qr" title="F · QR codes (editor tab)"
+              subtitle="Generate and download the menu QR. STARTER default, PRO with branding, and print-template picker.">
+              <DCArtboard id="qr-starter" label="QR · STARTER" width={1440} height={980}>
+                <AdminShell plan="STARTER" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus', 'Main menu — All day']}>
+                  <EditorQrStarterPage />
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="qr-pro" label="QR · PRO branded" width={1440} height={980}>
+                <AdminShell plan="PRO" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus', 'Main menu — All day']}>
+                  <EditorQrProPage />
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="qr-templates" label="QR · print template picker" width={1440} height={980}>
+                <AdminShell plan="STARTER" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus', 'Main menu — All day']}>
+                  <EditorQrModalPage />
+                </AdminShell>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="settings" title="G · Settings"
+              subtitle="Account-level settings at /admin/settings. Personal + business sections, PRO-locked team, and a menu-scoped Settings tab.">
+              <DCArtboard id="settings-profile" label="Settings · Profile" width={1440} height={980}>
+                <AdminShell plan="STARTER" collapsed={false} activePath="settings"
+                  crumbs={['Café Linville', 'Settings', 'Profile']}>
+                  <SettingsProfile />
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="settings-business" label="Settings · Business info (dirty)" width={1440} height={1180}>
+                <AdminShell plan="STARTER" collapsed={false} activePath="settings"
+                  crumbs={['Café Linville', 'Settings', 'Business info']}>
+                  <SettingsBusiness />
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="settings-billing" label="Settings · Plan & billing" width={1440} height={1080}>
+                <AdminShell plan="STARTER" collapsed={false} activePath="settings"
+                  crumbs={['Café Linville', 'Settings', 'Plan & billing']}>
+                  <SettingsBilling />
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="settings-team-locked" label="Settings · Team (STARTER locked)" width={1440} height={980}>
+                <AdminShell plan="STARTER" collapsed={false} activePath="settings"
+                  crumbs={['Café Linville', 'Settings', 'Team']}>
+                  <SettingsTeamLocked />
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="settings-team-unlocked" label="Settings · Team (PRO)" width={1440} height={980}>
+                <AdminShell plan="PRO" collapsed={false} activePath="settings"
+                  crumbs={['Café Linville', 'Settings', 'Team']}>
+                  <SettingsTeamUnlocked />
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="settings-notifications" label="Settings · Notifications" width={1440} height={980}>
+                <AdminShell plan="PRO" collapsed={false} activePath="settings"
+                  crumbs={['Café Linville', 'Settings', 'Notifications']}>
+                  <SettingsNotifications />
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="settings-security" label="Settings · Security" width={1440} height={1080}>
+                <AdminShell plan="PRO" collapsed={false} activePath="settings"
+                  crumbs={['Café Linville', 'Settings', 'Security']}>
+                  <SettingsSecurity />
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="settings-language" label="Settings · Language" width={1440} height={980}>
+                <AdminShell plan="PRO" collapsed={false} activePath="settings"
+                  crumbs={['Café Linville', 'Settings', 'Language']}>
+                  <SettingsLanguage />
+                </AdminShell>
+              </DCArtboard>
+              <DCArtboard id="settings-menu-tab" label="Menu editor · Settings tab" width={1440} height={1720}>
+                <AdminShell plan="PRO" collapsed={false} activePath="menus"
+                  crumbs={['Café Linville', 'Menus', 'Main menu — All day']}>
+                  <MenuSettingsTab />
+                </AdminShell>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="mobile" title="Mobile · 375px"
+              subtitle="Sidebar becomes a 4-tab bottom bar. Plan usage as 2×2 grid. Cards stack.">
+              <DCArtboard id="mobile-main" label="iPhone · Dashboard" width={375} height={812}>
+                <MobileDashboard />
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="component-library" title="Component library"
+              subtitle="Every primitive used across the admin, grouped and labelled. Implementation reference for engineering handoff.">
+              <DCArtboard id="component-library-board" label="Component library · reference" width={1600} height={3200}>
+                <ComponentLibraryBoard />
+              </DCArtboard>
+            </DCSection>
+          </DesignCanvas>
+
+          <TweaksPanel open={tweaksOpen} state={state} setState={setState} />
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
