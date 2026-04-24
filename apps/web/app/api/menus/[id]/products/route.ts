@@ -12,6 +12,7 @@ import { createProductSchema, productQuerySchema } from '@/lib/validations';
 import { canCreateProduct, hasFeature } from '@/lib/auth/permissions';
 import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
+import { logActivity } from '@/lib/activity/log';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -247,6 +248,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Broadcast real-time update
     await triggerMenuEvent(menuId, EVENTS.PRODUCT_CREATED, product);
+
+    await logActivity({
+      userId: session.user.id,
+      menuId,
+      type: 'PRODUCT_CREATED',
+      payload: {
+        productName: product.nameKa,
+        categoryName: product.category?.nameKa,
+      },
+    });
 
     return createSuccessResponse(product, 201);
   } catch (error) {

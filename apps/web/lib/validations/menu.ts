@@ -27,7 +27,19 @@ const menuTemplateValues = ['CLASSIC', 'MAGAZINE', 'COMPACT'] as const;
 const productCardStyleValues = ['FLAT', 'BORDERED', 'ELEVATED', 'MINIMAL'] as const;
 const productTouchEffectValues = ['NONE', 'SCALE', 'GLOW', 'GRADIENT'] as const;
 
-// Create menu schema
+// T15.13 — Visibility is a derived field that the Settings tab writes alongside
+// `status` and `passwordHash` in a single PATCH. The server maps:
+//   PUBLISHED          → status=PUBLISHED, passwordHash=null
+//   PASSWORD_PROTECTED → status=PUBLISHED, passwordHash=bcrypt(password)
+//   PRIVATE_DRAFT      → status=DRAFT,     passwordHash=null
+export const menuVisibilityValues = [
+  'PUBLISHED',
+  'PASSWORD_PROTECTED',
+  'PRIVATE_DRAFT',
+] as const;
+export type MenuVisibility = (typeof menuVisibilityValues)[number];
+
+// Create menu schema (legacy path — used by the "Create menu" form)
 export const createMenuSchema = z.object({
   name: z
     .string()
@@ -38,6 +50,21 @@ export const createMenuSchema = z.object({
     .string()
     .max(500, 'Description must be less than 500 characters')
     .optional(),
+});
+
+// Empty-state template IDs (T12.3). When the client POSTs
+// `{ template: 'cafe-bakery' }`, the server generates a default name + unique
+// slug and seeds preset categories/products.
+export const menuStarterTemplateValues = [
+  'cafe-bakery',
+  'full-restaurant',
+  'bar-cocktails',
+] as const;
+export type MenuStarterTemplateKey =
+  (typeof menuStarterTemplateValues)[number];
+
+export const createMenuFromTemplateSchema = z.object({
+  template: z.enum(menuStarterTemplateValues),
 });
 
 // Update menu schema — all fields optional
@@ -56,9 +83,11 @@ export const updateMenuSchema = z.object({
 
   // Branding
   logoUrl: z.string().url('Invalid logo URL').nullable().optional(),
+  coverImageUrl: z.string().url('Invalid cover image URL').nullable().optional(),
   primaryColor: hexColorOptional,
   accentColor: hexColorOptional,
   currencySymbol: z.string().max(5).nullable().optional(),
+  cornerRadius: z.number().int().min(0).max(24).nullable().optional(),
 
   // Typography
   headingFont: z.string().max(100).nullable().optional(),
@@ -96,6 +125,20 @@ export const updateMenuSchema = z.object({
   qrBackgroundColor: hexColorOptional,
   qrLogoUrl: z.string().url().nullable().optional(),
   qrTemplate: z.string().max(50).nullable().optional(),
+
+  // Visibility + password (T15.13).
+  // `visibility` overrides `status`/`passwordHash` when present; the server
+  // ignores any explicit status/passwordHash in the same body.
+  visibility: z.enum(menuVisibilityValues).optional(),
+  // Plaintext password — only consumed when `visibility === 'PASSWORD_PROTECTED'`.
+  // Server hashes with bcrypt. Omitting the field while visibility is
+  // PASSWORD_PROTECTED preserves the existing hash (useful for editing the
+  // URL without rotating the password).
+  password: z
+    .string()
+    .min(4, 'Password must be at least 4 characters')
+    .max(100, 'Password must be less than 100 characters')
+    .optional(),
 });
 
 // Publish menu schema
@@ -107,7 +150,7 @@ export const publishMenuSchema = z.object({
 export const menuQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(50).default(10),
-  status: z.enum(['DRAFT', 'PUBLISHED']).optional(),
+  status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).optional(),
 });
 
 export type CreateMenuInput = z.infer<typeof createMenuSchema>;

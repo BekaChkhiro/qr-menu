@@ -104,6 +104,9 @@ const productExtras = {
 
   isVegan: z.boolean().optional(),
   isVegetarian: z.boolean().optional(),
+  isHalal: z.boolean().optional(),
+  isKosher: z.boolean().optional(),
+  isGlutenFree: z.boolean().optional(),
 
   calories: z.number().int().nonnegative().max(99999).nullable().optional(),
   protein: nutritionValueSchema,

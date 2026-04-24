@@ -1,38 +1,44 @@
 'use client';
 
-import { use, useEffect, useRef, useState } from 'react';
+import { use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import {
-  ArrowLeft,
-  Edit,
-  Eye,
-  EyeOff,
-  ExternalLink,
-  FolderPlus,
-  BarChart3,
-} from 'lucide-react';
+import { toast } from 'sonner';
+import { Clock } from 'lucide-react';
+
+import { EditorHeader } from '@/components/admin/editor-header';
+import { EditorTabBar, type EditorTab } from '@/components/ui/editor-tab-bar';
 import { CategoriesList } from '@/components/admin/categories-list';
-import { PromotionsList } from '@/components/admin/promotions-list';
-import { QRCodeDialog } from '@/components/admin/qr-code-dialog';
-import { PhonePreview, PhonePreviewSkeleton } from '@/components/admin/phone-preview';
-import { AnalyticsContent } from '@/components/admin/analytics-content';
+import { BrandingTab } from '@/components/admin/branding-tab';
+import { LanguagesTab } from '@/components/admin/languages-tab';
+import { EditorPromotionsTab } from '@/components/admin/editor-promotions-tab';
+import { AnalyticsTab } from '@/components/admin/analytics/analytics-tab';
+import { QrCustomizePanel } from '@/components/admin/qr-customize-panel';
 import { MenuSettingsForm } from '@/components/admin/menu-settings-form';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { MenuUrlVisibilitySection } from '@/components/admin/menu-url-visibility-section';
+import { PhonePreviewSkeleton } from '@/components/admin/phone-preview';
+import { PhonePreviewPanel } from '@/components/admin/phone-preview-panel';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useMenu, usePublishMenu } from '@/hooks/use-menus';
+import { Button } from '@/components/ui/button';
+import { useMenu, usePublishMenu, useUpdateMenu } from '@/hooks/use-menus';
 import { useMenuRealtime } from '@/hooks/use-menu-realtime';
 import { useUserPlan } from '@/hooks/use-user-plan';
+
+// ── Tab ids (match URL query param `tab`) ───────────────────────────────────
+const TAB_IDS = [
+  'content',
+  'branding',
+  'languages',
+  'analytics',
+  'promotions',
+  'qr',
+  'settings',
+] as const;
+type TabId = (typeof TAB_IDS)[number];
+
+const TABS_WITH_PREVIEW = new Set<TabId>(['content', 'branding']);
 
 interface MenuDetailPageProps {
   params: Promise<{ id: string }>;
@@ -40,17 +46,44 @@ interface MenuDetailPageProps {
 
 export default function MenuDetailPage({ params }: MenuDetailPageProps) {
   const { id } = use(params);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const t = useTranslations('admin');
+  const tEditor = useTranslations('admin.editor');
+
   const { data: menu, isLoading, error } = useMenu(id);
   const publishMenu = usePublishMenu(id);
-  const t = useTranslations('admin');
-  const tStatus = useTranslations('status');
-  const tActions = useTranslations('actions');
+  const updateMenu = useUpdateMenu(id);
   const { hasFeature } = useUserPlan();
-  // Subscribe to real-time updates for this menu
-  useMenuRealtime(id);
 
-  // Track menu data changes to refresh phone preview
+  // Bump preview version whenever any Pusher event fires so the iframe refetches
+  // even in cases where our cached `menu` reference isn't touched (e.g. product
+  // mutations that only invalidate lists the admin isn't rendering directly).
   const [previewVersion, setPreviewVersion] = useState(0);
+  useMenuRealtime(id, {
+    onEvent: useCallback(() => {
+      setPreviewVersion((v) => v + 1);
+    }, []),
+  });
+
+  // ── Active tab (URL-synced) ────────────────────────────────────────────────
+  const rawTab = searchParams.get('tab');
+  const activeTab: TabId = (TAB_IDS as readonly string[]).includes(rawTab ?? '')
+    ? (rawTab as TabId)
+    : 'content';
+
+  const handleTabChange = useCallback(
+    (id: string) => {
+      const nextParams = new URLSearchParams(searchParams.toString());
+      nextParams.set('tab', id);
+      router.replace(`?${nextParams.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
+
+  // Also reload the preview when locally-mutated menu data (categories, products,
+  // branding, etc.) lands in the query cache — covers the same-tab editor flow
+  // where Pusher may or may not be configured.
   const prevMenuRef = useRef(menu);
   useEffect(() => {
     if (menu && prevMenuRef.current && menu !== prevMenuRef.current) {
@@ -59,17 +92,50 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
     prevMenuRef.current = menu;
   }, [menu]);
 
-  // Calculate total products across all categories
-  const totalMenuProducts = menu?.categories.reduce(
-    (acc, cat) => acc + (cat._count?.products ?? cat.products?.length ?? 0),
-    0
-  ) ?? 0;
+  // ── Header handlers ────────────────────────────────────────────────────────
+  const handleTogglePublish = useCallback(
+    async (publish: boolean) => {
+      try {
+        await publishMenu.mutateAsync(publish);
+        toast.success(
+          publish ? t('menus.toast.published') : t('menus.toast.unpublished'),
+        );
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : t('menus.toast.publishError'),
+        );
+      }
+    },
+    [publishMenu, t],
+  );
 
-  const handleTogglePublish = async () => {
+  const handleSaveName = useCallback(
+    async (nextName: string) => {
+      await updateMenu.mutateAsync({ name: nextName });
+      toast.success(t('menus.toast.updated'));
+    },
+    [updateMenu, t],
+  );
+
+  const handleShare = useCallback(() => {
     if (!menu) return;
-    const newStatus = menu.status !== 'PUBLISHED';
-    await publishMenu.mutateAsync(newStatus);
-  };
+    const publicUrl = `${window.location.origin}/m/${menu.slug}`;
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      void navigator.clipboard.writeText(publicUrl);
+      toast.success(publicUrl);
+    }
+  }, [menu]);
+
+  // ── Tab metadata (labels, hrefs) ───────────────────────────────────────────
+  const tabs: EditorTab[] = useMemo(
+    () =>
+      TAB_IDS.map((tabId) => ({
+        id: tabId,
+        label: tEditor(`tabs.${tabId}`),
+        href: `?tab=${tabId}`,
+      })),
+    [tEditor],
+  );
 
   if (isLoading) {
     return <MenuDetailSkeleton />;
@@ -77,277 +143,148 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
 
   if (error || !menu) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="rounded-full" asChild>
-            <Link href="/admin/menus">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <h1 className="text-3xl font-bold tracking-tight">Menu</h1>
-        </div>
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center">
-          <p className="text-destructive">
-            {error?.message || 'Menu not found'}
+      <div className="flex flex-col gap-4">
+        <h1 className="text-[24px] font-semibold text-text-default">
+          {tEditor('errors.notFound')}
+        </h1>
+        <div
+          role="alert"
+          className="rounded-[12px] border border-danger/50 bg-danger-soft p-6 text-center"
+        >
+          <p className="text-danger">
+            {error?.message || tEditor('errors.loadFailed')}
           </p>
-          <Button variant="outline" className="mt-4" asChild>
-            <Link href="/admin/menus">Back to Menus</Link>
+          <Button variant="secondary" className="mt-4" asChild>
+            <Link href="/admin/menus">{tEditor('backToMenus')}</Link>
           </Button>
         </div>
       </div>
     );
   }
 
-  const isPublished = menu.status === 'PUBLISHED';
-  const publicUrl = `/m/${menu.slug}`;
+  const totalMenuProducts = menu.categories.reduce(
+    (acc, cat) => acc + (cat._count?.products ?? cat.products?.length ?? 0),
+    0,
+  );
+
+  const showPreview = TABS_WITH_PREVIEW.has(activeTab);
 
   return (
-    <div className="flex h-[calc(100vh-3rem)] flex-col">
-      {/* Header (fixed) */}
+    <div
+      data-testid="editor-shell"
+      className="flex h-[calc(100vh-3rem)] flex-col"
+    >
+      {/* Header + Tab Bar (sticky to top of shell) */}
       <div className="shrink-0">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="rounded-full" asChild>
-              <Link href="/admin/menus">
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
-            </Button>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-[28px] font-bold leading-[1.2] tracking-tight">{menu.name}</h1>
-                <Badge variant={isPublished ? 'success' : 'secondary'}>
-                  {isPublished ? tStatus('published') : tStatus('draft')}
-                </Badge>
-              </div>
-              <p className="mt-0.5 text-sm text-muted-foreground">/{menu.slug}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              className="rounded-full bg-white"
-              onClick={handleTogglePublish}
-              disabled={publishMenu.isPending}
-            >
-              {isPublished ? (
-                <>
-                  <EyeOff className="mr-2 h-4 w-4" />
-                  {tActions('unpublish')}
-                </>
-              ) : (
-                <>
-                  <Eye className="mr-2 h-4 w-4" />
-                  {tActions('publish')}
-                </>
-              )}
-            </Button>
-            <Button variant="outline" className="rounded-full bg-white" asChild>
-              <Link href={`/admin/menus/${id}/edit`}>
-                <Edit className="mr-2 h-4 w-4" />
-                {tActions('edit')}
-              </Link>
-            </Button>
-            {isPublished && (
-              <Button variant="outline" className="rounded-full bg-white" asChild>
-                <Link href={publicUrl} target="_blank">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  View
-                </Link>
-              </Button>
-            )}
-            <QRCodeDialog menuId={id} menuName={menu.name} menuSlug={menu.slug} />
-          </div>
-        </div>
-
-        <Separator className="mt-2" />
+        <EditorHeader
+          name={menu.name}
+          slug={menu.slug}
+          status={menu.status}
+          lastPublishedAt={menu.publishedAt ?? null}
+          publishing={publishMenu.isPending}
+          onTogglePublish={handleTogglePublish}
+          onSaveName={handleSaveName}
+          onShare={handleShare}
+          // T13.1 ships the shell only. Child tabs (T13.2+) will wire actual
+          // dirty state into this prop via a shared context.
+          hasUnsavedChanges={false}
+          savingChanges={false}
+        />
+        <EditorTabBar
+          items={tabs}
+          activeId={activeTab}
+          onChange={(id) => handleTabChange(id)}
+          aria-label={tEditor('tabs.content')}
+          data-testid="editor-tab-bar"
+        />
       </div>
 
-      {/* Two-column layout: scrollable left + fixed right */}
+      {/* Two-column layout */}
       <div className="flex min-h-0 flex-1 gap-6 pt-6">
-        {/* Left column: scrollable editor content */}
-        <div className="scrollbar-hide flex min-w-0 flex-1 flex-col overflow-y-auto">
-          {/* Tabs */}
-          <Tabs defaultValue="overview" className="flex-1">
-            <TabsList className="sticky top-0 z-10 w-full">
-              <TabsTrigger value="overview" className="flex-1">
-                {t('sidebar.dashboard')}
-              </TabsTrigger>
-              <TabsTrigger value="categories" className="flex-1">
-                {t('categories.title')} & {t('products.title')}
-              </TabsTrigger>
-              <TabsTrigger value="promotions" className="flex-1">
-                {t('promotions.title')}
-              </TabsTrigger>
-              <TabsTrigger value="analytics" className="flex-1">
-                {t('sidebar.analytics')}
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex-1">
-                Settings
-              </TabsTrigger>
-              <TabsTrigger value="info" className="flex-1">
-                {t('menus.info.title')}
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="overview" className="mt-4 space-y-4">
-              {/* Stats Cards */}
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Card className="rounded-2xl">
-                  <CardHeader className="flex flex-row items-center justify-between px-6 pb-2 pt-4">
-                    <CardTitle className="text-sm font-medium">{t('categories.title')}</CardTitle>
-                    <FolderPlus className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent className="px-6 pb-4 pt-0">
-                    <div className="text-2xl font-bold">{menu._count.categories}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {menu.categories.reduce((acc, cat) => acc + (cat._count?.products ?? cat.products?.length ?? 0), 0)} {t('products.title').toLowerCase()}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="rounded-2xl">
-                  <CardHeader className="flex flex-row items-center justify-between px-6 pb-2 pt-4">
-                    <CardTitle className="text-sm font-medium">{t('dashboard.stats.totalViews')}</CardTitle>
-                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent className="px-6 pb-4 pt-0">
-                    <div className="text-2xl font-bold">{menu._count.views}</div>
-                  </CardContent>
-                </Card>
-                <Card className="rounded-2xl">
-                  <CardHeader className="flex flex-row items-center justify-between px-6 pb-2 pt-4">
-                    <CardTitle className="text-sm font-medium">{t('promotions.title')}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-6 pb-4 pt-0">
-                    <div className="text-2xl font-bold">{menu.promotions.length}</div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Categories preview */}
-              <Card className="rounded-2xl">
-                <CardHeader className="border-b px-6 pb-4 pt-5">
-                  <CardTitle className="text-base font-semibold">{t('categories.title')} & {t('products.title')}</CardTitle>
-                </CardHeader>
-                <CardContent className="px-6 pb-6 pt-4">
-                  <CategoriesList
-                    menuId={id}
-                    showAllergens={hasFeature('allergens')}
-                    totalMenuProducts={totalMenuProducts}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Promotions preview */}
-              <Card className="rounded-2xl">
-                <CardHeader className="border-b px-6 pb-4 pt-5">
-                  <CardTitle className="text-base font-semibold">{t('promotions.title')}</CardTitle>
-                </CardHeader>
-                <CardContent className="px-6 pb-6 pt-4">
-                  <PromotionsList menuId={id} />
-                </CardContent>
-              </Card>
-
-              {/* Info preview */}
-              <Card className="rounded-2xl">
-                <CardHeader className="border-b px-6 pb-4 pt-5">
-                  <CardTitle className="text-base font-semibold">{t('menus.info.title')}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 px-6 pb-6 pt-4">
-                  {menu.description && (
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        {t('menus.form.description')}
-                      </p>
-                      <p className="mt-1">{menu.description}</p>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {t('menus.info.publicUrl')}
-                    </p>
-                    <p className="mt-1 font-mono text-sm">
-                      {typeof window !== 'undefined' && window.location.origin}
-                      {publicUrl}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="categories" className="mt-4">
-              <Card className="rounded-2xl">
-                <CardContent className="px-6 pt-6">
-                  <CategoriesList
-                    menuId={id}
-                    showAllergens={hasFeature('allergens')}
-                    totalMenuProducts={totalMenuProducts}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="promotions" className="mt-4">
-              <Card className="rounded-2xl">
-                <CardHeader className="border-b px-6 pb-4 pt-5">
-                  <CardDescription>
-                    Manage special offers and promotions for this menu
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="px-6 pb-6 pt-4">
-                  <PromotionsList menuId={id} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="analytics" className="mt-4">
-              <AnalyticsContent menuId={id} />
-            </TabsContent>
-
-            <TabsContent value="settings" className="mt-4">
-              <Card className="rounded-2xl">
-                <CardContent className="px-6 pt-6">
-                  <MenuSettingsForm menu={menu} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="info" className="mt-4">
-              <Card className="rounded-2xl">
-                <CardContent className="space-y-4 px-6 pt-6">
-                  {menu.description && (
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        {t('menus.form.description')}
-                      </p>
-                      <p className="mt-1">{menu.description}</p>
-                    </div>
-                  )}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        {t('menus.info.publicUrl')}
-                      </p>
-                      <p className="mt-1 font-mono text-sm">
-                        {typeof window !== 'undefined' && window.location.origin}
-                        {publicUrl}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Right column: sticky phone preview (desktop only) */}
-        <div className="hidden w-[340px] shrink-0 lg:block">
-          <div className="sticky top-0">
-            <PhonePreview
-              url={isPublished ? publicUrl : `${publicUrl}?preview=true`}
-              refreshKey={previewVersion}
+        {/* Left: scrollable tab content */}
+        <div
+          className="scrollbar-hide flex min-w-0 flex-1 flex-col overflow-y-auto pr-1"
+          data-testid="editor-content"
+          role="tabpanel"
+          aria-labelledby={`tab-${activeTab}`}
+        >
+          {activeTab === 'content' && (
+            <CategoriesList
+              menuId={id}
+              showAllergens={hasFeature('allergens')}
+              totalMenuProducts={totalMenuProducts}
             />
-          </div>
+          )}
+
+          {activeTab === 'branding' && (
+            <BrandingTab
+              menu={menu}
+              hasCustomBranding={hasFeature('customBranding')}
+            />
+          )}
+
+          {activeTab === 'languages' && (
+            <LanguagesTab
+              menu={menu}
+              hasMultilingual={hasFeature('multilingual')}
+            />
+          )}
+
+          {activeTab === 'analytics' && (
+            <AnalyticsTab
+              menuId={id}
+              menuSlug={menu.slug}
+              hasAnalytics={hasFeature('analytics')}
+            />
+          )}
+
+          {activeTab === 'promotions' && (
+            <EditorPromotionsTab
+              menuId={id}
+              canUsePromotions={hasFeature('promotions')}
+            />
+          )}
+
+          {activeTab === 'qr' && (
+            <QrCustomizePanel
+              menu={menu}
+              hasQrLogo={hasFeature('qrWithLogo')}
+            />
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="space-y-6">
+              <Card className="rounded-[12px]">
+                <CardContent className="px-6 py-6">
+                  <MenuUrlVisibilitySection menu={menu} />
+                </CardContent>
+              </Card>
+              <Card className="rounded-[12px]">
+                <CardContent className="space-y-6 px-6 pt-6">
+                  <MenuSettingsForm menu={menu} />
+                  {menu.createdAt && (
+                    <div className="border-t border-border-soft pt-4">
+                      <p className="flex items-center gap-1 text-[12px] text-text-subtle">
+                        <Clock size={12} strokeWidth={1.5} aria-hidden="true" />
+                        {t('menus.info.createdAt')}:{' '}
+                        {new Date(menu.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
+
+        {/* Right: sticky phone preview (desktop only, preview-eligible tabs only) */}
+        {showPreview && (
+          <div className="hidden w-[360px] shrink-0 lg:block">
+            <div className="sticky top-0">
+              <PhonePreviewPanel menu={menu} refreshKey={previewVersion} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -357,65 +294,43 @@ function MenuDetailSkeleton() {
   return (
     <div className="flex h-[calc(100vh-3rem)] flex-col">
       {/* Header skeleton */}
-      <div className="shrink-0">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <Skeleton className="h-10 w-10 rounded-full" />
+      <div className="shrink-0 space-y-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-3">
+            <Skeleton className="mt-[2px] h-[32px] w-[32px] rounded-full" />
             <div>
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-5 w-20 rounded-full" />
+              <Skeleton className="h-[28px] w-[260px]" />
+              <div className="mt-[6px] flex items-center gap-2">
+                <Skeleton className="h-[32px] w-[160px] rounded-[8px]" />
+                <Skeleton className="h-[16px] w-[120px]" />
               </div>
-              <Skeleton className="mt-1 h-4 w-28" />
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Skeleton className="h-10 w-28 rounded-full" />
-            <Skeleton className="h-10 w-24 rounded-full" />
-            <Skeleton className="h-10 w-10 rounded-full" />
+            <Skeleton className="h-[32px] w-[76px] rounded-[7px]" />
+            <Skeleton className="h-[32px] w-[96px] rounded-[7px]" />
+            <Skeleton className="h-[32px] w-[120px] rounded-[7px]" />
           </div>
         </div>
-
-        <Separator className="mt-2" />
+        <div className="flex gap-6 border-b border-border pt-[6px]">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <Skeleton key={i} className="h-[32px] w-[72px]" />
+          ))}
+        </div>
       </div>
 
       {/* Two-column skeleton */}
       <div className="flex min-h-0 flex-1 gap-6 pt-6">
-        {/* Left column */}
         <div className="min-w-0 flex-1 space-y-4">
-          {/* Tabs skeleton */}
-          <Skeleton className="h-10 w-full rounded-full" />
-
-          {/* Stats cards skeleton */}
-          <div className="grid gap-4 sm:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i} className="rounded-2xl">
-                <CardHeader className="px-6 pb-2 pt-4">
-                  <Skeleton className="h-4 w-24" />
-                </CardHeader>
-                <CardContent className="px-6 pb-4 pt-0">
-                  <Skeleton className="h-8 w-16" />
-                  <Skeleton className="mt-1 h-3 w-32" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Content card skeleton */}
-          <Card className="rounded-2xl">
-            <CardHeader className="border-b px-6 pb-4 pt-5">
-              <Skeleton className="h-5 w-40" />
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
+          <Card className="rounded-[12px]">
+            <CardContent className="space-y-3 px-6 pt-6">
+              {Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className="h-16 w-full rounded-lg" />
               ))}
             </CardContent>
           </Card>
         </div>
-
-        {/* Right column: phone preview skeleton */}
-        <div className="hidden w-[340px] shrink-0 lg:block">
+        <div className="hidden w-[360px] shrink-0 lg:block">
           <PhonePreviewSkeleton />
         </div>
       </div>

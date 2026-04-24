@@ -11,6 +11,7 @@ import { createPromotionSchema, promotionQuerySchema } from '@/lib/validations';
 import { hasFeature } from '@/lib/auth/permissions';
 import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
+import { logActivity } from '@/lib/activity/log';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -175,6 +176,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Broadcast real-time update
     await triggerMenuEvent(menuId, EVENTS.PROMOTION_CREATED, promotion);
+
+    // Only log PROMOTION_STARTED for actively-running promotions (start <= now <= end)
+    const now = new Date();
+    if (
+      promotion.isActive &&
+      promotion.startDate <= now &&
+      promotion.endDate >= now
+    ) {
+      await logActivity({
+        userId: session.user.id,
+        menuId,
+        type: 'PROMOTION_STARTED',
+        payload: { promotionName: promotion.titleKa },
+      });
+    }
 
     return createSuccessResponse(promotion, 201);
   } catch (error) {

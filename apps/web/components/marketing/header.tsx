@@ -3,12 +3,37 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, QrCode, ArrowRight, Sparkles } from 'lucide-react';
+import {
+  Menu,
+  X,
+  QrCode,
+  ArrowRight,
+  Sparkles,
+  LayoutDashboard,
+  UtensilsCrossed,
+  Settings,
+  LogOut,
+} from 'lucide-react';
+import { signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { LanguageSwitcher } from '@/components/shared/language-switcher';
 import { Container } from './container';
 import { cn } from '@/lib/utils';
 import type { Locale } from '@/i18n/config';
+
+interface HeaderUser {
+  name: string | null;
+  email: string | null;
+  image: string | null;
+}
 
 interface HeaderProps {
   locale: Locale;
@@ -18,10 +43,22 @@ interface HeaderProps {
     demo: string;
     login: string;
     getStarted: string;
+    dashboard: string;
+    menus: string;
+    settings: string;
+    logout: string;
   };
+  user?: HeaderUser | null;
 }
 
-export function Header({ locale, translations }: HeaderProps) {
+function getUserInitial(user: HeaderUser): string {
+  const source = (user.name ?? user.email ?? '').trim();
+  if (!source) return 'U';
+  return source.charAt(0).toUpperCase();
+}
+
+export function Header({ locale, translations, user = null }: HeaderProps) {
+  const isAuthenticated = Boolean(user);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('');
@@ -115,17 +152,75 @@ export function Header({ locale, translations }: HeaderProps) {
           {/* Desktop Actions */}
           <div className="hidden lg:flex items-center gap-3">
             <LanguageSwitcher currentLocale={locale} variant="compact" />
-            <Link href="/login">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                {translations.login}
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button size="sm" className="gap-1.5 group shadow-sm shadow-primary/10 hover:shadow-primary/20 transition-shadow">
-                <Sparkles className="h-3.5 w-3.5 transition-transform group-hover:rotate-12" />
-                {translations.getStarted}
-              </Button>
-            </Link>
+            {isAuthenticated && user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all hover:shadow-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    aria-label={user.name ?? user.email ?? 'User menu'}
+                  >
+                    {getUserInitial(user)}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="py-2">
+                    <div className="truncate text-sm font-medium text-foreground">
+                      {user.name ?? 'User'}
+                    </div>
+                    {user.email && (
+                      <div className="truncate text-xs font-normal text-muted-foreground">
+                        {user.email}
+                      </div>
+                    )}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/dashboard" className="cursor-pointer">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      {translations.dashboard}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/menus" className="cursor-pointer">
+                      <UtensilsCrossed className="mr-2 h-4 w-4" />
+                      {translations.menus}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/settings" className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      {translations.settings}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={(event) => {
+                      event.preventDefault();
+                      void signOut({ callbackUrl: '/' });
+                    }}
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    {translations.logout}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                    {translations.login}
+                  </Button>
+                </Link>
+                <Link href="/register">
+                  <Button size="sm" className="gap-1.5 group shadow-sm shadow-primary/10 hover:shadow-primary/20 transition-shadow">
+                    <Sparkles className="h-3.5 w-3.5 transition-transform group-hover:rotate-12" />
+                    {translations.getStarted}
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -184,17 +279,71 @@ export function Header({ locale, translations }: HeaderProps) {
                   </motion.div>
                 ))}
                 <div className="flex flex-col gap-2 pt-4 mt-2 border-t border-border/50">
-                  <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="outline" className="w-full">
-                      {translations.login}
-                    </Button>
-                  </Link>
-                  <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button className="w-full gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      {translations.getStarted}
-                    </Button>
-                  </Link>
+                  {isAuthenticated && user ? (
+                    <>
+                      <div className="flex items-center gap-3 rounded-xl bg-muted/40 px-4 py-3">
+                        <div
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
+                          aria-hidden="true"
+                        >
+                          {getUserInitial(user)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-foreground">
+                            {user.name ?? 'User'}
+                          </div>
+                          {user.email && (
+                            <div className="truncate text-xs text-muted-foreground">
+                              {user.email}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <Link href="/admin/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Button variant="ghost" className="w-full justify-start gap-2">
+                          <LayoutDashboard className="h-4 w-4" />
+                          {translations.dashboard}
+                        </Button>
+                      </Link>
+                      <Link href="/admin/menus" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Button variant="ghost" className="w-full justify-start gap-2">
+                          <UtensilsCrossed className="h-4 w-4" />
+                          {translations.menus}
+                        </Button>
+                      </Link>
+                      <Link href="/admin/settings" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Button variant="ghost" className="w-full justify-start gap-2">
+                          <Settings className="h-4 w-4" />
+                          {translations.settings}
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          void signOut({ callbackUrl: '/' });
+                        }}
+                      >
+                        <LogOut className="h-4 w-4" />
+                        {translations.logout}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Button variant="outline" className="w-full">
+                          {translations.login}
+                        </Button>
+                      </Link>
+                      <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Button className="w-full gap-1.5">
+                          <Sparkles className="h-3.5 w-3.5" />
+                          {translations.getStarted}
+                        </Button>
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
             </Container>

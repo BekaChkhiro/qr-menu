@@ -9,13 +9,16 @@ export {
 // Menu validations
 export {
   createMenuSchema,
+  createMenuFromTemplateSchema,
   updateMenuSchema,
   publishMenuSchema,
   menuQuerySchema,
+  menuStarterTemplateValues,
   type CreateMenuInput,
   type UpdateMenuInput,
   type PublishMenuInput,
   type MenuQueryInput,
+  type MenuStarterTemplateKey,
 } from './menu';
 
 // Category validations
@@ -77,6 +80,12 @@ export {
   type UploadResponse,
   type AllowedMimeType,
 } from './upload';
+
+// User validations
+export {
+  updateProfileSchema,
+  type UpdateProfileInput,
+} from './user';
 
 // Analytics validations
 export {

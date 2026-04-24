@@ -11,6 +11,7 @@ import { createCategorySchema } from '@/lib/validations';
 import { canCreateCategory } from '@/lib/auth/permissions';
 import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
+import { logActivity } from '@/lib/activity/log';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -167,6 +168,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Broadcast real-time update
     await triggerMenuEvent(menuId, EVENTS.CATEGORY_CREATED, category);
+
+    await logActivity({
+      userId: session.user.id,
+      menuId,
+      type: 'CATEGORY_CREATED',
+      payload: { categoryName: category.nameKa },
+    });
 
     return createSuccessResponse(category, 201);
   } catch (error) {

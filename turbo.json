@@ -4,7 +4,16 @@
   "tasks": {
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": [
+        "ENABLE_TEST_AUTH",
+        "DATABASE_URL",
+        "AUTH_SECRET",
+        "AUTH_URL",
+        "NEXTAUTH_SECRET",
+        "NEXTAUTH_URL",
+        "NODE_ENV"
+      ]
     },
     "build": {
       "dependsOn": ["^build"],

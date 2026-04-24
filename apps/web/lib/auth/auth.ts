@@ -14,11 +14,21 @@ declare module 'next-auth' {
     user: {
       id: string;
       plan: Plan;
+      firstName?: string | null;
+      lastName?: string | null;
+      phone?: string | null;
+      timezone?: string | null;
+      dateFormat?: string | null;
     } & DefaultSession['user'];
   }
 
   interface User {
     plan: Plan;
+    firstName?: string | null;
+    lastName?: string | null;
+    phone?: string | null;
+    timezone?: string | null;
+    dateFormat?: string | null;
   }
 }
 
@@ -70,6 +80,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           name: user.name,
           image: user.image,
           plan: user.plan,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phone: user.phone,
+          timezone: user.timezone,
+          dateFormat: user.dateFormat,
         };
       },
     }),
@@ -80,11 +95,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.id = user.id;
         token.plan = user.plan;
+        token.firstName = user.firstName ?? null;
+        token.lastName = user.lastName ?? null;
+        token.phone = user.phone ?? null;
+        token.timezone = user.timezone ?? null;
+        token.dateFormat = user.dateFormat ?? null;
+        token.picture = user.image ?? null;
+        token.name = user.name ?? null;
       }
 
-      // Handle session updates
-      if (trigger === 'update' && session?.plan) {
-        token.plan = session.plan as Plan;
+      // Handle session updates triggered via useSession().update({...})
+      if (trigger === 'update' && session) {
+        if (session.plan !== undefined) token.plan = session.plan as Plan;
+        if (session.firstName !== undefined) token.firstName = session.firstName;
+        if (session.lastName !== undefined) token.lastName = session.lastName;
+        if (session.phone !== undefined) token.phone = session.phone;
+        if (session.timezone !== undefined) token.timezone = session.timezone;
+        if (session.dateFormat !== undefined) token.dateFormat = session.dateFormat;
+        if (session.image !== undefined) token.picture = session.image;
+        if (session.name !== undefined) token.name = session.name;
       }
 
       return token;
@@ -93,6 +122,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token && session.user) {
         session.user.id = token.id as string;
         session.user.plan = token.plan as Plan;
+        session.user.firstName = (token.firstName as string | null | undefined) ?? null;
+        session.user.lastName = (token.lastName as string | null | undefined) ?? null;
+        session.user.phone = (token.phone as string | null | undefined) ?? null;
+        session.user.timezone = (token.timezone as string | null | undefined) ?? null;
+        session.user.dateFormat = (token.dateFormat as string | null | undefined) ?? null;
+        // `token.picture` is the NextAuth-standard field for avatar url
+        session.user.image = (token.picture as string | null | undefined) ?? session.user.image ?? null;
+        session.user.name = (token.name as string | null | undefined) ?? session.user.name ?? null;
       }
       return session;
     },

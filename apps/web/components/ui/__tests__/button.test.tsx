@@ -32,59 +32,88 @@ describe('Button', () => {
     expect(handleClick).not.toHaveBeenCalled()
   })
 
-  // Variant tests
+  // Variant tests — Section H (T10.1)
   describe('variants', () => {
-    it('applies default variant classes', () => {
+    it('applies primary variant classes by default', () => {
       render(<Button>Default</Button>)
-      expect(screen.getByRole('button')).toHaveClass('bg-primary')
+      expect(screen.getByRole('button')).toHaveClass('bg-text-default', 'text-white')
     })
 
-    it('applies destructive variant classes', () => {
+    it('applies destructive variant as filled red', () => {
       render(<Button variant="destructive">Destructive</Button>)
-      expect(screen.getByRole('button')).toHaveClass('bg-destructive')
+      expect(screen.getByRole('button')).toHaveClass('bg-danger', 'text-white')
     })
 
-    it('applies outline variant classes', () => {
+    it('applies outline alias as bordered card', () => {
       render(<Button variant="outline">Outline</Button>)
-      expect(screen.getByRole('button')).toHaveClass('border')
+      expect(screen.getByRole('button')).toHaveClass('border', 'bg-card')
     })
 
     it('applies secondary variant classes', () => {
       render(<Button variant="secondary">Secondary</Button>)
-      expect(screen.getByRole('button')).toHaveClass('bg-secondary')
+      expect(screen.getByRole('button')).toHaveClass('bg-card', 'text-text-default')
     })
 
     it('applies ghost variant classes', () => {
       render(<Button variant="ghost">Ghost</Button>)
-      expect(screen.getByRole('button')).toHaveClass('hover:bg-accent')
+      expect(screen.getByRole('button')).toHaveClass('hover:bg-chip')
     })
 
-    it('applies link variant classes', () => {
+    it('applies link variant as always-underlined', () => {
       render(<Button variant="link">Link</Button>)
-      expect(screen.getByRole('button')).toHaveClass('underline-offset-4')
+      expect(screen.getByRole('button')).toHaveClass('underline', 'underline-offset-4')
     })
   })
 
-  // Size tests
+  // Size tests — Section H spec: 26 / 32 / 40 px
   describe('sizes', () => {
-    it('applies default size classes', () => {
+    it('applies md size by default (32px)', () => {
       render(<Button>Default Size</Button>)
-      expect(screen.getByRole('button')).toHaveClass('h-10', 'px-4')
+      expect(screen.getByRole('button')).toHaveClass('h-[32px]', 'px-[13px]')
     })
 
-    it('applies small size classes', () => {
+    it('applies sm size (26px)', () => {
       render(<Button size="sm">Small</Button>)
-      expect(screen.getByRole('button')).toHaveClass('h-9', 'px-3')
+      expect(screen.getByRole('button')).toHaveClass('h-[26px]', 'px-[10px]')
     })
 
-    it('applies large size classes', () => {
+    it('applies lg size (40px)', () => {
       render(<Button size="lg">Large</Button>)
-      expect(screen.getByRole('button')).toHaveClass('h-11', 'px-8')
+      expect(screen.getByRole('button')).toHaveClass('h-[40px]', 'px-[18px]')
     })
 
-    it('applies icon size classes', () => {
+    it('applies legacy icon size (32×32 square)', () => {
       render(<Button size="icon">Icon</Button>)
-      expect(screen.getByRole('button')).toHaveClass('h-10', 'w-10')
+      expect(screen.getByRole('button')).toHaveClass('h-[32px]', 'w-[32px]')
+    })
+  })
+
+  // Loading & icon-only props (new in T10.1)
+  describe('loading & iconOnly props', () => {
+    it('sets aria-busy and disables the button when loading', async () => {
+      const handleClick = vi.fn()
+      const user = userEvent.setup()
+
+      render(
+        <Button loading onClick={handleClick}>
+          Saving…
+        </Button>,
+      )
+
+      const button = screen.getByRole('button')
+      expect(button).toHaveAttribute('aria-busy', 'true')
+      expect(button).toBeDisabled()
+      await user.click(button)
+      expect(handleClick).not.toHaveBeenCalled()
+    })
+
+    it('hides children when iconOnly=true', () => {
+      render(
+        <Button iconOnly aria-label="Add">
+          Add item
+        </Button>,
+      )
+      expect(screen.getByRole('button', { name: 'Add' })).not.toHaveTextContent('Add item')
     })
   })
 

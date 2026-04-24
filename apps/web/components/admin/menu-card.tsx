@@ -1,35 +1,53 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
-  MoreHorizontal,
   Edit,
-  Trash2,
+  ExternalLink,
   Eye,
   EyeOff,
-  ExternalLink,
-  QrCode,
   FolderOpen,
-  BarChart3,
+  Globe,
+  MoreHorizontal,
+  Trash2,
+  UtensilsCrossed,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { StatusPill, type StatusPillStatus } from '@/components/ui/status-pill';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
+  KebabMenu,
+  KebabMenuContent,
+  KebabMenuItem,
+  KebabMenuSeparator,
+  KebabMenuTrigger,
+} from '@/components/ui/kebab-menu';
 import type { Menu } from '@/types/menu';
+
+// Cover-art gradient palette from qr-menu-design/components/menus-pages.jsx.
+// Each menu is assigned a deterministic tone via hash(menu.id) so the grid
+// looks varied but stable across renders.
+const COVER_TONES: ReadonlyArray<readonly [string, string]> = [
+  ['#C9B28A', '#8B6F47'],
+  ['#B8633D', '#7A3F27'],
+  ['#6B7F6B', '#3F5B3F'],
+  ['#8A7CA0', '#5D4F70'],
+  ['#D4A373', '#8B5A2B'],
+  ['#5D7A91', '#344C63'],
+];
+
+function toneFor(id: string): readonly [string, string] {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return COVER_TONES[Math.abs(h) % COVER_TONES.length];
+}
+
+function statusToPill(status: Menu['status']): StatusPillStatus {
+  if (status === 'PUBLISHED') return 'published';
+  if (status === 'ARCHIVED') return 'archived';
+  return 'draft';
+}
 
 interface MenuCardProps {
   menu: Menu;
@@ -44,123 +62,160 @@ export function MenuCard({
   onDelete,
   onTogglePublish,
 }: MenuCardProps) {
+  const router = useRouter();
   const t = useTranslations('admin.menus.card');
   const tActions = useTranslations('actions');
-  const tStatus = useTranslations('status');
-  const tCategories = useTranslations('admin.categories');
-  const tDashboard = useTranslations('admin.dashboard.stats');
   const tA11y = useTranslations('common.accessibility');
 
   const isPublished = menu.status === 'PUBLISHED';
   const publicUrl = `/m/${menu.slug}`;
+  const [c1, c2] = toneFor(menu.id);
+  const categoriesCount = menu._count?.categories ?? 0;
+  const itemsCount = menu._count?.products ?? 0;
+  const viewsCount = menu._count?.views ?? 0;
 
   return (
-    <Card className="group relative overflow-hidden transition-shadow hover:shadow-md" role="article" aria-label={menu.name}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-lg font-semibold leading-none" id={`menu-title-${menu.id}`}>
-              {menu.name}
-            </CardTitle>
-            <CardDescription className="text-sm">
-              /{menu.slug}
-            </CardDescription>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100 data-[state=open]:opacity-100 focus-ring"
-                aria-label={tA11y('menuActions')}
-              >
-                <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEdit(menu)}>
-                <Edit className="mr-2 h-4 w-4" aria-hidden="true" />
-                {tActions('edit')}
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href={`/admin/menus/${menu.id}`}>
-                  <FolderOpen className="mr-2 h-4 w-4" aria-hidden="true" />
-                  {t('manageContent')}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onTogglePublish(menu)}>
-                {isPublished ? (
-                  <>
-                    <EyeOff className="mr-2 h-4 w-4" aria-hidden="true" />
-                    {tActions('unpublish')}
-                  </>
-                ) : (
-                  <>
-                    <Eye className="mr-2 h-4 w-4" aria-hidden="true" />
-                    {tActions('publish')}
-                  </>
-                )}
-              </DropdownMenuItem>
-              {isPublished && (
-                <DropdownMenuItem asChild>
-                  <Link href={publicUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" />
-                    {t('viewMenu')}
-                  </Link>
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => onDelete(menu)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
-                {tActions('delete')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        <Badge variant={isPublished ? 'success' : 'secondary'} className="mt-2 w-fit">
-          {isPublished ? tStatus('published') : tStatus('draft')}
-        </Badge>
-      </CardHeader>
-      <CardContent>
-        {menu.description && (
-          <p className="mb-4 text-sm text-muted-foreground line-clamp-2">
-            {menu.description}
-          </p>
+    <article
+      role="article"
+      aria-label={menu.name}
+      data-testid="menu-card"
+      className={cn(
+        'group relative flex flex-col overflow-hidden',
+        'rounded-[12px] border border-border bg-card',
+        'transition-[transform,box-shadow,border-color] duration-150',
+        'hover:-translate-y-[1px] hover:shadow-sm hover:border-accent',
+        'focus-within:border-accent',
+      )}
+    >
+      <Link
+        href={`/admin/menus/${menu.id}`}
+        aria-label={menu.name}
+        data-testid="menu-card-link"
+        className={cn(
+          'flex flex-1 flex-col rounded-[12px]',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2',
         )}
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <FolderOpen className="h-4 w-4" aria-hidden="true" />
-            <span>{menu._count.categories} {tCategories('title').toLowerCase()}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <BarChart3 className="h-4 w-4" aria-hidden="true" />
-            <span>{menu._count.views} {tDashboard('totalViews').toLowerCase()}</span>
+      >
+        {/* ── Cover (16:9) ── */}
+        <div
+          aria-hidden="true"
+          className="relative aspect-[16/9] w-full overflow-hidden"
+          style={{ background: `linear-gradient(135deg, ${c1}, ${c2})` }}
+        >
+          {/* Diagonal stripe texture */}
+          <span
+            aria-hidden="true"
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                'repeating-linear-gradient(-45deg, rgba(255,255,255,0.04) 0 12px, transparent 12px 24px)',
+            }}
+          />
+          <UtensilsCrossed
+            aria-hidden="true"
+            className="absolute inset-0 m-auto text-white/75"
+            size={40}
+            strokeWidth={1.5}
+          />
+
+          {/* StatusPill overlay — decorative, does not intercept clicks */}
+          <div className="pointer-events-none absolute left-2.5 top-2.5">
+            <StatusPill status={statusToPill(menu.status)} />
           </div>
         </div>
-        <div className="mt-4 flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 focus-ring"
-            asChild
+
+        {/* ── Body ── */}
+        <div className="flex flex-1 flex-col px-4 pb-4 pt-[14px]">
+          <h3
+            id={`menu-title-${menu.id}`}
+            className="text-[14.5px] font-semibold leading-tight tracking-[-0.01em] text-text-default"
           >
-            <Link href={`/admin/menus/${menu.id}`}>
-              <FolderOpen className="mr-2 h-4 w-4" aria-hidden="true" />
-              {t('manage')}
-            </Link>
-          </Button>
-          {isPublished && (
-            <Button variant="outline" size="icon" className="h-9 w-9 focus-ring" asChild>
-              <Link href={`/api/qr/${menu.id}`} target="_blank" rel="noopener noreferrer" aria-label={`${t('downloadQR')} - ${menu.name}`}>
-                <QrCode className="h-4 w-4" aria-hidden="true" />
-              </Link>
-            </Button>
-          )}
+            {menu.name}
+          </h3>
+          <p className="mt-[3px] text-xs text-text-muted">
+            {t('subtitle', {
+              categories: categoriesCount,
+              items: itemsCount,
+            })}
+          </p>
+
+          {/* ── Footer ── */}
+          <div
+            className={cn(
+              'mt-auto flex items-center justify-between gap-3 pt-3',
+              'border-t border-[hsl(var(--border-soft))]',
+              'text-[11.5px] text-text-muted',
+            )}
+          >
+            <div className="flex min-w-0 items-center gap-1">
+              <Globe size={11} strokeWidth={1.5} aria-hidden="true" />
+              <span className="truncate">/m/{menu.slug}</span>
+            </div>
+            {isPublished && viewsCount > 0 && (
+              <span className="whitespace-nowrap tabular-nums font-medium text-text-default">
+                {viewsCount.toLocaleString()}{' '}
+                <span className="font-normal text-text-muted">
+                  {t('thisWeek')}
+                </span>
+              </span>
+            )}
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </Link>
+
+      {/* Kebab lives outside the anchor so clicks don't bubble to the card link. */}
+      <div className="absolute right-2.5 top-2.5 z-10">
+        <KebabMenu>
+          <KebabMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label={tA11y('menuActions')}
+              data-testid="menu-card-kebab"
+              className={cn(
+                'flex h-[26px] w-[26px] items-center justify-center',
+                'rounded-md bg-white/95 text-text-default backdrop-blur-sm',
+                'transition-colors hover:bg-white',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2',
+              )}
+            >
+              <MoreHorizontal size={14} strokeWidth={1.5} aria-hidden="true" />
+            </button>
+          </KebabMenuTrigger>
+          <KebabMenuContent>
+            <KebabMenuItem icon={Edit} onSelect={() => onEdit(menu)}>
+              {tActions('edit')}
+            </KebabMenuItem>
+            <KebabMenuItem
+              icon={FolderOpen}
+              onSelect={() => router.push(`/admin/menus/${menu.id}`)}
+            >
+              {t('manageContent')}
+            </KebabMenuItem>
+            <KebabMenuItem
+              icon={isPublished ? EyeOff : Eye}
+              onSelect={() => onTogglePublish(menu)}
+            >
+              {isPublished ? tActions('unpublish') : tActions('publish')}
+            </KebabMenuItem>
+            {isPublished && (
+              <KebabMenuItem
+                icon={ExternalLink}
+                onSelect={() => window.open(publicUrl, '_blank', 'noopener,noreferrer')}
+              >
+                {t('viewMenu')}
+              </KebabMenuItem>
+            )}
+            <KebabMenuSeparator />
+            <KebabMenuItem
+              tone="destructive"
+              icon={Trash2}
+              onSelect={() => onDelete(menu)}
+            >
+              {tActions('delete')}
+            </KebabMenuItem>
+          </KebabMenuContent>
+        </KebabMenu>
+      </div>
+    </article>
   );
 }

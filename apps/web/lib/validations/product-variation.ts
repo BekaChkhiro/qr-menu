@@ -24,6 +24,7 @@ export const createProductVariationSchema = z.object({
     .nullable()
     .optional(),
   price: priceSchema,
+  isDefault: z.boolean().optional(),
   sortOrder: z.number().int().nonnegative().optional(),
 });
 
@@ -45,6 +46,7 @@ export const updateProductVariationSchema = z.object({
     .nullable()
     .optional(),
   price: priceSchema.optional(),
+  isDefault: z.boolean().optional(),
   sortOrder: z.number().int().nonnegative().optional(),
 });
 

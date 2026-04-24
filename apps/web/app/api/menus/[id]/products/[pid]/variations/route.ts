@@ -149,13 +149,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       _max: { sortOrder: true },
     });
 
-    // Create variation
-    const variation = await prisma.productVariation.create({
-      data: {
-        ...data,
-        productId,
-        sortOrder: (maxSortOrder._max.sortOrder ?? -1) + 1,
-      },
+    // If this variation is flagged default, unset any existing default first
+    // (exactly 0 or 1 default per product invariant).
+    const variation = await prisma.$transaction(async (tx) => {
+      if (data.isDefault) {
+        await tx.productVariation.updateMany({
+          where: { productId, isDefault: true },
+          data: { isDefault: false },
+        });
+      }
+      return tx.productVariation.create({
+        data: {
+          ...data,
+          productId,
+          sortOrder: (maxSortOrder._max.sortOrder ?? -1) + 1,
+        },
+      });
     });
 
     // Invalidate cache

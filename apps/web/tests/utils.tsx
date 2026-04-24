@@ -76,6 +76,7 @@ export function createMockMenu(overrides = {}) {
     publishedAt: null,
     _count: {
       categories: 3,
+      products: 12,
       views: 100,
     },
     ...overrides,

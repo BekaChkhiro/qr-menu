@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Plus, UtensilsCrossed } from 'lucide-react';
+import { LayoutGrid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { MenusEmpty } from './menus-empty';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,20 +16,52 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Segmented, SegmentedItem } from '@/components/ui/segmented';
 import { MenuCard } from './menu-card';
 import { MenuGridSkeleton } from './menu-card-skeleton';
+import { MenusTable, type MenusTableSort } from './menus-table';
+import {
+  MenusFilterChips,
+  type MenusFilterKey,
+} from './menus-filter-chips';
 import { useMenus, useDeleteMenu, usePublishMenu } from '@/hooks/use-menus';
 import type { Menu } from '@/types/menu';
+
+type ViewMode = 'grid' | 'table';
+const VIEW_STORAGE_KEY = 'dm.admin.menus.view';
+
+function readStoredView(): ViewMode {
+  if (typeof window === 'undefined') return 'grid';
+  const stored = window.localStorage.getItem(VIEW_STORAGE_KEY);
+  return stored === 'table' ? 'table' : 'grid';
+}
 
 export function MenusList() {
   const router = useRouter();
   const [menuToDelete, setMenuToDelete] = useState<Menu | null>(null);
   const [menuToToggle, setMenuToToggle] = useState<Menu | null>(null);
+  const [view, setView] = useState<ViewMode>('grid');
+  const [sort, setSort] = useState<MenusTableSort | null>(null);
+  const [filter, setFilter] = useState<MenusFilterKey>('all');
+  const [query, setQuery] = useState('');
   const t = useTranslations('admin.menus');
+  const tTable = useTranslations('admin.menus.table');
+  const tFilter = useTranslations('admin.menus.filter');
   const tActions = useTranslations('actions');
 
   const { data, isLoading, error } = useMenus();
   const deleteMenu = useDeleteMenu();
+
+  // Hydrate view preference from localStorage after mount so SSR markup
+  // stays deterministic (grid by default).
+  useEffect(() => {
+    setView(readStoredView());
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(VIEW_STORAGE_KEY, view);
+  }, [view]);
 
   const handleEdit = (menu: Menu) => {
     router.push(`/admin/menus/${menu.id}/edit`);
@@ -74,36 +106,92 @@ export function MenusList() {
   const menus = data?.data || [];
 
   if (menus.length === 0) {
-    return (
-      <div className="rounded-lg border border-dashed p-12 text-center">
-        <UtensilsCrossed className="mx-auto h-12 w-12 text-muted-foreground" />
-        <h3 className="mt-4 text-lg font-semibold">{t('empty.title')}</h3>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {t('empty.description')}
-        </p>
-        <Button asChild className="mt-4">
-          <Link href="/admin/menus/new">
-            <Plus className="mr-2 h-4 w-4" />
-            {t('empty.action')}
-          </Link>
-        </Button>
-      </div>
-    );
+    return <MenusEmpty />;
   }
+
+  const counts = {
+    all: menus.length,
+    published: menus.filter((m) => m.status === 'PUBLISHED').length,
+    draft: menus.filter((m) => m.status === 'DRAFT').length,
+    archived: menus.filter((m) => m.status === 'ARCHIVED').length,
+  };
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredMenus = menus.filter((menu) => {
+    if (filter === 'published' && menu.status !== 'PUBLISHED') return false;
+    if (filter === 'draft' && menu.status !== 'DRAFT') return false;
+    if (filter === 'archived' && menu.status !== 'ARCHIVED') return false;
+    if (!normalizedQuery) return true;
+    return menu.name.toLowerCase().includes(normalizedQuery);
+  });
 
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {menus.map((menu) => (
-          <MenuCardWithPublish
-            key={menu.id}
-            menu={menu}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onTogglePublish={handleTogglePublish}
-          />
-        ))}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <MenusFilterChips
+          filter={filter}
+          onFilterChange={setFilter}
+          counts={counts}
+          query={query}
+          onQueryChange={setQuery}
+        />
+        <Segmented
+          value={view}
+          onValueChange={(next) => setView(next as ViewMode)}
+          ariaLabel={tTable('toggleAriaLabel')}
+          iconOnly
+          data-testid="menus-view-toggle"
+          className="self-end sm:self-auto"
+        >
+          <SegmentedItem
+            value="grid"
+            aria-label={tTable('toggleGrid')}
+            data-testid="menus-view-toggle-grid"
+          >
+            <LayoutGrid size={14} strokeWidth={1.5} aria-hidden="true" />
+          </SegmentedItem>
+          <SegmentedItem
+            value="table"
+            aria-label={tTable('toggleTable')}
+            data-testid="menus-view-toggle-table"
+          >
+            <List size={14} strokeWidth={1.5} aria-hidden="true" />
+          </SegmentedItem>
+        </Segmented>
       </div>
+
+      {filteredMenus.length === 0 ? (
+        <div
+          data-testid="menus-no-results"
+          className="rounded-[12px] border border-border bg-card px-6 py-12 text-center text-[13px] text-text-muted"
+        >
+          {tFilter('noResults')}
+        </div>
+      ) : view === 'grid' ? (
+        <div
+          data-testid="menus-grid"
+          className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+        >
+          {filteredMenus.map((menu) => (
+            <MenuCardWithPublish
+              key={menu.id}
+              menu={menu}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onTogglePublish={handleTogglePublish}
+            />
+          ))}
+        </div>
+      ) : (
+        <MenusTable
+          menus={filteredMenus}
+          sort={sort}
+          onSortChange={setSort}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onTogglePublish={handleTogglePublish}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog

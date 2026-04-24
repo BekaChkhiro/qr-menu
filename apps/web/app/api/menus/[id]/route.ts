@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import bcrypt from 'bcryptjs';
 import { auth } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
 import {
@@ -10,6 +11,7 @@ import {
 import { updateMenuSchema } from '@/lib/validations';
 import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
+import { sanitizeMenuResponse } from '@/lib/menu-visibility';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -76,7 +78,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    return createSuccessResponse(menu);
+    return createSuccessResponse(sanitizeMenuResponse(menu));
   } catch (error) {
     return handleApiError(error);
   }
@@ -103,7 +105,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Check ownership
     const existingMenu = await prisma.menu.findUnique({
       where: { id },
-      select: { userId: true, slug: true },
+      select: { userId: true, slug: true, passwordHash: true, status: true },
     });
 
     if (!existingMenu) {
@@ -140,9 +142,49 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // T15.13 — `visibility` + `password` are derived inputs that map onto
+    // `status` + `passwordHash`. Strip them from the main patch and synthesize
+    // the persisted fields here.
+    const { visibility, password, ...patch } = data;
+    const updatePayload: Record<string, unknown> = { ...patch };
+    let visibilityChanged = false;
+
+    if (visibility === 'PUBLISHED') {
+      updatePayload.status = 'PUBLISHED';
+      updatePayload.passwordHash = null;
+      if (existingMenu.passwordHash) visibilityChanged = true;
+      if (existingMenu.status !== 'PUBLISHED') {
+        updatePayload.publishedAt = new Date();
+        visibilityChanged = true;
+      }
+    } else if (visibility === 'PASSWORD_PROTECTED') {
+      if (!password && !existingMenu.passwordHash) {
+        return createErrorResponse(
+          ERROR_CODES.VALIDATION_ERROR,
+          'A password is required to enable password protection',
+          400
+        );
+      }
+      updatePayload.status = 'PUBLISHED';
+      if (password) {
+        updatePayload.passwordHash = await bcrypt.hash(password, 10);
+        visibilityChanged = true;
+      }
+      if (existingMenu.status !== 'PUBLISHED') {
+        updatePayload.publishedAt = new Date();
+        visibilityChanged = true;
+      }
+    } else if (visibility === 'PRIVATE_DRAFT') {
+      updatePayload.status = 'DRAFT';
+      updatePayload.passwordHash = null;
+      if (existingMenu.status !== 'DRAFT' || existingMenu.passwordHash) {
+        visibilityChanged = true;
+      }
+    }
+
     const menu = await prisma.menu.update({
       where: { id },
-      data,
+      data: updatePayload,
       include: {
         _count: {
           select: {
@@ -157,12 +199,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (data.slug && data.slug !== existingMenu.slug) {
       await invalidateMenuCache(id, existingMenu.slug);
     }
-    await invalidateMenuCache(id, menu.slug);
+    if (visibilityChanged || data.slug) {
+      await invalidateMenuCache(id, menu.slug);
+    }
+
+    const safeMenu = sanitizeMenuResponse(menu);
 
     // Broadcast real-time update
-    await triggerMenuEvent(id, EVENTS.MENU_UPDATED, menu);
+    await triggerMenuEvent(id, EVENTS.MENU_UPDATED, safeMenu);
 
-    return createSuccessResponse(menu);
+    return createSuccessResponse(safeMenu);
   } catch (error) {
     return handleApiError(error);
   }

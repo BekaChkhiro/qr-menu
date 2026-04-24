@@ -11,6 +11,7 @@ import { updateProductSchema } from '@/lib/validations';
 import { hasFeature } from '@/lib/auth/permissions';
 import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
+import { logActivity } from '@/lib/activity/log';
 
 interface RouteParams {
   params: Promise<{ id: string; pid: string }>;
@@ -215,6 +216,22 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Broadcast real-time update
     await triggerMenuEvent(menuId, EVENTS.PRODUCT_UPDATED, product);
+
+    // Emit PRICE_CHANGED only if price actually changed
+    const oldPriceNum = Number(existingProduct.price);
+    const newPriceNum = Number(product.price);
+    if (data.price !== undefined && oldPriceNum !== newPriceNum) {
+      await logActivity({
+        userId: session.user.id,
+        menuId,
+        type: 'PRICE_CHANGED',
+        payload: {
+          productName: product.nameKa,
+          oldPrice: oldPriceNum,
+          newPrice: newPriceNum,
+        },
+      });
+    }
 
     return createSuccessResponse(product);
   } catch (error) {

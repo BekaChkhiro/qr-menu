@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
 import { auth } from '@/lib/auth/auth';
 import { cacheGetOrSet, CACHE_KEYS, CACHE_TTL } from '@/lib/cache/redis';
-import { getLocaleFromCookie, LOCALE_COOKIE_NAME, type Locale } from '@/i18n/config';
+import { getLocaleFromCookie, isValidLocale, LOCALE_COOKIE_NAME, type Locale } from '@/i18n/config';
 import { MenuHeader } from '@/components/public/menu-header';
 import { MenuInfoWidget } from '@/components/public/menu-info-widget';
 import { MenuBody } from '@/components/public/menu-body';
@@ -12,10 +12,15 @@ import { PromotionCarousel } from '@/components/public/promotion-carousel';
 import { FeaturedCarousel } from '@/components/public/featured-carousel';
 import { MenuFooter } from '@/components/public/menu-footer';
 import { ViewTracker } from '@/components/public/view-tracker';
+import { MenuPasswordGate } from '@/components/public/menu-password-gate';
+import {
+  menuPassCookieName,
+  verifyMenuPassToken,
+} from '@/lib/menu-visibility';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ preview?: string }>;
+  searchParams: Promise<{ preview?: string; draft?: string; locale?: string }>;
 }
 
 // Shared select shape for menu fetch queries — kept identical between public and preview
@@ -50,6 +55,7 @@ const menuSelect = {
   locationLng: true,
   status: true,
   publishedAt: true,
+  passwordHash: true,
   categories: {
     orderBy: { sortOrder: 'asc' as const },
     select: {
@@ -175,8 +181,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PublicMenuPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const { preview } = await searchParams;
-  const isPreview = preview === 'true';
+  const { preview, draft, locale: localeParam } = await searchParams;
+  // Preview mode (owner viewing DRAFT) — triggered by either `preview=true` or
+  // `draft=true` so the admin iframe can signal intent with either param.
+  const isPreview = preview === 'true' || draft === 'true';
 
   let rawMenu: RawMenu | null = null;
 
@@ -195,10 +203,31 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
     notFound();
   }
 
-  const menu = JSON.parse(JSON.stringify(rawMenu)) as RawMenuSerialized;
-
   const cookieStore = await cookies();
-  const locale = getLocaleFromCookie(cookieStore.get(LOCALE_COOKIE_NAME)?.value) as Locale;
+
+  // T15.13 — password gate. Owner preview bypasses.
+  if (!isPreview && rawMenu.passwordHash) {
+    const token = cookieStore.get(menuPassCookieName(rawMenu.id))?.value;
+    if (!verifyMenuPassToken(rawMenu.id, token)) {
+      return (
+        <MenuPasswordGate
+          slug={rawMenu.slug}
+          menuName={rawMenu.name}
+        />
+      );
+    }
+  }
+
+  // Strip server-only fields before serialising for the client tree.
+  const { passwordHash: _omitPasswordHash, ...rawMenuPublic } = rawMenu;
+  void _omitPasswordHash;
+  const menu = JSON.parse(JSON.stringify(rawMenuPublic)) as RawMenuSerialized;
+  // `?locale=` query param takes precedence over the cookie so the admin preview
+  // iframe can force a specific language without touching the visitor's cookie.
+  const locale: Locale =
+    localeParam && isValidLocale(localeParam)
+      ? localeParam
+      : (getLocaleFromCookie(cookieStore.get(LOCALE_COOKIE_NAME)?.value) as Locale);
 
   const categoriesWithProducts = menu.categories.filter((c) => c.products.length > 0);
   const hasPromotions = menu.promotions.length > 0;

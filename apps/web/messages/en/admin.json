@@ -5,11 +5,117 @@
     "analytics": "Analytics",
     "settings": "Settings",
     "help": "Help",
-    "upgrade": "Upgrade"
+    "upgrade": "Upgrade",
+    "planLabel": "plan",
+    "upgradeToPro": "Upgrade to PRO"
+  },
+  "topbar": {
+    "searchPlaceholder": "Search menus, products, settings…",
+    "notifications": "Notifications",
+    "notificationsUnread": "Notifications (unread)",
+    "userMenu": "Open user menu",
+    "profile": "Profile",
+    "settings": "Settings",
+    "signOut": "Sign out",
+    "paletteGroupNav": "Navigation",
+    "paletteEmpty": "No results found."
+  },
+  "breadcrumbs": {
+    "dashboard": "Dashboard",
+    "menus": "Menus",
+    "settings": "Settings",
+    "newMenu": "New menu",
+    "editMenu": "Edit menu",
+    "profile": "Profile",
+    "business": "Business",
+    "billing": "Billing",
+    "team": "Team",
+    "notifications": "Notifications",
+    "security": "Security",
+    "language": "Language"
   },
   "dashboard": {
     "title": "Dashboard",
-    "welcome": "Welcome, {name}!",
+    "welcome": {
+      "morning": "Good morning, {name}",
+      "afternoon": "Good afternoon, {name}",
+      "evening": "Good evening, {name}",
+      "fallbackName": "there",
+      "subtitle": "Here's what's happening with your menus today.",
+      "viewPublic": "View public menu",
+      "createMenu": "Create new menu"
+    },
+    "usage": {
+      "sectionLabel": "{plan} plan usage",
+      "menus": "Menus",
+      "categories": "Categories",
+      "products": "Products",
+      "storage": "Storage",
+      "unlimited": "Unlimited",
+      "upgradeCta": "Upgrade to PRO for unlimited everything"
+    },
+    "upgradeCard": {
+      "ariaLabel": "Upgrade to {plan}",
+      "title": {
+        "starter": "Remove limits and run promotions.",
+        "pro": "Unlock analytics, multilingual menus, and allergen info."
+      },
+      "subtitle": {
+        "starter": "Go beyond the Free tier with unlimited items and a branded menu.",
+        "pro": "Everything you need to run a professional menu operation."
+      },
+      "features": {
+        "starter": {
+          "one": "Up to 3 menus (vs. 1 on Free)",
+          "two": "Unlimited categories and products",
+          "three": "Promotions, custom logo and brand colors"
+        },
+        "pro": {
+          "one": "Real-time analytics — views, scans, conversion by item",
+          "two": "Menus in 3 languages (KA · EN · RU) with auto-translate",
+          "three": "Allergens, diet badges and QR code with your logo"
+        }
+      },
+      "pricing": {
+        "from": "from",
+        "perMonth": "per month"
+      },
+      "cta": {
+        "starter": "Upgrade to STARTER",
+        "pro": "Upgrade to PRO"
+      }
+    },
+    "analytics": {
+      "title": "Menu views · last {period}",
+      "period": {
+        "7d": "7 days",
+        "30d": "30 days",
+        "90d": "90 days"
+      },
+      "periodAriaLabel": "Analytics period",
+      "vsPrevious": "vs previous {period}",
+      "deltaUp": "{value}%",
+      "deltaDown": "{value}%",
+      "deltaFlat": "0%",
+      "noPublishedMenus": "Publish a menu to start tracking views",
+      "emptyTitle": "No views in this period yet",
+      "emptyBody": "Views appear here once people scan your QR code.",
+      "lockedTitle": "Analytics is a PRO feature",
+      "lockedBody": "See views, scans, top items and device breakdowns. Starts at 59₾/month.",
+      "lockedCta": "Upgrade to PRO"
+    },
+    "deviceBreakdown": {
+      "title": "Device breakdown",
+      "centerLabel": "Devices",
+      "empty": "No device data yet",
+      "device": {
+        "mobile": "Mobile",
+        "desktop": "Desktop",
+        "tablet": "Tablet",
+        "other": "Other"
+      },
+      "footerHint": "Mobile makes up {pct}% of scans this period"
+    },
     "stats": {
       "totalMenus": "Menus",
       "totalViews": "Views",
@@ -21,25 +127,165 @@
       "createMenu": "Create Menu",
       "viewAnalytics": "View Analytics"
     },
-    "recentMenus": "Recent Menus"
+    "recentMenus": "Recent Menus",
+    "activity": {
+      "title": "Recent activity",
+      "viewAll": "View all",
+      "empty": "No activity yet. Create a menu or add products to see updates here.",
+      "events": {
+        "menuCreated": "Created menu <b>{menuName}</b>",
+        "menuPublished": "Published <b>{menuName}</b>",
+        "categoryCreated": "Created category <b>{categoryName}</b>",
+        "productCreated": "Added <b>{productName}</b> to <b>{categoryName}</b>",
+        "productCreatedNoCategory": "Added <b>{productName}</b>",
+        "priceChanged": "Changed price for <b>{productName}</b> ({oldPrice} → {newPrice})",
+        "promotionStarted": "Started promotion <b>{promotionName}</b>",
+        "promotionEnded": "Promotion <b>{promotionName}</b> ended",
+        "qrScanned": "QR code scanned for <b>{menuName}</b>"
+      },
+      "meta": {
+        "justNow": "Just now",
+        "minutesAgo": "{count, plural, one {# minute ago} other {# minutes ago}}",
+        "hoursAgo": "{count, plural, one {# hour ago} other {# hours ago}}",
+        "daysAgo": "{count, plural, one {# day ago} other {# days ago}}"
+      }
+    },
+    "yourMenus": {
+      "title": "Your menus",
+      "searchPlaceholder": "Search menus…",
+      "searchLabel": "Search menus",
+      "filter": {
+        "all": "All",
+        "published": "Published",
+        "draft": "Draft"
+      },
+      "columns": {
+        "menu": "Menu",
+        "status": "Status",
+        "views": "Views (today / week)",
+        "lastEdited": "Last edited",
+        "actions": "Actions"
+      },
+      "viewsAria": "{today} today, {week} this week",
+      "actionsLabel": "Menu actions for {name}",
+      "noResults": "No menus match your filters",
+      "kebab": {
+        "edit": "Edit",
+        "duplicate": "Duplicate",
+        "analytics": "Analytics",
+        "delete": "Delete"
+      },
+      "delete": {
+        "title": "Delete menu",
+        "message": "Delete “{name}”? This also removes its categories, products and promotions.",
+        "confirm": "Delete menu",
+        "cancel": "Cancel",
+        "deleting": "Deleting…"
+      },
+      "empty": {
+        "title": "Create your first menu",
+        "body": "Pick a template to start faster, or build from scratch. You can change everything — categories, items, pricing, languages — later.",
+        "createFromScratch": "Create from scratch",
+        "templates": {
+          "cafe": {
+            "name": "Café & bakery",
+            "description": "Coffee, pastry, breakfast"
+          },
+          "restaurant": {
+            "name": "Full restaurant",
+            "description": "Starters · mains · desserts"
+          },
+          "bar": {
+            "name": "Bar & cocktails",
+            "description": "Wines, spirits, signature drinks"
+          }
+        }
+      }
+    },
+    "topProducts": {
+      "title": "Top-performing items",
+      "subtitle": "by views · {days}d",
+      "rankLabel": "Rank {rank}",
+      "viewRowLabel": "{name}, {category}, {views} views",
+      "empty": {
+        "title": "No products yet",
+        "body": "Add products to your menu to see which items get the most attention."
+      }
+    }
   },
   "menus": {
     "title": "Menus",
     "create": "Create Menu",
     "empty": {
-      "title": "No menus yet",
-      "description": "Create your first menu to get started",
-      "action": "Create Menu"
+      "title": "Create your first menu",
+      "description": "Pick a template to get started quickly, or build from scratch. You can change everything later — categories, items, pricing, languages, branding.",
+      "itemsCount": "{count, plural, one {# item} other {# items}}",
+      "useTemplate": "Use template",
+      "fromScratch": "Create from scratch",
+      "templates": {
+        "cafeBakery": {
+          "name": "Café & bakery",
+          "description": "Coffee, pastry, breakfast"
+        },
+        "fullRestaurant": {
+          "name": "Full restaurant",
+          "description": "Starters · mains · desserts"
+        },
+        "barCocktails": {
+          "name": "Bar & cocktails",
+          "description": "Wines, spirits, signatures"
+        }
+      }
     },
     "card": {
       "categories": "{count} categories",
       "products": "{count} products",
       "views": "{count} views",
+      "subtitle": "{categories} categories · {items} items",
+      "thisWeek": "this week",
       "viewMenu": "View Menu",
       "editMenu": "Edit",
       "downloadQR": "Download QR",
       "manageContent": "Manage Content",
       "manage": "Manage"
+    },
+    "table": {
+      "toggleAriaLabel": "Change view",
+      "toggleGrid": "Grid view",
+      "toggleTable": "Table view",
+      "columns": {
+        "menu": "Menu",
+        "status": "Status",
+        "categories": "Categories",
+        "items": "Items",
+        "views7d": "Views 7d",
+        "lastEdited": "Last edited"
+      }
+    },
+    "filter": {
+      "groupLabel": "Filter menus by status",
+      "all": "All",
+      "published": "Published",
+      "draft": "Draft",
+      "archived": "Archived",
+      "searchLabel": "Search menus by name",
+      "searchPlaceholder": "Search menus…",
+      "noResults": "No menus match your filters."
+    },
+    "limitBanner": {
+      "title": {
+        "starter": "You've reached the {limit}-menu limit on FREE",
+        "pro": "You've reached the {limit}-menu limit on STARTER"
+      },
+      "description": {
+        "starter": "Upgrade to STARTER for up to 3 menus, promotions and custom branding.",
+        "pro": "Upgrade to PRO for unlimited menus, multilingual support and advanced analytics."
+      },
+      "cta": {
+        "starter": "Upgrade to STARTER",
+        "pro": "Upgrade to PRO"
+      },
+      "tooltip": "You've reached your plan's menu limit. Upgrade to create more."
     },
     "form": {
       "name": "Menu Name",
@@ -74,9 +320,424 @@
       "publishError": "Failed to publish menu"
     }
   },
+  "editor": {
+    "backToMenus": "Back to menus",
+    "tabs": {
+      "content": "Content",
+      "branding": "Branding",
+      "languages": "Languages",
+      "analytics": "Analytics",
+      "promotions": "Promotions",
+      "qr": "QR",
+      "settings": "Settings"
+    },
+    "publish": {
+      "draft": "Draft",
+      "published": "Published",
+      "togglePublished": "Set menu to published",
+      "toggleDraft": "Revert menu to draft",
+      "lastPublished": "Last published {when}",
+      "neverPublished": "Not yet published",
+      "justNow": "just now",
+      "publishing": "Publishing…",
+      "unpublishing": "Unpublishing…"
+    },
+    "name": {
+      "edit": "Edit menu name",
+      "save": "Save name",
+      "cancel": "Cancel",
+      "label": "Menu name",
+      "required": "Menu name is required"
+    },
+    "actions": {
+      "share": "Share",
+      "viewPublic": "View public",
+      "saveChanges": "Save changes",
+      "saved": "Saved",
+      "saving": "Saving…"
+    },
+    "unsaved": {
+      "indicator": "Unsaved changes",
+      "dotLabel": "You have unsaved changes"
+    },
+    "placeholder": {
+      "comingSoon": "Coming soon"
+    },
+    "settings": {
+      "url": {
+        "label": "Menu URL",
+        "helper": "The public address for this menu. Used in the QR code.",
+        "slugAriaLabel": "Menu slug",
+        "slugPlaceholder": "main-menu",
+        "copyAriaLabel": "Copy menu URL",
+        "copyToast": "URL copied to clipboard",
+        "copyError": "Could not copy URL",
+        "warning": "Changing the URL will break any printed QR codes pointing to the old address.",
+        "errors": {
+          "required": "Slug is required",
+          "tooShort": "Slug must be at least 3 characters",
+          "tooLong": "Slug must be less than 50 characters",
+          "invalidChars": "Use lowercase letters, numbers, and hyphens only",
+          "taken": "This URL is already taken. Try a different one."
+        }
+      },
+      "visibility": {
+        "label": "Visibility",
+        "helper": "Who can see this menu.",
+        "ariaLabel": "Menu visibility",
+        "published": {
+          "title": "Published",
+          "body": "Visible to everyone who has the URL or scans the QR code."
+        },
+        "password": {
+          "title": "Password protected",
+          "body": "Only visitors who enter the password can view this menu.",
+          "inputLabelSet": "Set password",
+          "inputLabelChange": "New password (optional)",
+          "placeholderSet": "e.g. linville2026",
+          "placeholderChange": "Leave blank to keep current password",
+          "showAriaLabel": "Show password",
+          "hideAriaLabel": "Hide password",
+          "hint": "A password is already set. Leave blank to keep it.",
+          "errors": {
+            "required": "A password is required to enable password protection",
+            "tooShort": "Password must be at least 4 characters"
+          }
+        },
+        "draft": {
+          "title": "Private draft",
+          "body": "Only you and your team can preview. Customers see \"Menu not available.\""
+        }
+      },
+      "actions": {
+        "save": "Save changes",
+        "saving": "Saving…",
+        "discard": "Discard",
+        "saved": "Menu settings saved",
+        "saveFailed": "Could not save settings"
+      }
+    },
+    "promotions": {
+      "title": "Promotions",
+      "subtitle": "Running and scheduled offers for this menu",
+      "new": "New promotion",
+      "filter": {
+        "ariaLabel": "Filter promotions by status",
+        "all": "All",
+        "active": "Active",
+        "scheduled": "Scheduled",
+        "ended": "Ended",
+        "noResults": "No promotions match this filter",
+        "noResultsHint": "Switch to a different status, or create a new promotion."
+      },
+      "status": {
+        "active": "Active",
+        "scheduled": "Scheduled",
+        "ended": "Ended"
+      },
+      "card": {
+        "appliedToMenu": "Applies to menu",
+        "scansLabel": "scans · 7d"
+      },
+      "kebab": {
+        "menuLabel": "Promotion actions",
+        "edit": "Edit",
+        "delete": "Delete",
+        "cancel": "Cancel",
+        "deleting": "Deleting…"
+      },
+      "empty": {
+        "title": "No promotions yet",
+        "body": "Create a promotion to highlight a special offer on this menu."
+      },
+      "suggestions": {
+        "title": "Ideas to try",
+        "hint": "click to start from a template",
+        "chips": {
+          "happyHour": "Happy hour on drinks",
+          "lunchCombo": "Lunch combo bundle",
+          "loyaltyDiscount": "Loyalty discount for repeat customers"
+        }
+      },
+      "locked": {
+        "title": "Promotions are a STARTER feature",
+        "body": "Launch timed offers, happy hours and seasonal specials. Upgrade to run unlimited promotions.",
+        "cta": "Upgrade to STARTER"
+      }
+    },
+    "analytics": {
+      "period": {
+        "30d": "Last 30 days"
+      },
+      "kpis": {
+        "totalViews": "Total views",
+        "uniqueScans": "Unique scans",
+        "avgTimeOnMenu": "Avg time on menu",
+        "peakHour": "Peak hour",
+        "noData": "—",
+        "noDataCaption": "No data in this period",
+        "deltaPositive": "+{value}% vs previous {days}d",
+        "deltaNegative": "{value}% vs previous {days}d",
+        "deltaFlat": "No change vs previous {days}d",
+        "peakHourCaption": "{views, plural, one {# view} other {# views}} at this hour"
+      },
+      "chart": {
+        "title": "Views over time",
+        "legend": {
+          "views": "Views",
+          "uniqueScans": "Unique scans"
+        },
+        "period": {
+          "lastNDays": "Last {days} days"
+        },
+        "events": {
+          "menuPublished": "Menu published",
+          "promotionStarted": "Promotion started",
+          "promotionEnded": "Promotion ended"
+        },
+        "tooltip": {
+          "views": "Views",
+          "uniqueScans": "Scans"
+        },
+        "ariaChart": "Views and unique scans over the last {days} days, peak {peak}",
+        "hitAreaLabel": "{date}: {views} views, {scans} unique scans",
+        "empty": "No views or scans in this period yet"
+      },
+      "comingSoon": {
+        "title": "More analytics coming soon",
+        "body": "Per-product view tracking, geography, and traffic source ship with the analytics data pipeline."
+      },
+      "topCategories": {
+        "title": "Top categories",
+        "hint": "Top 5 by views",
+        "empty": "No category views in this period yet"
+      },
+      "deviceBreakdown": {
+        "title": "Device breakdown",
+        "donutAriaLabel": "Device share across Mobile, Desktop, and Tablet",
+        "empty": "No device data in this period",
+        "segments": {
+          "mobile": "Mobile",
+          "desktop": "Desktop",
+          "tablet": "Tablet",
+          "other": "Other"
+        },
+        "browsers": {
+          "heading": "Browsers",
+          "empty": "No browser data yet"
+        }
+      },
+      "advanced": {
+        "comingSoonLabel": "Coming soon",
+        "heatmap": {
+          "title": "When customers view your menu",
+          "comingSoon": "we're working on hour-by-hour scan patterns",
+          "peakLabel": "Peak:",
+          "peakValue": "Saturday 13:00",
+          "quietValue": "Quietest: Tuesday 6:00",
+          "legendAriaLabel": "Heat intensity scale",
+          "less": "Less",
+          "more": "More",
+          "days": {
+            "mon": "Mon",
+            "tue": "Tue",
+            "wed": "Wed",
+            "thu": "Thu",
+            "fri": "Fri",
+            "sat": "Sat",
+            "sun": "Sun"
+          }
+        },
+        "geography": {
+          "title": "Views by city",
+          "comingSoon": "customer geography detection lands with unique-scan tracking",
+          "cities": {
+            "tbilisi": "Tbilisi",
+            "batumi": "Batumi",
+            "kutaisi": "Kutaisi",
+            "rustavi": "Rustavi",
+            "other": "Other"
+          }
+        },
+        "trafficSource": {
+          "title": "Traffic source",
+          "comingSoon": "we'll attribute scans to tent cards, posters, and shared links",
+          "barAriaLabel": "Traffic source share: 78% QR code, 15% direct URL, 7% social",
+          "qrLocationsHeading": "Most scanned QR locations",
+          "legend": {
+            "qr": "QR code",
+            "direct": "Direct URL",
+            "social": "Social"
+          },
+          "locations": {
+            "table6": "Table 6 tent",
+            "entrance": "Entrance poster",
+            "table2": "Table 2 tent",
+            "bar": "Bar counter",
+            "receipt": "Takeaway receipt"
+          }
+        },
+        "topProducts": {
+          "title": "Top products",
+          "previewBadge": "Preview",
+          "previewTooltip": "Ranked by price as a placeholder. Per-product view tracking ships with the analytics data pipeline.",
+          "empty": "Add products to this menu to see how they'd rank.",
+          "uncategorized": "Uncategorized"
+        }
+      },
+      "locked": {
+        "title": "Analytics is a PRO feature",
+        "body": "See detailed views, devices, hours, top products and customer geography. Get the full picture of how customers engage with your menu.",
+        "cta": "Upgrade to PRO — 59₾/month",
+        "ctaShort": "Upgrade to PRO",
+        "bullets": {
+          "a": "Real-time view & scan tracking",
+          "b": "Hour-by-hour heatmaps",
+          "c": "Per-product performance"
+        },
+        "guarantee": "30-day money-back guarantee"
+      },
+      "empty": {
+        "title": "Your analytics will appear here",
+        "body": "Share your menu to start collecting insights. Once customers scan, you'll see views, devices, top items and more.",
+        "downloadQr": "Download QR code",
+        "copyLink": "Copy menu link",
+        "copyToast": "Menu link copied",
+        "copyError": "Could not copy — try again",
+        "noDataValue": "—",
+        "noDataCaption": "No data in this period"
+      }
+    },
+    "preview": {
+      "languageTabs": "Preview language",
+      "share": "Share",
+      "viewPublic": "View public",
+      "viewPublicDisabled": "Publish the menu to view it publicly",
+      "shareCopied": "Public link copied",
+      "realtimeHint": "Preview updates in real time"
+    },
+    "languages": {
+      "title": "Languages",
+      "primary": "Primary language · always on",
+      "enabled": "Enabled for this menu",
+      "disabled": "Not enabled",
+      "toggleLabel": "Toggle {language}",
+      "names": {
+        "ka": "ქართული · Georgian",
+        "en": "English",
+        "ru": "Русский · Russian"
+      },
+      "toast": {
+        "saved": "Languages updated",
+        "error": "Failed to update languages"
+      },
+      "autoTranslate": {
+        "title": "Auto-translate missing",
+        "proBadge": "PRO",
+        "hint": "{count, plural, =0 {No missing translations 🎉} one {Fill in # missing translation across EN and RU using DeepL.} other {Fill in # missing translations across EN and RU using DeepL.}}",
+        "hintLocked": "Auto-translate is a PRO feature. Fills in missing translations using DeepL, reviewed before publish.",
+        "cta": "{count, plural, =0 {Nothing to translate} one {Translate # missing} other {Translate # missing}}",
+        "ctaLocked": "Upgrade to use"
+      },
+      "matrix": {
+        "title": "Translation status",
+        "coverage": "{translated, plural, =0 {0 of {total} fields translated} one {# of {total} field translated} other {# of {total} fields translated}}",
+        "missing": "{count, plural, =0 {all covered} one {# missing} other {# missing}}",
+        "showMissing": "Show missing only",
+        "showAll": "Show all",
+        "columnItem": "Item",
+        "categoryLabel": "Category: {name}",
+        "empty": "Add categories and products in the Content tab to see their translation status here.",
+        "filteredEmpty": "Nothing missing — every enabled language has a value."
+      },
+      "locked": {
+        "title": "Multilingual is a PRO feature",
+        "body": "Georgian (KA) is always on. Upgrade to PRO to enable English and Russian, plus auto-translate missing fields with DeepL.",
+        "cta": "Upgrade to PRO"
+      }
+    },
+    "branding": {
+      "logo": {
+        "label": "Logo",
+        "hint": "PNG, SVG · up to 2 MB"
+      },
+      "cover": {
+        "label": "Cover image"
+      },
+      "primaryColor": {
+        "label": "Primary color"
+      },
+      "font": {
+        "label": "Font family",
+        "custom": "Custom"
+      },
+      "radius": {
+        "label": "Corner radius"
+      },
+      "saving": "Saving…",
+      "saveError": "Failed to save branding",
+      "locked": {
+        "title": "Custom branding is a paid feature",
+        "body": "Upload your logo, pick brand colors and fonts. Included in STARTER from 29₾/month.",
+        "cta": "Upgrade plan"
+      }
+    },
+    "qr": {
+      "style": {
+        "label": "Style",
+        "classic": "Classic",
+        "rounded": "Rounded",
+        "dots": "Dots"
+      },
+      "foreground": {
+        "label": "Foreground color",
+        "palette": "Preset QR colors",
+        "slate": "Slate",
+        "terracotta": "Terracotta",
+        "black": "Black",
+        "navy": "Navy"
+      },
+      "background": {
+        "label": "Background",
+        "white": "White",
+        "transparent": "Transparent"
+      },
+      "size": {
+        "label": "Size",
+        "s": "S",
+        "m": "M",
+        "l": "L"
+      },
+      "logo": {
+        "title": "Add logo to center",
+        "body": "Keeps QR scannable with error correction.",
+        "proBadge": "PRO"
+      },
+      "copyAriaLabel": "Copy public URL",
+      "copyToast": "URL copied",
+      "copyError": "Could not copy URL",
+      "saving": "Saving…",
+      "saveError": "Failed to save QR design"
+    },
+    "errors": {
+      "notFound": "Menu not found",
+      "loadFailed": "Could not load this menu"
+    }
+  },
   "categories": {
     "title": "Categories",
     "add": "Add Category",
+    "addDashed": "Add category",
+    "search": "Search categories",
+    "searchPlaceholder": "Search categories & items…",
+    "noSearchResults": "No categories match",
+    "itemCount": "{count, plural, =0 {no items} one {# item} other {# items}}",
+    "actionsLabel": "Actions for {name}",
+    "actions": {
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "delete": "Delete"
+    },
     "empty": {
       "title": "No categories",
       "description": "Add a category to group your products"
@@ -100,6 +761,7 @@
       "created": "Category created successfully",
       "updated": "Category updated successfully",
       "deleted": "Category deleted successfully",
+      "duplicated": "Category duplicated successfully",
       "createError": "Failed to create category",
       "updateError": "Failed to update category",
       "deleteError": "Failed to delete category"
@@ -108,6 +770,123 @@
   "products": {
     "title": "Products",
     "add": "Add Product",
+    "addItem": "Add item to {category}",
+    "actionsLabel": "Actions for {name}",
+    "moveToLabel": "Move to",
+    "actions": {
+      "duplicate": "Duplicate"
+    },
+    "drawer": {
+      "addTitle": "Add new product",
+      "editTitle": "Edit product",
+      "closeLabel": "Close",
+      "deleteProduct": "Delete product",
+      "saveNewProduct": "Save product",
+      "saving": "Saving…",
+      "saveErrorTitle": "Couldn't save product",
+      "saveErrorDefault": "Something went wrong. Please try again.",
+      "tabs": {
+        "basics": "Basics",
+        "variations": "Variations",
+        "allergens": "Allergens",
+        "allergensProBadge": "PRO",
+        "nutrition": "Nutrition",
+        "visibility": "Visibility"
+      },
+      "placeholders": {
+        "variations": {
+          "title": "Variations coming soon",
+          "body": "Create size or option variations (Small / Medium / Large) so customers can pick one when viewing the product."
+        },
+        "variationsCreate": {
+          "title": "Save the product first",
+          "body": "Variations can be added once the product itself exists. Fill in the Basics tab and save — then come back to add Small / Medium / Large."
+        },
+        "allergensCreate": {
+          "title": "Save the product first",
+          "body": "Allergens and dietary badges can be set once the product exists. Fill in the Basics tab and save — then come back here."
+        },
+        "nutrition": {
+          "title": "Nutrition coming soon",
+          "body": "Add calories and macros (protein, fats, carbs, fiber) so guests can browse with confidence."
+        },
+        "visibility": {
+          "title": "Visibility coming soon",
+          "body": "Schedule when this product appears on the public menu (lunch, weekends, holidays)."
+        }
+      },
+      "variationsTab": {
+        "intro": "Create size or option variations (e.g., Small / Medium / Large). Customers pick one when viewing the product.",
+        "header": {
+          "name": "Name",
+          "priceModifier": "Price modifier",
+          "default": "Default"
+        },
+        "loading": "Loading variations…",
+        "empty": "No variations yet. Add one below.",
+        "add": "Add variation",
+        "helper": "Price modifier is added to the base price ({basePrice}₾).",
+        "dragLabel": "Drag to reorder {name}",
+        "kebabLabel": "Actions for {name}",
+        "defaultAriaOn": "Default variation",
+        "defaultAriaOff": "Set as default variation",
+        "kebab": {
+          "delete": "Delete"
+        },
+        "addForm": {
+          "nameLabel": "Variation name",
+          "namePlaceholder": "e.g. Small",
+          "modifierLabel": "Price modifier",
+          "save": "Save variation",
+          "cancel": "Cancel"
+        },
+        "delete": {
+          "title": "Delete variation",
+          "body": "Are you sure you want to delete \"{name}\"? This cannot be undone.",
+          "confirm": "Delete",
+          "deleting": "Deleting…",
+          "cancel": "Cancel"
+        },
+        "toast": {
+          "created": "Variation added",
+          "createError": "Failed to add variation",
+          "deleted": "Variation deleted",
+          "deleteError": "Failed to delete variation",
+          "updateError": "Failed to update variation"
+        }
+      },
+      "allergensLocked": {
+        "title": "Allergen info is a PRO feature",
+        "body": "Help customers with dietary restrictions choose confidently. Starts at 59₾/month.",
+        "cta": "Upgrade to PRO"
+      },
+      "allergensTab": {
+        "tilesLabel": "Allergens",
+        "tilesHint": "Icons appear on the public menu",
+        "tiles": {
+          "gluten": "Gluten",
+          "dairy": "Dairy",
+          "eggs": "Eggs",
+          "nuts": "Nuts",
+          "seafood": "Seafood",
+          "soy": "Soy",
+          "pork": "Pork",
+          "sesame": "Sesame"
+        },
+        "dietary": {
+          "label": "Dietary badges",
+          "helper": "Gluten-free is auto-suggested when no gluten allergen is selected.",
+          "vegan": "Vegan",
+          "vegetarian": "Vegetarian",
+          "halal": "Halal",
+          "kosher": "Kosher",
+          "glutenFree": "Gluten-free"
+        },
+        "toast": {
+          "saveError": "Failed to save changes"
+        }
+      }
+    },
     "empty": {
       "title": "No products",
       "description": "Add a product to this category"
@@ -147,7 +926,42 @@
       "allergenNuts": "Nuts",
       "allergenSeafood": "Seafood",
       "allergenSoy": "Soy",
-      "allergenPork": "Pork"
+      "allergenPork": "Pork",
+      "allergenSesame": "Sesame",
+      "basicsHintName": "Required in Georgian, optional in others",
+      "nameLabel": "Name",
+      "descriptionLabel": "Description",
+      "descriptionCharCounter": "{count} / 500",
+      "priceLabel": "Price",
+      "priceError": "Price must be greater than 0",
+      "imageActions": {
+        "replace": "Replace",
+        "crop": "Crop",
+        "remove": "Remove"
+      },
+      "imageRecommended": "Recommended: square, min 800 × 800px",
+      "discount": {
+        "toggle": "Add discount",
+        "toggleHelp": "Show a strike-through price for promotions",
+        "original": "Original",
+        "sale": "Sale price"
+      },
+      "tagsLabel": "Tags",
+      "tagsPlaceholder": "Add tag…",
+      "tagsSuggested": "Suggested:",
+      "tagNames": {
+        "vegetarian": "Vegetarian",
+        "vegan": "Vegan",
+        "popular": "Popular",
+        "chefChoice": "Chef's pick",
+        "dailyDish": "Daily dish",
+        "spicy": "Spicy",
+        "new": "New"
+      },
+      "availabilityLabel": "Availability",
+      "inStock": "In stock",
+      "inStockHelp": "Available now on the public menu",
+      "scheduleAvailability": "Schedule availability"
     },
     "variations": {
       "title": "Variations",
@@ -168,6 +982,8 @@
       "created": "Product created successfully",
       "updated": "Product updated successfully",
       "deleted": "Product deleted successfully",
+      "duplicated": "Product duplicated successfully",
+      "moved": "Product moved",
       "createError": "Failed to create product",
       "updateError": "Failed to update product",
       "deleteError": "Failed to delete product"
@@ -218,11 +1034,105 @@
   },
   "settings": {
     "title": "Settings",
+    "nav": {
+      "ariaLabel": "Settings navigation",
+      "personal": "Personal",
+      "business": "Business",
+      "profile": "Profile",
+      "notifications": "Notifications",
+      "security": "Security",
+      "language": "Language",
+      "businessInfo": "Business info",
+      "billing": "Plan & billing",
+      "team": "Team"
+    },
+    "saveBar": {
+      "ariaLabel": "Unsaved changes",
+      "unsaved": "You have unsaved changes",
+      "discard": "Discard",
+      "save": "Save changes"
+    },
+    "placeholder": {
+      "body": "This tab is part of the settings shell scaffold. The full form will ship with a follow-up task.",
+      "demoLabel": "Preview field",
+      "demoPlaceholder": "Type to try the save bar",
+      "demoHint": "Typing here marks the form as dirty so the save bar at the bottom appears."
+    },
+    "tabs": {
+      "profile": {
+        "title": "Profile",
+        "subtitle": "Your personal info shown across the admin panel."
+      },
+      "businessInfo": {
+        "title": "Business info",
+        "subtitle": "Public details about your cafe or restaurant."
+      },
+      "billing": {
+        "title": "Plan & billing",
+        "subtitle": "Your plan, invoices and payment method."
+      },
+      "team": {
+        "title": "Team",
+        "subtitle": "Invite team members and manage their access."
+      },
+      "notifications": {
+        "title": "Notifications",
+        "subtitle": "Choose what lands in your inbox and on your device."
+      },
+      "security": {
+        "title": "Security",
+        "subtitle": "Password, sessions and account protection."
+      },
+      "language": {
+        "title": "Language",
+        "subtitle": "Interface language and menu content languages."
+      }
+    },
     "profile": {
       "title": "Profile",
       "name": "Name",
       "email": "Email",
-      "save": "Save"
+      "save": "Save",
+      "sections": {
+        "personal": "Personal information",
+        "preferences": "Preferences"
+      },
+      "avatar": {
+        "upload": "Upload photo",
+        "remove": "Remove",
+        "pick": "Change profile photo",
+        "roleOwner": "Owner",
+        "unnamed": "Unnamed user"
+      },
+      "fields": {
+        "firstName": "First name",
+        "lastName": "Last name",
+        "email": "Email",
+        "emailVerified": "Verified",
+        "emailChange": "Change",
+        "emailChangeHint": "Email changes are handled separately from the profile form.",
+        "phone": "Phone",
+        "phoneHint": "Used for 2FA and critical alerts only.",
+        "timezone": "Timezone",
+        "timezonePlaceholder": "Select a timezone",
+        "dateFormat": "Date format"
+      },
+      "timezones": {
+        "tbilisi": "(GMT+4) Tbilisi",
+        "istanbul": "(GMT+3) Istanbul",
+        "moscow": "(GMT+3) Moscow",
+        "kyiv": "(GMT+2) Kyiv",
+        "london": "(GMT+0) London",
+        "berlin": "(GMT+1) Berlin",
+        "newYork": "(GMT-5) New York",
+        "losAngeles": "(GMT-8) Los Angeles",
+        "utc": "(UTC) Coordinated Universal Time"
+      },
+      "toast": {
+        "saving": "Saving...",
+        "saved": "Profile updated",
+        "saveFailed": "Could not save profile"
+      }
     },
     "password": {
       "title": "Change Password",

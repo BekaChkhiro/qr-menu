@@ -59,15 +59,16 @@ html.lenis, html.lenis body {
     --ring: var(--accent);
     --radius: 0.5rem;
 
-    /* ── Sidebar vars (Phase 11 will re-token these) ─────────────────── */
-    --sidebar: 0 0% 100%;
-    --sidebar-foreground: 0 0% 40%;
-    --sidebar-accent: 48 9% 91%;
+    /* ── Sidebar vars (Section H — Phase 11) ─────────────────────────── */
+    /* Warm off-white surface (#FCFBF8) matching Section H sidebar spec. */
+    --sidebar: 45 40% 98%;
+    --sidebar-foreground: 240 5% 47%;
+    --sidebar-accent: 45 14% 94%;
     --sidebar-accent-foreground: 240 6% 10%;
     --sidebar-border: 48 9% 91%;
     --sidebar-primary: 240 6% 10%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-ring: 240 4% 46%;
+    --sidebar-ring: 18 51% 48%;
   }
 
   .dark {
@@ -133,6 +134,11 @@ html.lenis, html.lenis body {
   .skip-link:focus {
     @apply fixed top-4 left-4 z-[9999] px-4 py-2 bg-primary text-primary-foreground rounded-md shadow-lg;
   }
+}
+
+/* Button spinner animation */
+@keyframes cl-spin {
+  to { transform: rotate(360deg); }
 }
 
 @layer utilities {
