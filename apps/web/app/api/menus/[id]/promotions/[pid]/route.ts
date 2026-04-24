@@ -10,6 +10,7 @@ import {
 import { updatePromotionSchema } from '@/lib/validations';
 import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
+import { logActivity } from '@/lib/activity/log';
 
 interface RouteParams {
   params: Promise<{ id: string; pid: string }>;
@@ -161,6 +162,25 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Broadcast real-time update
     await triggerMenuEvent(menuId, EVENTS.PROMOTION_UPDATED, promotion);
+
+    // PROMOTION_ENDED: flipped from active → inactive, or endDate moved to the past
+    const now = new Date();
+    const wasActive =
+      existingPromotion.isActive &&
+      existingPromotion.startDate <= now &&
+      existingPromotion.endDate >= now;
+    const isNowEnded =
+      !promotion.isActive ||
+      promotion.endDate < now ||
+      promotion.startDate > now;
+    if (wasActive && isNowEnded) {
+      await logActivity({
+        userId: session.user.id,
+        menuId,
+        type: 'PROMOTION_ENDED',
+        payload: { promotionName: promotion.titleKa },
+      });
+    }
 
     return createSuccessResponse(promotion);
   } catch (error) {

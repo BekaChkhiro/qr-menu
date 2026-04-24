@@ -363,6 +363,60 @@
     "placeholder": {
       "comingSoon": "Coming soon"
     },
+    "settings": {
+      "url": {
+        "label": "Menu URL",
+        "helper": "The public address for this menu. Used in the QR code.",
+        "slugAriaLabel": "Menu slug",
+        "slugPlaceholder": "main-menu",
+        "copyAriaLabel": "Copy menu URL",
+        "copyToast": "URL copied to clipboard",
+        "copyError": "Could not copy URL",
+        "warning": "Changing the URL will break any printed QR codes pointing to the old address.",
+        "errors": {
+          "required": "Slug is required",
+          "tooShort": "Slug must be at least 3 characters",
+          "tooLong": "Slug must be less than 50 characters",
+          "invalidChars": "Use lowercase letters, numbers, and hyphens only",
+          "taken": "This URL is already taken. Try a different one."
+        }
+      },
+      "visibility": {
+        "label": "Visibility",
+        "helper": "Who can see this menu.",
+        "ariaLabel": "Menu visibility",
+        "published": {
+          "title": "Published",
+          "body": "Visible to everyone who has the URL or scans the QR code."
+        },
+        "password": {
+          "title": "Password protected",
+          "body": "Only visitors who enter the password can view this menu.",
+          "inputLabelSet": "Set password",
+          "inputLabelChange": "New password (optional)",
+          "placeholderSet": "e.g. linville2026",
+          "placeholderChange": "Leave blank to keep current password",
+          "showAriaLabel": "Show password",
+          "hideAriaLabel": "Hide password",
+          "hint": "A password is already set. Leave blank to keep it.",
+          "errors": {
+            "required": "A password is required to enable password protection",
+            "tooShort": "Password must be at least 4 characters"
+          }
+        },
+        "draft": {
+          "title": "Private draft",
+          "body": "Only you and your team can preview. Customers see \"Menu not available.\""
+        }
+      },
+      "actions": {
+        "save": "Save changes",
+        "saving": "Saving…",
+        "discard": "Discard",
+        "saved": "Menu settings saved",
+        "saveFailed": "Could not save settings"
+      }
+    },
     "promotions": {
       "title": "Promotions",
       "subtitle": "Running and scheduled offers for this menu",
@@ -533,8 +587,25 @@
       },
       "locked": {
         "title": "Analytics is a PRO feature",
-        "body": "Upgrade to PRO to unlock per-menu traffic insights, unique scans, and peak-hour trends.",
-        "cta": "Upgrade to PRO"
+        "body": "See detailed views, devices, hours, top products and customer geography. Get the full picture of how customers engage with your menu.",
+        "cta": "Upgrade to PRO — 59₾/month",
+        "ctaShort": "Upgrade to PRO",
+        "bullets": {
+          "a": "Real-time view & scan tracking",
+          "b": "Hour-by-hour heatmaps",
+          "c": "Per-product performance"
+        },
+        "guarantee": "30-day money-back guarantee"
+      },
+      "empty": {
+        "title": "Your analytics will appear here",
+        "body": "Share your menu to start collecting insights. Once customers scan, you'll see views, devices, top items and more.",
+        "downloadQr": "Download QR code",
+        "copyLink": "Copy menu link",
+        "copyToast": "Menu link copied",
+        "copyError": "Could not copy — try again",
+        "noDataValue": "—",
+        "noDataCaption": "No data in this period"
       }
     },
     "preview": {
@@ -712,6 +783,8 @@
       "deleteProduct": "Delete product",
       "saveNewProduct": "Save product",
       "saving": "Saving…",
+      "saveErrorTitle": "Couldn't save product",
+      "saveErrorDefault": "Something went wrong. Please try again.",
       "tabs": {
         "basics": "Basics",
         "variations": "Variations",
@@ -728,10 +801,6 @@
         "variationsCreate": {
           "title": "Save the product first",
           "body": "Variations can be added once the product itself exists. Fill in the Basics tab and save — then come back to add Small / Medium / Large."
-        },
-        "allergens": {
-          "title": "Allergen info is a PRO feature",
-          "body": "Help customers with dietary restrictions choose confidently. Available on the PRO plan."
         },
         "allergensCreate": {
           "title": "Save the product first",
@@ -785,6 +854,11 @@
           "deleteError": "Failed to delete variation",
           "updateError": "Failed to update variation"
         }
+      },
+      "allergensLocked": {
+        "title": "Allergen info is a PRO feature",
+        "body": "Help customers with dietary restrictions choose confidently. Starts at 59₾/month.",
+        "cta": "Upgrade to PRO"
       },
       "allergensTab": {
         "tilesLabel": "Allergens",

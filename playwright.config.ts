@@ -1,4 +1,15 @@
 import { defineConfig, devices } from '@playwright/test';
+import { config as loadDotenv } from 'dotenv';
+import path from 'path';
+
+// Load apps/web/.env.local so that DATABASE_URL and AUTH_SECRET are available
+// in the test process (seed helpers run in the test process, not in Next.js).
+loadDotenv({ path: path.resolve(__dirname, 'apps/web/.env.local') });
+
+// Share the test-auth flag with the test process itself so seed helpers and
+// fixtures can assert it's set. The webServer block below sets the same flag
+// for the spawned dev server.
+process.env.ENABLE_TEST_AUTH = '1';
 
 // Visual-diff tolerance. Default 0.05 (5%). Override via PLAYWRIGHT_MAX_DIFF_RATIO
 // for noisy local runs or stricter CI sweeps.
@@ -55,6 +66,7 @@ export default defineConfig({
     : {
         command: 'pnpm dev',
         url: baseURL,
+        env: { ENABLE_TEST_AUTH: '1' },
         reuseExistingServer: !isCI,
         timeout: 120_000,
         stdout: 'pipe',

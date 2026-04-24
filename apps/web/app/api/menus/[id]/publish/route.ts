@@ -10,6 +10,7 @@ import {
 import { publishMenuSchema } from '@/lib/validations';
 import { invalidateMenuCache, cacheSet, CACHE_KEYS, CACHE_TTL } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
+import { logActivity } from '@/lib/activity/log';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -129,6 +130,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       publish ? EVENTS.MENU_PUBLISHED : EVENTS.MENU_UNPUBLISHED,
       menu
     );
+
+    if (publish) {
+      await logActivity({
+        userId: session.user.id,
+        menuId: menu.id,
+        type: 'MENU_PUBLISHED',
+        payload: { menuName: menu.name },
+      });
+    }
 
     return createSuccessResponse(menu);
   } catch (error) {

@@ -169,10 +169,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
     const data = updateProductVariationSchema.parse(body);
 
-    // Update variation
-    const variation = await prisma.productVariation.update({
-      where: { id: variationId },
-      data,
+    // When promoting this variation to default, demote any other current
+    // default for the same product in the same transaction.
+    const variation = await prisma.$transaction(async (tx) => {
+      if (data.isDefault === true) {
+        await tx.productVariation.updateMany({
+          where: { productId, isDefault: true, NOT: { id: variationId } },
+          data: { isDefault: false },
+        });
+      }
+      return tx.productVariation.update({
+        where: { id: variationId },
+        data,
+      });
     });
 
     // Invalidate cache

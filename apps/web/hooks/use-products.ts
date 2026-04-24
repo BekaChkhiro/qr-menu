@@ -190,3 +190,30 @@ export function useReorderProducts(menuId: string, categoryId?: string) {
     },
   });
 }
+
+interface MoveProductInput {
+  productId: string;
+  targetCategoryId: string;
+}
+
+/**
+ * Move a product to a different category via PUT /products/:pid { categoryId }.
+ * Used by the Content tab kebab "Move to…" items; the Product API reassigns
+ * categoryId after verifying the target belongs to the same menu.
+ */
+export function useMoveProduct(menuId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<Product, ApiError, MoveProductInput>({
+    mutationFn: ({ productId, targetCategoryId }) =>
+      api.put<Product>(`/menus/${menuId}/products/${productId}`, {
+        categoryId: targetCategoryId,
+      }),
+    onSuccess: (_product, { productId }) => {
+      queryClient.removeQueries({ queryKey: queryKeys.products.detail(productId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories.list(menuId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.menus.detail(menuId) });
+    },
+  });
+}

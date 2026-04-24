@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { Header, Footer, SmoothScroll } from '@/components/marketing';
 import { getLocaleFromCookie, LOCALE_COOKIE_NAME } from '@/i18n/config';
+import { auth } from '@/lib/auth/auth';
 
 export default async function MarketingLayout({
   children,
@@ -15,6 +16,11 @@ export default async function MarketingLayout({
 
   // Get translations
   const t = await getTranslations('marketing');
+  const tNav = await getTranslations('common.nav');
+
+  // Get session (null when logged out) so header can swap auth CTAs for a user menu
+  const session = await auth();
+  const sessionUser = session?.user ?? null;
 
   const headerTranslations = {
     features: t('header.features'),
@@ -22,6 +28,10 @@ export default async function MarketingLayout({
     demo: t('header.demo'),
     login: t('header.login'),
     getStarted: t('header.getStarted'),
+    dashboard: tNav('dashboard'),
+    menus: tNav('menus'),
+    settings: tNav('settings'),
+    logout: tNav('logout'),
   };
 
   const footerTranslations = {
@@ -45,7 +55,19 @@ export default async function MarketingLayout({
   return (
     <SmoothScroll>
       <div className="flex min-h-screen flex-col">
-        <Header locale={locale} translations={headerTranslations} />
+        <Header
+          locale={locale}
+          translations={headerTranslations}
+          user={
+            sessionUser
+              ? {
+                  name: sessionUser.name ?? null,
+                  email: sessionUser.email ?? null,
+                  image: sessionUser.image ?? null,
+                }
+              : null
+          }
+        />
         <main id="main-content" tabIndex={-1} className="flex-1">
           {children}
         </main>

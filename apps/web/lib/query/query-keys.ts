@@ -59,6 +59,7 @@ export const queryKeys = {
     menu: (menuId: string) => [...queryKeys.analytics.all, menuId] as const,
     menuRange: (menuId: string, startDate: string, endDate: string) =>
       [...queryKeys.analytics.menu(menuId), startDate, endDate] as const,
+    user: (period: string) => [...queryKeys.analytics.all, 'user', period] as const,
   },
 
   // User queries
@@ -66,5 +67,7 @@ export const queryKeys = {
     all: ['user'] as const,
     current: () => [...queryKeys.user.all, 'current'] as const,
     settings: () => [...queryKeys.user.all, 'settings'] as const,
+    topProducts: (limit: number, days: number) =>
+      [...queryKeys.user.all, 'top-products', limit, days] as const,
   },
 } as const;

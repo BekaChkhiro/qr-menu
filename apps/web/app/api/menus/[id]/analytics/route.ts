@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { ActivityType, Prisma } from '@prisma/client';
 import { auth } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
 import {
@@ -16,6 +17,7 @@ import {
   startOfMonth,
   format,
   eachDayOfInterval,
+  differenceInCalendarDays,
 } from 'date-fns';
 
 interface RouteParams {
@@ -237,6 +239,173 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           : 0,
     }));
 
+    // ── T15.3 Top categories ──────────────────────────────────────────────
+    // Views attributed to a specific category (categoryId not null). Rows
+    // without attribution (the default menu-page view) are excluded so the
+    // bars only reflect real category-level engagement.
+    const topCategoriesRaw = await prisma.menuView.groupBy({
+      by: ['categoryId'],
+      where: {
+        menuId: id,
+        categoryId: { not: null },
+        viewedAt: { gte: startDate, lte: endDate },
+      },
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 5,
+    });
+
+    const topCategoryIds = topCategoriesRaw
+      .map((row) => row.categoryId)
+      .filter((v): v is string => v !== null);
+
+    const topCategoryRows = topCategoryIds.length
+      ? await prisma.category.findMany({
+          where: { id: { in: topCategoryIds } },
+          select: { id: true, nameKa: true, nameEn: true, nameRu: true },
+        })
+      : [];
+
+    const topCategoryById = new Map(topCategoryRows.map((c) => [c.id, c]));
+
+    // Percentage denominator is total categorized views in the period, not
+    // total menu views — keeps bar lengths meaningful when only a subset of
+    // traffic is attributed.
+    const totalCategorizedViews = topCategoriesRaw.reduce(
+      (sum, row) => sum + row._count.id,
+      0,
+    );
+
+    const topCategories = topCategoriesRaw
+      .map((row) => {
+        const cat = row.categoryId
+          ? topCategoryById.get(row.categoryId)
+          : undefined;
+        if (!row.categoryId || !cat) return null;
+        const count = row._count.id;
+        const percentage =
+          totalCategorizedViews > 0
+            ? Math.round((count / totalCategorizedViews) * 1000) / 10
+            : 0;
+        return {
+          categoryId: row.categoryId,
+          nameKa: cat.nameKa,
+          nameEn: cat.nameEn,
+          nameRu: cat.nameRu,
+          count,
+          percentage,
+        };
+      })
+      .filter((v): v is NonNullable<typeof v> => v !== null);
+
+    // ── T15.1 KPI row aggregates ──────────────────────────────────────────
+    // Previous equal-length window for delta calculation.
+    const periodDays = dailyViews.length;
+    const prevEnd = endOfDay(subDays(startDate, 1));
+    const prevStart = startOfDay(subDays(prevEnd, periodDays - 1));
+
+    // Views in current + previous window, needed for delta on "Total views".
+    const [totalViewsInPeriod, previousTotalViews] = await Promise.all([
+      prisma.menuView.count({
+        where: { menuId: id, viewedAt: { gte: startDate, lte: endDate } },
+      }),
+      prisma.menuView.count({
+        where: { menuId: id, viewedAt: { gte: prevStart, lte: prevEnd } },
+      }),
+    ]);
+
+    // Unique scans: COUNT(DISTINCT (ipAddress || userAgent)) per period.
+    // Raw SQL — no efficient Prisma equivalent for COUNT(DISTINCT compound).
+    type UniqueScanRow = { count: bigint };
+    const [uniqueScansRows, previousUniqueScansRows] = await Promise.all([
+      prisma.$queryRaw<UniqueScanRow[]>(Prisma.sql`
+        SELECT COUNT(DISTINCT COALESCE("ipAddress", '') || '|' || COALESCE("userAgent", '')) AS count
+        FROM "menu_views"
+        WHERE "menuId" = ${id}
+          AND "viewedAt" >= ${startDate}
+          AND "viewedAt" <= ${endDate}
+      `),
+      prisma.$queryRaw<UniqueScanRow[]>(Prisma.sql`
+        SELECT COUNT(DISTINCT COALESCE("ipAddress", '') || '|' || COALESCE("userAgent", '')) AS count
+        FROM "menu_views"
+        WHERE "menuId" = ${id}
+          AND "viewedAt" >= ${prevStart}
+          AND "viewedAt" <= ${prevEnd}
+      `),
+    ]);
+    const uniqueScans = Number(uniqueScansRows[0]?.count ?? 0);
+    const previousUniqueScans = Number(previousUniqueScansRows[0]?.count ?? 0);
+
+    // Daily unique-scan counts for the sparkline.
+    type DailyUniqueRow = { day: Date; count: bigint };
+    const dailyUniqueRaw = await prisma.$queryRaw<DailyUniqueRow[]>(Prisma.sql`
+      SELECT DATE_TRUNC('day', "viewedAt") AS day,
+             COUNT(DISTINCT COALESCE("ipAddress", '') || '|' || COALESCE("userAgent", '')) AS count
+      FROM "menu_views"
+      WHERE "menuId" = ${id}
+        AND "viewedAt" >= ${startDate}
+        AND "viewedAt" <= ${endDate}
+      GROUP BY day
+      ORDER BY day ASC
+    `);
+    const uniqueByDay = new Map<string, number>();
+    for (const row of dailyUniqueRaw) {
+      uniqueByDay.set(format(row.day, 'yyyy-MM-dd'), Number(row.count));
+    }
+    const uniqueScansDaily = allDates.map(
+      (date) => uniqueByDay.get(format(date, 'yyyy-MM-dd')) ?? 0,
+    );
+
+    // Peak hour aggregation. `viewedAt` is stored as `timestamp` (no tz) with
+    // UTC values by Prisma convention, so EXTRACT directly returns the UTC
+    // hour — no `AT TIME ZONE` wrapping (which would shift on non-UTC servers).
+    type PeakHourRow = { hour: number; count: bigint };
+    const peakHourRows = await prisma.$queryRaw<PeakHourRow[]>(Prisma.sql`
+      SELECT CAST(EXTRACT(HOUR FROM "viewedAt") AS INTEGER) AS hour,
+             COUNT(*) AS count
+      FROM "menu_views"
+      WHERE "menuId" = ${id}
+        AND "viewedAt" >= ${startDate}
+        AND "viewedAt" <= ${endDate}
+      GROUP BY hour
+      ORDER BY count DESC, hour ASC
+      LIMIT 1
+    `);
+    const peakHour =
+      peakHourRows.length > 0
+        ? { hour: peakHourRows[0].hour, views: Number(peakHourRows[0].count) }
+        : { hour: null, views: 0 };
+
+    // T15.2 — chart event pins. Pull ActivityLog rows for this menu inside
+    // the period so the chart can mark "Menu published / Promotion started /
+    // ended" along the X-axis. Anything older than the period is ignored.
+    const chartEventTypes: ActivityType[] = [
+      ActivityType.MENU_PUBLISHED,
+      ActivityType.PROMOTION_STARTED,
+      ActivityType.PROMOTION_ENDED,
+    ];
+    const eventRows = await prisma.activityLog.findMany({
+      where: {
+        menuId: id,
+        type: { in: chartEventTypes },
+        createdAt: { gte: startDate, lte: endDate },
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { type: true, createdAt: true, payload: true },
+    });
+    const events = eventRows.map((row) => ({
+      date: format(row.createdAt, 'yyyy-MM-dd'),
+      type: row.type,
+      payload: (row.payload ?? {}) as Record<string, unknown>,
+    }));
+
+    function deltaPercent(current: number, previous: number): number {
+      if (previous === 0) {
+        return current === 0 ? 0 : 100;
+      }
+      return Math.round(((current - previous) / previous) * 1000) / 10;
+    }
+
     return createSuccessResponse({
       overview: {
         totalViews,
@@ -245,13 +414,31 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         viewsThisMonth,
         averageDaily,
       },
+      kpis: {
+        totalViews: {
+          current: totalViewsInPeriod,
+          previous: previousTotalViews,
+          deltaPercent: deltaPercent(totalViewsInPeriod, previousTotalViews),
+          daily: dailyViews.map((d) => d.views),
+        },
+        uniqueScans: {
+          current: uniqueScans,
+          previous: previousUniqueScans,
+          deltaPercent: deltaPercent(uniqueScans, previousUniqueScans),
+          daily: uniqueScansDaily,
+        },
+        avgTimeOnMenu: null,
+        peakHour,
+      },
       dailyViews,
+      events,
       deviceBreakdown,
       browserBreakdown,
+      topCategories,
       period: {
         start: format(startDate, 'yyyy-MM-dd'),
         end: format(endDate, 'yyyy-MM-dd'),
-        days: dailyViews.length,
+        days: differenceInCalendarDays(endDate, startDate) + 1,
       },
     });
   } catch (error) {

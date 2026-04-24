@@ -3,37 +3,67 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+// ── Section H Badge (T10.4) ──────────────────────────────────────────────────
+//
+// Uppercase pill/rect badge used for plan tiers (FREE/STARTER/PRO), inline
+// labels (NEW, 86'd), and status notes (LOW STOCK). Shape defaults to a 4px
+// rect; pass `pill` for a fully-rounded pill.
+//
+// Typography is fixed at 10.5px / 700 / uppercase / letter-spacing 0.4 per
+// Section H spec (`component-library-a.jsx` lines 619-637).
+//
+// Backwards-compat: the legacy `variant` prop (default / secondary /
+// destructive / outline / success / warning — all used in the admin UI) is
+// preserved and visually aligned to the new tone system so existing callers
+// don't need to change.
+
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  [
+    "inline-flex items-center",
+    "px-[7px] py-[2px]",
+    "rounded-xs",
+    "text-[10.5px] font-bold uppercase tracking-[0.4px]",
+    "whitespace-nowrap",
+  ],
   {
     variants: {
       variant: {
-        default:
-          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive:
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
-        success:
-          "border-transparent bg-[#DFE6E1] text-[#004D1A] dark:bg-[#222924] dark:text-[#B6FFCE]",
-        warning:
-          "border-transparent bg-[#E9E3D8] text-[#804200] dark:bg-[#291C0F] dark:text-[#FF8400]",
+        // ── Section H tones ───────────────────────────────────────────────
+        neutral: "bg-chip text-text-muted",
+        success: "bg-success-soft text-success",
+        warning: "bg-warning-soft text-warning",
+        danger: "bg-danger-soft text-danger",
+        accent: "bg-accent-soft text-accent",
+        solid: "bg-text-default text-white",
+
+        // ── Legacy shadcn variant aliases (kept for backward compat) ──────
+        default: "bg-text-default text-white",
+        secondary: "bg-chip text-text-muted",
+        destructive: "bg-danger-soft text-danger",
+        outline: "bg-card text-text-default border border-border",
+      },
+      pill: {
+        true: "rounded-pill px-[10px]",
+        false: "",
       },
     },
     defaultVariants: {
       variant: "default",
+      pill: false,
     },
   }
 )
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {}
 
-function Badge({ className, variant, ...props }: BadgeProps) {
+function Badge({ className, variant, pill, ...props }: BadgeProps) {
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    <span
+      className={cn(badgeVariants({ variant, pill }), className)}
+      {...props}
+    />
   )
 }
 

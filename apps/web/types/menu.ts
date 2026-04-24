@@ -1,4 +1,4 @@
-export type MenuStatus = 'DRAFT' | 'PUBLISHED';
+export type MenuStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 export type Language = 'KA' | 'EN' | 'RU';
 export type AllergenDisplay = 'TEXT' | 'ICON' | 'WARNING';
 export type CaloriesDisplay = 'DIRECT' | 'FLIP_REVEAL' | 'HIDDEN';
@@ -42,9 +42,11 @@ export interface Menu {
   status: MenuStatus;
   publishedAt: string | null;
   logoUrl: string | null;
+  coverImageUrl: string | null;
   primaryColor: string | null;
   accentColor: string | null;
   currencySymbol: string | null;
+  cornerRadius: number | null;
 
   // Typography
   headingFont: string | null;
@@ -83,11 +85,18 @@ export interface Menu {
   qrLogoUrl: string | null;
   qrTemplate: string | null;
 
+  // Visibility (T15.13). Server never returns `passwordHash`; it returns
+  // a boolean `hasPassword` so the settings form can render the right state.
+  hasPassword?: boolean;
+
   createdAt: string;
   updatedAt: string;
   _count: {
     categories: number;
+    products: number;
     views: number;
+    /** Views in the last 7 days — populated by GET /api/menus for the table view. */
+    viewsLast7Days?: number;
   };
 }
 
@@ -138,6 +147,9 @@ export interface Product {
   ribbons: Ribbon[];
   isVegan: boolean;
   isVegetarian: boolean;
+  isHalal: boolean;
+  isKosher: boolean;
+  isGlutenFree: boolean;
   calories: number | null;
   protein: number | null;
   fats: number | null;
@@ -156,6 +168,7 @@ export interface ProductVariation {
   nameEn: string | null;
   nameRu: string | null;
   price: number;
+  isDefault: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;

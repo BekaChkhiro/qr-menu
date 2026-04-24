@@ -8,6 +8,7 @@ import {
 } from '@/lib/api';
 import { headers } from 'next/headers';
 import { cacheGet, cacheSet, cacheDelete, CACHE_KEYS } from '@/lib/cache/redis';
+import { trackViewSchema } from '@/lib/validations';
 
 // Debounce window in seconds (15 minutes)
 const VIEW_DEBOUNCE_SECONDS = 15 * 60;
@@ -57,6 +58,32 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         'Cannot track views for unpublished menus',
         403
       );
+    }
+
+    // Optional body: { categoryId? } — categoryId attributes the view to a
+    // specific category (e.g. tap on a category nav pill). Body is optional so
+    // existing callers that POST with empty bodies keep working.
+    let categoryId: string | undefined;
+    try {
+      const raw = await request.text();
+      if (raw.length > 0) {
+        const parsed = trackViewSchema.parse(JSON.parse(raw));
+        categoryId = parsed.categoryId;
+      }
+    } catch {
+      // Malformed body is non-fatal — menu-level tracking continues.
+    }
+
+    if (categoryId) {
+      // Guard: categoryId must belong to this menu. Prevents cross-menu
+      // attribution when a caller posts a random id.
+      const cat = await prisma.category.findUnique({
+        where: { id: categoryId },
+        select: { menuId: true },
+      });
+      if (!cat || cat.menuId !== id) {
+        categoryId = undefined;
+      }
     }
 
     // Extract tracking data from headers
@@ -111,6 +138,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const view = await prisma.menuView.create({
       data: {
         menuId: id,
+        categoryId,
         userAgent,
         ipAddress,
         device,

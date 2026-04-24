@@ -23,6 +23,7 @@ enum Plan {
 enum MenuStatus {
   DRAFT
   PUBLISHED
+  ARCHIVED
 }
 
 enum Language {
@@ -106,6 +107,17 @@ enum ProductTouchEffect {
   GRADIENT
 }
 
+enum ActivityType {
+  MENU_CREATED
+  MENU_PUBLISHED
+  CATEGORY_CREATED
+  PRODUCT_CREATED
+  PRICE_CHANGED
+  PROMOTION_STARTED
+  PROMOTION_ENDED
+  QR_SCANNED
+}
+
 // ============================================================================
 // USER MODEL
 // ============================================================================
@@ -119,12 +131,20 @@ model User {
   image         String?
   plan          Plan      @default(FREE)
 
+  // Profile fields
+  firstName     String?
+  lastName      String?
+  phone         String?
+  timezone      String?   // IANA timezone id, e.g. "Asia/Tbilisi"
+  dateFormat    String?   // "DD.MM.YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD"
+
   // OAuth fields
   accounts      Account[]
   sessions      Session[]
 
   // Relations
   menus         Menu[]
+  activityLogs  ActivityLog[]
 
   // Timestamps
   createdAt     DateTime  @default(now())
@@ -198,9 +218,11 @@ model Menu {
 
   // Branding (PRO features)
   logoUrl         String?
+  coverImageUrl   String?
   primaryColor    String?   @default("#000000")
   accentColor     String?   @default("#f59e0b")
   currencySymbol  String?   @default("₾")
+  cornerRadius    Int?      @default(12)
 
   // Typography (PRO)
   headingFont     String?   @default("Noto Sans Georgian")
@@ -240,11 +262,17 @@ model Menu {
   qrLogoUrl         String?
   qrTemplate        String?  // preset template name
 
+  // Visibility gating (T15.13)
+  // When set, status=PUBLISHED menus require password entry on /m/[slug].
+  // null = open (Published) or irrelevant (status=DRAFT = Private draft).
+  passwordHash      String?
+
   // Relations
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  categories  Category[]
-  promotions  Promotion[]
-  views       MenuView[]
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories   Category[]
+  promotions   Promotion[]
+  views        MenuView[]
+  activityLogs ActivityLog[]
 
   // Timestamps
   createdAt   DateTime     @default(now())
@@ -287,6 +315,7 @@ model Category {
   // Relations
   menu        Menu      @relation(fields: [menuId], references: [id], onDelete: Cascade)
   products    Product[]
+  views       MenuView[]
 
   // Timestamps
   createdAt   DateTime  @default(now())
@@ -332,6 +361,9 @@ model Product {
   // Dietary flags
   isVegan       Boolean           @default(false)
   isVegetarian  Boolean           @default(false)
+  isHalal       Boolean           @default(false)
+  isKosher      Boolean           @default(false)
+  isGlutenFree  Boolean           @default(false)
 
   // Allergens
   allergens   Allergen[]
@@ -377,6 +409,9 @@ model ProductVariation {
 
   // Price for this variation
   price       Decimal  @db.Decimal(10, 2)
+
+  // Default variation (exactly zero or one per product)
+  isDefault   Boolean  @default(false)
 
   // Ordering
   sortOrder   Int      @default(0)
@@ -444,6 +479,9 @@ model Promotion {
 model MenuView {
   id          String   @id @default(cuid())
   menuId      String
+  // Optional attribution to a specific category the visitor interacted with.
+  // Null for general menu-page views (existing tracking behavior).
+  categoryId  String?
 
   // Tracking data
   userAgent   String?  @db.Text
@@ -455,11 +493,36 @@ model MenuView {
 
   // Relations
   menu        Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   // Timestamps
   viewedAt    DateTime @default(now())
 
   @@index([menuId])
   @@index([menuId, viewedAt])
+  @@index([menuId, categoryId, viewedAt])
   @@map("menu_views")
+}
+
+// ============================================================================
+// ACTIVITY LOG MODEL
+// ============================================================================
+
+model ActivityLog {
+  id        String       @id @default(cuid())
+  userId    String
+  menuId    String?
+  type      ActivityType
+  payload   Json         @default("{}") // contextual data: { productName, categoryName, oldPrice, newPrice, promotionName, menuName, ... }
+
+  // Relations
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  menu      Menu?        @relation(fields: [menuId], references: [id], onDelete: SetNull)
+
+  // Timestamps
+  createdAt DateTime     @default(now())
+
+  @@index([userId, createdAt])
+  @@index([menuId, createdAt])
+  @@map("activity_logs")
 }

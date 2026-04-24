@@ -21,21 +21,17 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
+  Copy,
+  EyeOff,
+  FolderInput,
   GripVertical,
+  ImageIcon,
+  Lock,
   Pencil,
   Plus,
   Trash2,
-  Package,
-  EyeOff,
-  ImageIcon,
-  Lock,
-  Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +42,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  KebabMenu,
+  KebabMenuContent,
+  KebabMenuIconTrigger,
+  KebabMenuItem,
+  KebabMenuSeparator,
+} from '@/components/ui/kebab-menu';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ProductDialog } from './product-dialog';
 import { UpgradePrompt } from './upgrade-prompt';
 import { type ProductFormValues } from './product-form';
@@ -55,10 +59,12 @@ import {
   useUpdateProduct,
   useDeleteProduct,
   useDuplicateProduct,
+  useMoveProduct,
   useReorderProducts,
 } from '@/hooks/use-products';
 import { useUserPlan } from '@/hooks/use-user-plan';
-import type { Product, Category, Allergen, Ribbon } from '@/types/menu';
+import { cn } from '@/lib/utils';
+import type { Allergen, Category, Product, Ribbon } from '@/types/menu';
 
 /** Convert optional numeric form string to number or null. */
 function numOrNull(v: string | undefined): number | null {
@@ -99,9 +105,33 @@ function formToApi(data: ProductFormValues) {
   };
 }
 
+// Thumbnail gradient palette, aligned with menu-card so category/product
+// placeholders feel visually related across the admin.
+const THUMB_TONES: ReadonlyArray<readonly [string, string]> = [
+  ['#C9B28A', '#8B6F47'],
+  ['#B8633D', '#7A3F27'],
+  ['#6B7F6B', '#3F5B3F'],
+  ['#8A7CA0', '#5D4F70'],
+  ['#D4A373', '#8B5A2B'],
+  ['#5D7A91', '#344C63'],
+];
+
+function toneFor(id: string): readonly [string, string] {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return THUMB_TONES[Math.abs(h) % THUMB_TONES.length];
+}
+
+function formatPrice(price: number | string): string {
+  const n = typeof price === 'string' ? parseFloat(price) : price;
+  if (!Number.isFinite(n)) return '0';
+  return Number.isInteger(n) ? n.toFixed(0) : n.toFixed(2);
+}
+
 interface ProductsListProps {
   menuId: string;
   categoryId: string;
+  categoryName: string;
   categories: Category[];
   showAllergens?: boolean;
   totalMenuProducts?: number;
@@ -110,6 +140,7 @@ interface ProductsListProps {
 export function ProductsList({
   menuId,
   categoryId,
+  categoryName,
   categories,
   showAllergens = false,
   totalMenuProducts = 0,
@@ -128,43 +159,49 @@ export function ProductsList({
   const deleteProduct = useDeleteProduct(menuId);
   const duplicateProduct = useDuplicateProduct(menuId);
   const reorderProducts = useReorderProducts(menuId, categoryId);
+  const moveProduct = useMoveProduct(menuId);
 
-  const { plan, canCreate } = useUserPlan();
+  const { plan, canCreate, hasFeature } = useUserPlan();
   const canAddProduct = canCreate('product', totalMenuProducts);
+  const multilangUnlocked = hasFeature('multilingual');
 
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
+
+  const otherCategories = categories.filter((c) => c.id !== categoryId);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    if (!over || active.id === over.id || !products) return;
 
-    if (over && active.id !== over.id && products) {
-      const oldIndex = products.findIndex((p) => p.id === active.id);
-      const newIndex = products.findIndex((p) => p.id === over.id);
+    const oldIndex = products.findIndex((p) => p.id === active.id);
+    const newIndex = products.findIndex((p) => p.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
 
-      const reorderedProducts = arrayMove(products, oldIndex, newIndex);
-      const reorderData = {
-        products: reorderedProducts.map((p, index) => ({
-          id: p.id,
-          sortOrder: index,
-        })),
-      };
+    const reordered = arrayMove(products, oldIndex, newIndex);
+    reorderProducts.mutate({
+      products: reordered.map((p, i) => ({ id: p.id, sortOrder: i })),
+    });
+  };
 
-      reorderProducts.mutate(reorderData);
+  const handleAddProduct = () => {
+    if (!canAddProduct) {
+      setShowUpgradePrompt(true);
+      return;
     }
+    setIsCreateOpen(true);
   };
 
   const handleCreate = async (data: ProductFormValues) => {
     try {
       await createProduct.mutateAsync(formToApi(data));
-      setIsCreateOpen(false);
       toast.success(t('toast.created'));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('toast.createError'));
+    } catch (err) {
+      throw err instanceof Error ? err : new Error(t('toast.createError'));
     }
   };
 
@@ -172,10 +209,9 @@ export function ProductsList({
     if (!productToEdit) return;
     try {
       await updateProduct.mutateAsync(formToApi(data));
-      setProductToEdit(null);
       toast.success(t('toast.updated'));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('toast.updateError'));
+    } catch (err) {
+      throw err instanceof Error ? err : new Error(t('toast.updateError'));
     }
   };
 
@@ -185,8 +221,8 @@ export function ProductsList({
       await deleteProduct.mutateAsync(productToDelete.id);
       setProductToDelete(null);
       toast.success(t('toast.deleted'));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('toast.deleteError'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('toast.deleteError'));
     }
   };
 
@@ -197,128 +233,145 @@ export function ProductsList({
     }
     try {
       await duplicateProduct.mutateAsync(product.id);
-      toast.success('Product duplicated');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('toast.createError'));
+      toast.success(t('toast.duplicated'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('toast.createError'));
     }
   };
 
-  if (isLoading) {
-    return <ProductsListSkeleton />;
-  }
+  const handleMoveTo = async (product: Product, targetCategoryId: string) => {
+    try {
+      await moveProduct.mutateAsync({ productId: product.id, targetCategoryId });
+      toast.success(t('toast.moved'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('toast.updateError'));
+    }
+  };
+
+  if (isLoading) return <ProductsListSkeleton />;
 
   if (error) {
     return (
-      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-center">
-        <p className="text-sm text-destructive">Failed to load products: {error.message}</p>
+      <div
+        className="rounded-md border border-danger-soft bg-danger-soft/30 p-3 text-center text-[12px] text-danger"
+        data-testid="products-list-error"
+      >
+        {error.message}
       </div>
     );
   }
 
-  const handleAddProduct = () => {
-    if (!canAddProduct) {
-      setShowUpgradePrompt(true);
-      return;
-    }
-    setIsCreateOpen(true);
-  };
+  const hasProducts = (products?.length ?? 0) > 0;
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">
-          {products?.length || 0} {t('title').toLowerCase()}
-        </span>
-        <Button
-          onClick={handleAddProduct}
-          size="sm"
-          variant={canAddProduct ? 'outline' : 'secondary'}
-          className="focus-ring"
-        >
-          {canAddProduct ? (
-            <Plus className="mr-1 h-3 w-3" aria-hidden="true" />
-          ) : (
-            <Lock className="mr-1 h-3 w-3" aria-hidden="true" />
-          )}
-          {t('add')}
-        </Button>
-      </div>
-
-      {!products || products.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-6 text-center" role="region" aria-label={t('empty.title')}>
-          <Package className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />
-          <p className="mt-2 text-sm text-muted-foreground">
-            {t('empty.description')}
-          </p>
-          <Button
-            onClick={handleAddProduct}
-            className="mt-3 focus-ring"
-            size="sm"
-            variant="outline"
-          >
-            <Plus className="mr-1 h-3 w-3" aria-hidden="true" />
-            {tActions('create')}
-          </Button>
-        </div>
-      ) : (
+    <div className="space-y-2" data-testid="products-list" data-category-id={categoryId}>
+      {hasProducts ? (
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={products.map((p) => p.id)}
+            items={products!.map((p) => p.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-2" role="list" aria-label={t('title')}>
-              {products.map((product) => (
+            <ul
+              className="flex flex-col gap-1"
+              role="list"
+              aria-label={t('title')}
+              data-testid="products-list-rows"
+            >
+              {products!.map((product) => (
                 <SortableProductItem
                   key={product.id}
                   product={product}
+                  otherCategories={otherCategories}
                   onEdit={() => setProductToEdit(product)}
                   onDuplicate={() => handleDuplicate(product)}
                   onDelete={() => setProductToDelete(product)}
+                  onMoveTo={(targetId) => handleMoveTo(product, targetId)}
                   isDuplicating={duplicateProduct.isPending}
+                  isMoving={moveProduct.isPending}
                 />
               ))}
-            </div>
+            </ul>
           </SortableContext>
         </DndContext>
+      ) : (
+        <div
+          className="rounded-md border border-dashed border-border-soft bg-bg/40 px-3 py-3 text-center"
+          role="region"
+          aria-label={t('empty.title')}
+          data-testid="products-empty"
+        >
+          <p className="text-[11.5px] text-text-muted">{t('empty.description')}</p>
+        </div>
       )}
 
-      {/* Create Product Dialog */}
+      {/* Inline "+ Add item to {category}" — accent-colored link-style button. */}
+      <button
+        type="button"
+        onClick={handleAddProduct}
+        aria-disabled={!canAddProduct || undefined}
+        data-testid="products-add-inline"
+        data-can-add={canAddProduct ? 'true' : 'false'}
+        className={cn(
+          'inline-flex items-center gap-1.5 rounded-sm px-2 py-1.5 text-[12px] font-medium transition-colors',
+          canAddProduct
+            ? 'text-accent hover:bg-accent-soft'
+            : 'text-text-subtle hover:bg-chip',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1',
+        )}
+      >
+        {canAddProduct ? (
+          <Plus className="h-[11px] w-[11px]" strokeWidth={2.2} aria-hidden="true" />
+        ) : (
+          <Lock className="h-[11px] w-[11px]" strokeWidth={2.2} aria-hidden="true" />
+        )}
+        {t('addItem', { category: categoryName })}
+      </button>
+
       <ProductDialog
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
+        menuId={menuId}
         categories={categories}
         defaultCategoryId={categoryId}
         onSubmit={handleCreate}
         isLoading={createProduct.isPending}
         showAllergens={showAllergens}
+        multilangUnlocked={multilangUnlocked}
       />
 
-      {/* Edit Product Dialog */}
       <ProductDialog
         open={!!productToEdit}
         onOpenChange={(open) => !open && setProductToEdit(null)}
+        menuId={menuId}
         product={productToEdit || undefined}
         categories={categories}
         onSubmit={handleUpdate}
         isLoading={updateProduct.isPending}
         showAllergens={showAllergens}
+        multilangUnlocked={multilangUnlocked}
+        onDelete={
+          productToEdit
+            ? () => {
+                const target = productToEdit;
+                setProductToEdit(null);
+                setProductToDelete(target);
+              }
+            : undefined
+        }
       />
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog
         open={!!productToDelete}
         onOpenChange={(open) => !open && setProductToDelete(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent data-testid="products-delete-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>{t('delete.title')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('delete.message')}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t('delete.message')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteProduct.isPending}>
@@ -327,6 +380,7 @@ export function ProductsList({
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleteProduct.isPending}
+              data-testid="products-delete-confirm"
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteProduct.isPending ? tActions('deleting') : tActions('delete')}
@@ -335,7 +389,6 @@ export function ProductsList({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Upgrade Prompt */}
       <UpgradePrompt
         open={showUpgradePrompt}
         onOpenChange={setShowUpgradePrompt}
@@ -349,165 +402,214 @@ export function ProductsList({
 
 interface SortableProductItemProps {
   product: Product;
+  otherCategories: Category[];
   onEdit: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  onMoveTo: (targetCategoryId: string) => void;
   isDuplicating?: boolean;
+  isMoving?: boolean;
 }
 
 function SortableProductItem({
   product,
+  otherCategories,
   onEdit,
   onDuplicate,
   onDelete,
+  onMoveTo,
   isDuplicating = false,
+  isMoving = false,
 }: SortableProductItemProps) {
+  const t = useTranslations('admin.products');
   const tStatus = useTranslations('status');
-  const tVariations = useTranslations('admin.products.variations');
   const tA11y = useTranslations('common.accessibility');
   const tActions = useTranslations('actions');
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: product.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: product.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ka-GE', {
-      style: 'currency',
-      currency: 'GEL',
-      minimumFractionDigits: 2,
-    }).format(price);
-  };
-
-  const variationCount = product.variations?.length || 0;
+  const variationCount = product.variations?.length ?? 0;
+  const price = formatPrice(product.price);
 
   return (
-    <Card
+    <li
       ref={setNodeRef}
       style={style}
-      className={`${isDragging ? 'opacity-50 shadow-lg' : ''}`}
+      data-testid="product-row"
+      data-product-id={product.id}
+      data-product-name={product.nameKa}
+      data-category-id={product.categoryId}
+      className={cn('relative', isDragging && 'z-10 opacity-60 shadow-md')}
     >
-      <CardContent className="flex items-center gap-3 p-2">
+      <div className="flex items-center gap-[10px] rounded-[7px] border border-border-soft bg-card px-[10px] py-[7px]">
         <button
+          type="button"
           {...attributes}
           {...listeners}
-          className="cursor-grab touch-none rounded p-1 hover:bg-muted active:cursor-grabbing focus-ring"
+          className="touch-none cursor-grab rounded-sm text-text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 active:cursor-grabbing"
           aria-label={tA11y('dragHandle')}
+          data-testid="product-drag-handle"
         >
-          <GripVertical className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          <GripVertical
+            className="h-[12px] w-[12px]"
+            strokeWidth={1.5}
+            aria-hidden="true"
+          />
         </button>
 
-        {/* Product Image */}
-        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted">
-          {product.imageUrl ? (
-            <Image
-              src={product.imageUrl}
-              alt={product.nameKa}
-              width={48}
-              height={48}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <ImageIcon className="h-5 w-5 text-muted-foreground" />
-            </div>
-          )}
-        </div>
+        <ProductThumb product={product} />
 
-        {/* Product Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-medium text-sm truncate">{product.nameKa}</p>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <p
+              className="min-w-0 truncate text-[12.5px] font-semibold text-text-default"
+              data-testid="product-name"
+            >
+              {product.nameKa}
+            </p>
             {!product.isAvailable && (
-              <Badge variant="secondary" className="text-xs">
-                <EyeOff className="mr-1 h-3 w-3" aria-hidden="true" />
+              <span
+                className="inline-flex shrink-0 items-center gap-0.5 rounded-sm bg-chip px-1 py-0.5 text-[9.5px] font-medium text-text-muted"
+                data-testid="product-hidden-badge"
+              >
+                <EyeOff
+                  className="h-[9px] w-[9px]"
+                  aria-hidden="true"
+                  strokeWidth={1.5}
+                />
                 {tStatus('hidden')}
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-sm font-semibold text-primary">
-              {formatPrice(product.price)}
-            </span>
-            {variationCount > 0 && (
-              <span className="text-xs text-muted-foreground">
-                +{variationCount} {tVariations('title').toLowerCase()}
               </span>
             )}
           </div>
+          {product.descriptionKa ? (
+            <p
+              className="truncate text-[10.5px] text-text-muted"
+              data-testid="product-subtitle"
+            >
+              {product.descriptionKa}
+            </p>
+          ) : variationCount > 0 ? (
+            <p className="text-[10.5px] text-text-muted">
+              +{variationCount} {t('variations.title').toLowerCase()}
+            </p>
+          ) : null}
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-1 shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 focus-ring"
-            onClick={onEdit}
-            aria-label={`${tActions('edit')} ${product.nameKa}`}
-          >
-            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 focus-ring"
-            onClick={onDuplicate}
-            disabled={isDuplicating}
-            aria-label={`Duplicate ${product.nameKa}`}
-          >
-            <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-destructive hover:text-destructive focus-ring"
-            onClick={onDelete}
-            aria-label={`${tActions('delete')} ${product.nameKa}`}
-          >
-            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+        <span
+          className="shrink-0 text-[12.5px] font-semibold tabular-nums text-text-default"
+          data-testid="product-price"
+        >
+          {price}
+          <span className="ml-[1px] font-normal text-text-muted">₾</span>
+        </span>
+
+        <KebabMenu>
+          <KebabMenuIconTrigger
+            label={t('actionsLabel', { name: product.nameKa })}
+            data-testid="product-kebab-trigger"
+            className="h-6 w-6"
+          />
+          <KebabMenuContent>
+            <KebabMenuItem
+              icon={Pencil}
+              onSelect={onEdit}
+              data-testid="product-kebab-edit"
+            >
+              {tActions('edit')}
+            </KebabMenuItem>
+            <KebabMenuItem
+              icon={Copy}
+              onSelect={onDuplicate}
+              disabled={isDuplicating}
+              data-testid="product-kebab-duplicate"
+            >
+              {t('actions.duplicate')}
+            </KebabMenuItem>
+            {otherCategories.length > 0 && (
+              <>
+                <KebabMenuSeparator />
+                <div
+                  className="px-[10px] pb-[3px] pt-[4px] text-[10px] font-semibold uppercase tracking-wide text-text-subtle"
+                  aria-hidden="true"
+                >
+                  {t('moveToLabel')}
+                </div>
+                {otherCategories.slice(0, 8).map((cat) => (
+                  <KebabMenuItem
+                    key={cat.id}
+                    icon={FolderInput}
+                    onSelect={() => onMoveTo(cat.id)}
+                    disabled={isMoving}
+                    data-testid="product-kebab-move-to"
+                    data-target-category-id={cat.id}
+                  >
+                    {cat.nameKa}
+                  </KebabMenuItem>
+                ))}
+              </>
+            )}
+            <KebabMenuSeparator />
+            <KebabMenuItem
+              icon={Trash2}
+              tone="destructive"
+              onSelect={onDelete}
+              data-testid="product-kebab-delete"
+            >
+              {tActions('delete')}
+            </KebabMenuItem>
+          </KebabMenuContent>
+        </KebabMenu>
+      </div>
+    </li>
+  );
+}
+
+function ProductThumb({ product }: { product: Product }) {
+  if (product.imageUrl) {
+    return (
+      <span
+        className="relative h-7 w-7 shrink-0 overflow-hidden rounded-sm"
+        data-testid="product-thumb"
+        data-thumb-kind="image"
+      >
+        <Image
+          src={product.imageUrl}
+          alt=""
+          fill
+          sizes="28px"
+          className="object-cover"
+        />
+      </span>
+    );
+  }
+
+  const [from, to] = toneFor(product.id);
+  return (
+    <span
+      className="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-sm"
+      style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
+      data-testid="product-thumb"
+      data-thumb-kind="placeholder"
+      aria-hidden="true"
+    >
+      <ImageIcon className="h-[12px] w-[12px] text-white/80" strokeWidth={1.5} />
+    </span>
   );
 }
 
 function ProductsListSkeleton() {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-8 w-28" />
-      </div>
-      <div className="space-y-2">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i}>
-            <CardContent className="flex items-center gap-3 p-2">
-              <Skeleton className="h-4 w-4" />
-              <Skeleton className="h-12 w-12 rounded-md" />
-              <div className="flex-1 space-y-1">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-3 w-16" />
-              </div>
-              <div className="flex gap-1">
-                <Skeleton className="h-8 w-8" />
-                <Skeleton className="h-8 w-8" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+    <div className="space-y-1" data-testid="products-list-skeleton">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Skeleton key={i} className="h-[42px] w-full rounded-[7px]" />
+      ))}
+      <Skeleton className="mt-2 h-[24px] w-[140px] rounded-sm" />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@/tests/utils'
 import userEvent from '@testing-library/user-event'
+import { Search } from 'lucide-react'
 import { Input } from '../input'
 
 describe('Input', () => {
@@ -40,17 +41,20 @@ describe('Input', () => {
     expect(input).toHaveValue('')
   })
 
-  it('applies default classes', () => {
-    render(<Input data-testid="input" />)
+  it('renders a container with Section H token classes', () => {
+    const { container } = render(<Input data-testid="input" />)
     const input = screen.getByTestId('input')
-    expect(input).toHaveClass('flex', 'h-10', 'w-full', 'rounded-md', 'border')
+    expect(input.tagName).toBe('INPUT')
+    // Section H input container is a <div> wrapping the <input>
+    const wrapper = container.firstChild as HTMLElement
+    expect(wrapper).toHaveClass('rounded-[7px]', 'border', 'h-[34px]')
   })
 
-  it('merges custom className', () => {
-    render(<Input className="custom-input" data-testid="input" />)
-    const input = screen.getByTestId('input')
-    expect(input).toHaveClass('custom-input')
-    expect(input).toHaveClass('rounded-md') // default class
+  it('merges custom className onto the wrapper', () => {
+    const { container } = render(<Input className="custom-input" data-testid="input" />)
+    const wrapper = container.firstChild as HTMLElement
+    expect(wrapper).toHaveClass('custom-input')
+    expect(wrapper).toHaveClass('rounded-[7px]')
   })
 
   it('forwards ref correctly', () => {
@@ -63,8 +67,8 @@ describe('Input', () => {
     it('renders text type by default', () => {
       render(<Input data-testid="input" />)
       const input = screen.getByTestId('input')
-      // Text type is implicit when no type is specified
-      expect(input).not.toHaveAttribute('type', 'email')
+      // text type is the explicit default set in component
+      expect(input).toHaveAttribute('type', 'text')
     })
 
     it('renders email type', () => {
@@ -106,5 +110,57 @@ describe('Input', () => {
     const input = screen.getByTestId('input')
     expect(input).toHaveAttribute('min', '0')
     expect(input).toHaveAttribute('max', '100')
+  })
+
+  describe('Section H extensions', () => {
+    it('renders prefix text', () => {
+      render(<Input prefix="cafelinville.ge/" defaultValue="main" />)
+      expect(screen.getByText('cafelinville.ge/')).toBeInTheDocument()
+    })
+
+    it('renders suffix text (e.g. currency)', () => {
+      render(<Input suffix="₾" defaultValue="14" />)
+      expect(screen.getByText('₾')).toBeInTheDocument()
+    })
+
+    it('renders a leading icon', () => {
+      const { container } = render(<Input icon={Search} placeholder="Search" />)
+      expect(container.querySelector('svg[aria-hidden="true"]')).toBeTruthy()
+    })
+
+    it('marks input as aria-invalid when error=true', () => {
+      render(<Input error data-testid="input" />)
+      expect(screen.getByTestId('input')).toHaveAttribute('aria-invalid', 'true')
+    })
+
+    it('applies error border class on the wrapper when error=true', () => {
+      const { container } = render(<Input error />)
+      const wrapper = container.firstChild as HTMLElement
+      expect(wrapper).toHaveClass('border-danger')
+    })
+
+    it('clear button fires onClear', async () => {
+      const user = userEvent.setup()
+      const handleClear = vi.fn()
+      render(<Input clearable onClear={handleClear} value="hello" readOnly />)
+      const clearBtn = screen.getByRole('button', { name: /clear/i })
+      await user.click(clearBtn)
+      expect(handleClear).toHaveBeenCalled()
+    })
+
+    it('does not render clear button when value is empty', () => {
+      render(<Input clearable value="" readOnly />)
+      expect(screen.queryByRole('button', { name: /clear/i })).toBeNull()
+    })
+
+    it('size variants apply the correct height', () => {
+      const { container, rerender } = render(<Input size="sm" data-testid="input" />)
+      let wrapper = container.firstChild as HTMLElement
+      expect(wrapper).toHaveClass('h-[28px]')
+
+      rerender(<Input size="lg" data-testid="input" />)
+      wrapper = container.firstChild as HTMLElement
+      expect(wrapper).toHaveClass('h-[40px]')
+    })
   })
 })

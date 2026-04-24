@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import {
   DndContext,
@@ -20,26 +21,18 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  FolderOpen,
   GripVertical,
+  Lock,
   Pencil,
   Plus,
+  Search,
   Trash2,
-  FolderOpen,
-  ChevronDown,
-  ChevronRight,
-  Lock,
-  Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,10 +43,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
+  KebabMenu,
+  KebabMenuContent,
+  KebabMenuIconTrigger,
+  KebabMenuItem,
+  KebabMenuSeparator,
+} from '@/components/ui/kebab-menu';
 import { CategoryDialog } from './category-dialog';
 import { ProductsList } from './products-list';
 import { UpgradePrompt } from './upgrade-prompt';
-import { PlanLimitIndicator } from './plan-limit-indicator';
 import {
   useCategories,
   useCreateCategory,
@@ -63,8 +70,16 @@ import {
   useReorderCategories,
 } from '@/hooks/use-categories';
 import { useUserPlan } from '@/hooks/use-user-plan';
-import type { Category } from '@/types/menu';
+import type { Category, CategoryType } from '@/types/menu';
 import type { CreateCategoryInput } from '@/lib/validations/category';
+
+// Type-based fallback when no iconUrl is set. Keeps the row visually anchored
+// without forcing users to upload an icon on creation.
+const TYPE_EMOJI: Record<CategoryType, string> = {
+  FOOD: '🍽️',
+  DRINK: '🥤',
+  OTHER: '📁',
+};
 
 interface CategoriesListProps {
   menuId: string;
@@ -72,9 +87,12 @@ interface CategoriesListProps {
   totalMenuProducts?: number;
 }
 
-export function CategoriesList({ menuId, showAllergens = false, totalMenuProducts = 0 }: CategoriesListProps) {
+export function CategoriesList({
+  menuId,
+  showAllergens = false,
+  totalMenuProducts = 0,
+}: CategoriesListProps) {
   const t = useTranslations('admin.categories');
-  const tProducts = useTranslations('admin.products');
   const tActions = useTranslations('actions');
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -82,6 +100,7 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { data: categories, isLoading, error } = useCategories(menuId);
   const createCategory = useCreateCategory(menuId);
@@ -90,17 +109,27 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
   const duplicateCategory = useDuplicateCategory(menuId);
   const reorderCategories = useReorderCategories(menuId);
 
-  const { plan, canCreate, getLimit } = useUserPlan();
+  const { plan, canCreate } = useUserPlan();
   const categoryCount = categories?.length ?? 0;
-  const categoryLimit = getLimit('category');
   const canAddCategory = canCreate('category', categoryCount);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
+
+  const filteredCategories = useMemo(() => {
+    if (!categories) return [];
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return categories;
+    return categories.filter((c) =>
+      [c.nameKa, c.nameEn, c.nameRu]
+        .filter((n): n is string => Boolean(n))
+        .some((n) => n.toLowerCase().includes(q)),
+    );
+  }, [categories, searchQuery]);
 
   const toggleExpanded = (categoryId: string) => {
     setExpandedCategories((prev) => {
@@ -116,21 +145,24 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    if (!over || active.id === over.id || !categories) return;
 
-    if (over && active.id !== over.id && categories) {
-      const oldIndex = categories.findIndex((c) => c.id === active.id);
-      const newIndex = categories.findIndex((c) => c.id === over.id);
+    const oldIndex = categories.findIndex((c) => c.id === active.id);
+    const newIndex = categories.findIndex((c) => c.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
 
-      const reorderedCategories = arrayMove(categories, oldIndex, newIndex);
-      const reorderData = {
-        categories: reorderedCategories.map((c, index) => ({
-          id: c.id,
-          sortOrder: index,
-        })),
-      };
+    const reordered = arrayMove(categories, oldIndex, newIndex);
+    reorderCategories.mutate({
+      categories: reordered.map((c, i) => ({ id: c.id, sortOrder: i })),
+    });
+  };
 
-      reorderCategories.mutate(reorderData);
+  const handleAddCategory = () => {
+    if (!canAddCategory) {
+      setShowUpgradePrompt(true);
+      return;
     }
+    setIsCreateOpen(true);
   };
 
   const handleCreate = async (data: CreateCategoryInput) => {
@@ -138,8 +170,8 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
       await createCategory.mutateAsync(data);
       setIsCreateOpen(false);
       toast.success(t('toast.created'));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('toast.createError'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('toast.createError'));
     }
   };
 
@@ -149,8 +181,8 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
       await updateCategory.mutateAsync(data);
       setCategoryToEdit(null);
       toast.success(t('toast.updated'));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('toast.updateError'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('toast.updateError'));
     }
   };
 
@@ -160,8 +192,8 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
       await deleteCategory.mutateAsync(categoryToDelete.id);
       setCategoryToDelete(null);
       toast.success(t('toast.deleted'));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('toast.deleteError'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('toast.deleteError'));
     }
   };
 
@@ -172,95 +204,100 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
     }
     try {
       await duplicateCategory.mutateAsync(category.id);
-      toast.success('Category duplicated');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('toast.createError'));
+      toast.success(t('toast.duplicated'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('toast.createError'));
     }
   };
 
-  if (isLoading) {
-    return <CategoriesListSkeleton />;
-  }
+  if (isLoading) return <CategoriesListSkeleton />;
 
   if (error) {
     return (
-      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center">
-        <p className="text-destructive">{error.message}</p>
-        <Button
-          variant="outline"
-          className="mt-4"
-          onClick={() => window.location.reload()}
-        >
+      <div
+        className="flex w-[360px] shrink-0 flex-col items-center justify-center self-start rounded-[12px] border border-danger-soft bg-danger-soft/30 p-6 text-center"
+        data-testid="categories-list-error"
+      >
+        <p className="text-[13px] text-danger">{error.message}</p>
+        <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
           {tActions('tryAgain')}
         </Button>
       </div>
     );
   }
 
-  const handleAddCategory = () => {
-    if (!canAddCategory) {
-      setShowUpgradePrompt(true);
-      return;
-    }
-    setIsCreateOpen(true);
-  };
+  const hasCategories = categoryCount > 0;
+  const isFilteredEmpty = hasCategories && filteredCategories.length === 0;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h3 className="text-lg font-semibold">{t('title')}</h3>
-          {categoryLimit !== Infinity && (
-            <PlanLimitIndicator
-              current={categoryCount}
-              limit={categoryLimit}
-              resource="category"
-              showProgress={false}
-            />
-          )}
-        </div>
-        <Button
-          onClick={handleAddCategory}
-          variant={canAddCategory ? 'default' : 'secondary'}
-          className="rounded-full focus-ring"
-        >
-          {canAddCategory ? (
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          ) : (
-            <Lock className="mr-2 h-4 w-4" aria-hidden="true" />
-          )}
-          {t('add')}
-        </Button>
+    <div
+      className="flex w-[360px] shrink-0 flex-col gap-3.5 self-start rounded-[12px] border border-border bg-sidebar p-4"
+      data-testid="categories-list"
+    >
+      {/* Search */}
+      <div className="relative flex items-center">
+        <Search
+          className="pointer-events-none absolute left-2.5 h-[13px] w-[13px] text-text-subtle"
+          strokeWidth={1.5}
+          aria-hidden="true"
+        />
+        <Input
+          type="search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t('searchPlaceholder')}
+          aria-label={t('search')}
+          data-testid="categories-search"
+          className="h-8 rounded-md bg-card pl-[30px] pr-2.5 text-[12.5px] placeholder:text-text-subtle"
+        />
       </div>
 
-      {!categories || categories.length === 0 ? (
-        <div className="rounded-2xl border border-dashed px-8 py-10 text-center" role="region" aria-label={t('empty.title')}>
-          <FolderOpen className="mx-auto h-10 w-10 text-muted-foreground" aria-hidden="true" />
-          <h4 className="mt-4 text-base font-semibold">{t('empty.title')}</h4>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            {t('empty.description')}
-          </p>
-          <Button onClick={handleAddCategory} className="mt-4 rounded-full focus-ring">
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            {tActions('create')}
-          </Button>
+      {!hasCategories && (
+        <div
+          className="flex flex-col items-center rounded-md border border-dashed border-border px-4 py-8 text-center"
+          role="region"
+          aria-label={t('empty.title')}
+          data-testid="categories-empty"
+        >
+          <FolderOpen className="h-8 w-8 text-text-subtle" aria-hidden="true" />
+          <h4 className="mt-3 text-[13px] font-semibold text-text-default">
+            {t('empty.title')}
+          </h4>
+          <p className="mt-1 text-[12px] text-text-muted">{t('empty.description')}</p>
         </div>
-      ) : (
+      )}
+
+      {isFilteredEmpty && (
+        <div
+          className="flex flex-col items-center rounded-md border border-dashed border-border px-4 py-6 text-center"
+          data-testid="categories-no-results"
+        >
+          <Search className="h-5 w-5 text-text-subtle" aria-hidden="true" />
+          <p className="mt-2 text-[12px] text-text-muted">{t('noSearchResults')}</p>
+        </div>
+      )}
+
+      {hasCategories && !isFilteredEmpty && (
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={categories.map((c) => c.id)}
+            items={filteredCategories.map((c) => c.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-3" role="list" aria-label={t('title')}>
-              {categories.map((category) => (
+            <ul
+              className="flex flex-col gap-1"
+              role="list"
+              aria-label={t('title')}
+              data-testid="categories-list-rows"
+            >
+              {filteredCategories.map((category) => (
                 <SortableCategoryItem
                   key={category.id}
                   category={category}
-                  categories={categories}
+                  categories={categories ?? []}
                   menuId={menuId}
                   isExpanded={expandedCategories.has(category.id)}
                   onToggleExpand={() => toggleExpanded(category.id)}
@@ -272,20 +309,40 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
                   totalMenuProducts={totalMenuProducts}
                 />
               ))}
-            </div>
+            </ul>
           </SortableContext>
         </DndContext>
       )}
 
-      {/* Create Category Dialog */}
+      {/* Add category (dashed) */}
+      <button
+        type="button"
+        onClick={handleAddCategory}
+        aria-disabled={!canAddCategory || undefined}
+        data-testid="categories-add-dashed"
+        data-can-add={canAddCategory ? 'true' : 'false'}
+        className={[
+          'mt-auto flex items-center justify-center gap-1.5 rounded-md border-[1.5px] border-dashed border-border bg-transparent px-3 py-2.5 text-[12.5px] font-medium transition-colors',
+          canAddCategory
+            ? 'text-text-muted hover:bg-chip hover:text-text-default'
+            : 'text-text-subtle hover:bg-chip',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2',
+        ].join(' ')}
+      >
+        {canAddCategory ? (
+          <Plus className="h-[13px] w-[13px]" strokeWidth={2} aria-hidden="true" />
+        ) : (
+          <Lock className="h-[13px] w-[13px]" strokeWidth={2} aria-hidden="true" />
+        )}
+        {t('addDashed')}
+      </button>
+
       <CategoryDialog
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
         onSubmit={handleCreate}
         isLoading={createCategory.isPending}
       />
-
-      {/* Edit Category Dialog */}
       <CategoryDialog
         open={!!categoryToEdit}
         onOpenChange={(open) => !open && setCategoryToEdit(null)}
@@ -293,18 +350,14 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
         onSubmit={handleUpdate}
         isLoading={updateCategory.isPending}
       />
-
-      {/* Delete Confirmation Dialog */}
       <AlertDialog
         open={!!categoryToDelete}
         onOpenChange={(open) => !open && setCategoryToDelete(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent data-testid="categories-delete-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>{t('delete.title')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('delete.message')}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t('delete.message')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteCategory.isPending}>
@@ -313,6 +366,7 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleteCategory.isPending}
+              data-testid="categories-delete-confirm"
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteCategory.isPending ? tActions('deleting') : tActions('delete')}
@@ -321,7 +375,6 @@ export function CategoriesList({ menuId, showAllergens = false, totalMenuProduct
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Upgrade Prompt */}
       <UpgradePrompt
         open={showUpgradePrompt}
         onOpenChange={setShowUpgradePrompt}
@@ -360,155 +413,177 @@ function SortableCategoryItem({
   showAllergens = false,
   totalMenuProducts = 0,
 }: SortableCategoryItemProps) {
-  const tProducts = useTranslations('admin.products');
+  const t = useTranslations('admin.categories');
   const tA11y = useTranslations('common.accessibility');
   const tActions = useTranslations('actions');
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: category.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: category.id,
+  });
 
-  const style = {
+  const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
 
   const productCount = category._count?.products ?? category.products?.length ?? 0;
+  const displayName = category.nameKa;
+  const emoji = TYPE_EMOJI[category.type] ?? '🍴';
 
   return (
-    <Collapsible open={isExpanded} onOpenChange={onToggleExpand}>
-      <Card
-        ref={setNodeRef}
-        style={style}
-        className={`rounded-2xl ${isDragging ? 'opacity-50 shadow-lg' : ''}`}
-      >
-        <CardContent className="p-0">
-          {/* Category Header */}
-          <div className="flex items-center gap-3 px-4 py-3">
+    <li
+      ref={setNodeRef}
+      style={style}
+      data-testid="category-row"
+      data-category-id={category.id}
+      data-category-name={displayName}
+      data-expanded={isExpanded ? 'true' : 'false'}
+      className={isDragging ? 'relative z-10 opacity-60 shadow-md' : 'relative'}
+    >
+      <Collapsible open={isExpanded} onOpenChange={onToggleExpand}>
+        <div
+          className={[
+            'flex items-center gap-2 rounded-md px-2.5 py-[9px] transition-colors',
+            isExpanded
+              ? 'border border-border bg-card'
+              : 'border border-transparent hover:bg-chip',
+          ].join(' ')}
+        >
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            className="touch-none cursor-grab rounded-sm text-text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 active:cursor-grabbing"
+            aria-label={tA11y('dragHandle')}
+            data-testid="category-drag-handle"
+          >
+            <GripVertical className="h-[14px] w-[14px]" strokeWidth={1.5} aria-hidden="true" />
+          </button>
+
+          <CategoryIcon category={category} emoji={emoji} />
+
+          <CollapsibleTrigger asChild>
             <button
-              {...attributes}
-              {...listeners}
-              className="cursor-grab touch-none rounded p-1 hover:bg-muted active:cursor-grabbing focus-ring"
-              aria-label={tA11y('dragHandle')}
+              type="button"
+              className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-sm bg-transparent text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1"
+              aria-expanded={isExpanded}
+              aria-label={isExpanded ? tA11y('collapseCategory') : tA11y('expandCategory')}
+              data-testid="category-row-toggle"
             >
-              <GripVertical className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-            </button>
-
-            <CollapsibleTrigger asChild>
-              <button
-                className="flex items-center gap-1 rounded p-1 hover:bg-muted focus-ring"
-                aria-label={isExpanded ? tA11y('collapseCategory') : tA11y('expandCategory')}
-                aria-expanded={isExpanded}
+              <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold text-text-default">
+                {displayName}
+              </span>
+              <span
+                className="shrink-0 text-[11.5px] tabular-nums text-text-muted"
+                data-testid="category-item-count"
               >
-                {isExpanded ? (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                )}
-              </button>
-            </CollapsibleTrigger>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="font-medium truncate">{category.nameKa}</p>
-                {category.nameEn && (
-                  <span className="text-sm text-muted-foreground truncate">
-                    ({category.nameEn})
-                  </span>
-                )}
-              </div>
-              {category.descriptionKa && (
-                <p className="text-sm text-muted-foreground truncate">
-                  {category.descriptionKa}
-                </p>
+                {t('itemCount', { count: productCount })}
+              </span>
+              {isExpanded ? (
+                <ChevronUp
+                  className="h-[14px] w-[14px] shrink-0 text-text-muted"
+                  strokeWidth={1.5}
+                  aria-hidden="true"
+                />
+              ) : (
+                <ChevronDown
+                  className="h-[14px] w-[14px] shrink-0 text-text-muted"
+                  strokeWidth={1.5}
+                  aria-hidden="true"
+                />
               )}
-            </div>
+            </button>
+          </CollapsibleTrigger>
 
-            <Badge variant="secondary" className="shrink-0">
-              {productCount} {tProducts('title').toLowerCase()}
-            </Badge>
-
-            <div className="flex items-center gap-1 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onEdit}
-                aria-label={`${tActions('edit')} ${category.nameKa}`}
-                className="focus-ring"
+          <KebabMenu>
+            <KebabMenuIconTrigger
+              label={t('actionsLabel', { name: displayName })}
+              data-testid="category-kebab-trigger"
+              className="h-7 w-7"
+            />
+            <KebabMenuContent>
+              <KebabMenuItem
+                icon={Pencil}
+                onSelect={() => onEdit()}
+                data-testid="category-kebab-edit"
               >
-                <Pencil className="h-4 w-4" aria-hidden="true" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onDuplicate}
+                {tActions('edit')}
+              </KebabMenuItem>
+              <KebabMenuItem
+                icon={Copy}
+                onSelect={() => onDuplicate()}
                 disabled={isDuplicating}
-                aria-label={`Duplicate ${category.nameKa}`}
-                className="focus-ring"
+                data-testid="category-kebab-duplicate"
               >
-                <Copy className="h-4 w-4" aria-hidden="true" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onDelete}
-                aria-label={`${tActions('delete')} ${category.nameKa}`}
-                className="text-destructive hover:text-destructive focus-ring"
+                {t('actions.duplicate')}
+              </KebabMenuItem>
+              <KebabMenuSeparator />
+              <KebabMenuItem
+                icon={Trash2}
+                tone="destructive"
+                onSelect={() => onDelete()}
+                data-testid="category-kebab-delete"
               >
-                <Trash2 className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </div>
-          </div>
+                {tActions('delete')}
+              </KebabMenuItem>
+            </KebabMenuContent>
+          </KebabMenu>
+        </div>
 
-          {/* Products Section (Collapsible) */}
-          <CollapsibleContent>
-            <div className="border-t bg-muted/30 p-4">
-              <ProductsList
-                menuId={menuId}
-                categoryId={category.id}
-                categories={categories}
-                showAllergens={showAllergens}
-                totalMenuProducts={totalMenuProducts}
-              />
-            </div>
-          </CollapsibleContent>
-        </CardContent>
-      </Card>
-    </Collapsible>
+        <CollapsibleContent data-testid="category-products">
+          <div className="mt-1 rounded-md border border-border-soft bg-bg/60 px-2 py-2">
+            <ProductsList
+              menuId={menuId}
+              categoryId={category.id}
+              categoryName={displayName}
+              categories={categories}
+              showAllergens={showAllergens}
+              totalMenuProducts={totalMenuProducts}
+            />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </li>
+  );
+}
+
+function CategoryIcon({ category, emoji }: { category: Category; emoji: string }) {
+  if (category.iconUrl) {
+    return (
+      <span
+        className="relative h-5 w-5 shrink-0 overflow-hidden rounded-sm bg-chip"
+        data-testid="category-icon"
+        data-icon-kind="image"
+      >
+        <Image src={category.iconUrl} alt="" fill sizes="20px" className="object-cover" />
+      </span>
+    );
+  }
+  return (
+    <span
+      className="grid h-5 w-5 shrink-0 place-items-center text-[15px] leading-none"
+      aria-hidden="true"
+      data-testid="category-icon"
+      data-icon-kind="emoji"
+    >
+      {emoji}
+    </span>
   );
 }
 
 function CategoriesListSkeleton() {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-6 w-24" />
-        <Skeleton className="h-9 w-32" />
-      </div>
-      <div className="space-y-2">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i} className="rounded-2xl">
-            <CardContent className="flex items-center gap-3 p-3">
-              <Skeleton className="h-5 w-5" />
-              <Skeleton className="h-4 w-4" />
-              <div className="flex-1 space-y-1">
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-3 w-24" />
-              </div>
-              <Skeleton className="h-5 w-20" />
-              <div className="flex gap-1">
-                <Skeleton className="h-8 w-8" />
-                <Skeleton className="h-8 w-8" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+    <div
+      className="flex w-[360px] shrink-0 flex-col gap-3.5 self-start rounded-[12px] border border-border bg-sidebar p-4"
+      data-testid="categories-list-skeleton"
+    >
+      <Skeleton className="h-8 w-full rounded-md" />
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Skeleton key={i} className="h-[40px] w-full rounded-md" />
+      ))}
+      <Skeleton className="mt-auto h-[40px] w-full rounded-md" />
     </div>
   );
 }
+
+export { CategoriesListSkeleton };
