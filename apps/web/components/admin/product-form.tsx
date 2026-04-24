@@ -1,15 +1,14 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info, Clock } from 'lucide-react';
 import { z } from 'zod';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -17,26 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
-import { ImageUpload } from '@/components/admin/image-upload';
-import type { Product, Category, Allergen, Ribbon } from '@/types/menu';
+import { cn } from '@/lib/utils';
+import { LangTabsInline, type LangCode } from './product-drawer/lang-tabs-inline';
+import { TagsInput } from './product-drawer/tags-input';
+import { ProductImageField } from './product-drawer/product-image-field';
+import type { Product, Category } from '@/types/menu';
 
-// Form schema for product — form-level schema (strings for decimals, converted on submit)
+// Form schema — descriptions max 500 per T14.2 spec
 const productFormSchema = z.object({
   categoryId: z.string().min(1, 'Category is required'),
   nameKa: z
@@ -45,9 +31,9 @@ const productFormSchema = z.object({
     .max(100, 'Name must be less than 100 characters'),
   nameEn: z.string().max(100).optional(),
   nameRu: z.string().max(100).optional(),
-  descriptionKa: z.string().max(1000).optional(),
-  descriptionEn: z.string().max(1000).optional(),
-  descriptionRu: z.string().max(1000).optional(),
+  descriptionKa: z.string().max(500).optional(),
+  descriptionEn: z.string().max(500).optional(),
+  descriptionRu: z.string().max(500).optional(),
   price: z.string().min(1, 'Price is required'),
   oldPrice: z.string().optional(),
   imageUrl: z.string().url('Invalid URL').optional().or(z.literal('')),
@@ -65,34 +51,6 @@ const productFormSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
-// Full allergen library (15 items — EU allergen list + common ones)
-const ALLERGENS: { value: Allergen; labelEn: string; labelKa: string }[] = [
-  { value: 'GLUTEN', labelEn: 'Gluten', labelKa: 'გლუტენი' },
-  { value: 'DAIRY', labelEn: 'Dairy', labelKa: 'რძის პროდუქტები' },
-  { value: 'EGGS', labelEn: 'Eggs', labelKa: 'კვერცხი' },
-  { value: 'NUTS', labelEn: 'Tree Nuts', labelKa: 'თხილეული' },
-  { value: 'PEANUTS', labelEn: 'Peanuts', labelKa: 'არაქისი' },
-  { value: 'SEAFOOD', labelEn: 'Seafood', labelKa: 'ზღვის პროდუქტები' },
-  { value: 'FISH', labelEn: 'Fish', labelKa: 'თევზი' },
-  { value: 'SHELLFISH', labelEn: 'Shellfish', labelKa: 'კიბორჩხალები' },
-  { value: 'SOY', labelEn: 'Soy', labelKa: 'სოია' },
-  { value: 'PORK', labelEn: 'Pork', labelKa: 'ღორის ხორცი' },
-  { value: 'SESAME', labelEn: 'Sesame', labelKa: 'სეზამი' },
-  { value: 'MUSTARD', labelEn: 'Mustard', labelKa: 'მდოგვი' },
-  { value: 'CELERY', labelEn: 'Celery', labelKa: 'ნიახური' },
-  { value: 'LUPIN', labelEn: 'Lupin', labelKa: 'ლუპინი' },
-  { value: 'SULPHITES', labelEn: 'Sulphites', labelKa: 'სულფიტები' },
-];
-
-// Ribbons / badges
-const RIBBONS: { value: Ribbon; labelKa: string; emoji: string }[] = [
-  { value: 'POPULAR', labelKa: 'პოპულარული', emoji: '🔥' },
-  { value: 'CHEF_CHOICE', labelKa: 'შეფი გირჩევთ', emoji: '👨‍🍳' },
-  { value: 'DAILY_DISH', labelKa: 'დღის კერძი', emoji: '⭐' },
-  { value: 'NEW', labelKa: 'ახალი', emoji: '🆕' },
-  { value: 'SPICY', labelKa: 'ცხარე', emoji: '🌶️' },
-];
-
 interface ProductFormProps {
   product?: Product;
   categories: Category[];
@@ -100,7 +58,12 @@ interface ProductFormProps {
   onSubmit: (data: ProductFormValues) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
-  showAllergens?: boolean; // PRO feature flag
+  showAllergens?: boolean;
+  multilangUnlocked?: boolean;
+  /** When the form is submitted from a button outside its DOM (e.g. a sticky drawer footer). */
+  formId?: string;
+  /** Hide the in-form Cancel/Save row. The drawer renders its own footer actions. */
+  hideActions?: boolean;
 }
 
 export function ProductForm({
@@ -110,13 +73,18 @@ export function ProductForm({
   onSubmit,
   onCancel,
   isLoading,
-  showAllergens = false,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  showAllergens = false, // reserved for Allergens tab (T14.3)
+  multilangUnlocked = false,
+  formId,
+  hideActions = false,
 }: ProductFormProps) {
   const t = useTranslations('admin.products.form');
   const tActions = useTranslations('actions');
 
-  const [nutritionOpen, setNutritionOpen] = useState(false);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  // Active language tabs — independent for Name and Description
+  const [nameLang, setNameLang] = useState<LangCode>('KA');
+  const [descLang, setDescLang] = useState<LangCode>('KA');
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -135,489 +103,450 @@ export function ProductForm({
       ribbons: product?.ribbons || [],
       isVegan: product?.isVegan ?? false,
       isVegetarian: product?.isVegetarian ?? false,
-      calories: product?.calories !== null && product?.calories !== undefined ? String(product.calories) : '',
-      protein: product?.protein !== null && product?.protein !== undefined ? String(product.protein) : '',
-      fats: product?.fats !== null && product?.fats !== undefined ? String(product.fats) : '',
-      carbs: product?.carbs !== null && product?.carbs !== undefined ? String(product.carbs) : '',
-      fiber: product?.fiber !== null && product?.fiber !== undefined ? String(product.fiber) : '',
+      calories:
+        product?.calories !== null && product?.calories !== undefined
+          ? String(product.calories)
+          : '',
+      protein:
+        product?.protein !== null && product?.protein !== undefined
+          ? String(product.protein)
+          : '',
+      fats:
+        product?.fats !== null && product?.fats !== undefined
+          ? String(product.fats)
+          : '',
+      carbs:
+        product?.carbs !== null && product?.carbs !== undefined
+          ? String(product.carbs)
+          : '',
+      fiber:
+        product?.fiber !== null && product?.fiber !== undefined
+          ? String(product.fiber)
+          : '',
       isAvailable: product?.isAvailable ?? true,
     },
   });
+
+  const { watch, setValue, formState: { errors } } = form;
+
+  // Watched values for reactive UI
+  const nameKa = watch('nameKa');
+  const nameEn = watch('nameEn');
+  const nameRu = watch('nameRu');
+  const descriptionKa = watch('descriptionKa');
+  const descriptionEn = watch('descriptionEn');
+  const descriptionRu = watch('descriptionRu');
+  const price = watch('price');
+  const oldPrice = watch('oldPrice');
+  const isAvailable = watch('isAvailable');
+  const ribbons = watch('ribbons') || [];
+  const isVegan = watch('isVegan') || false;
+  const isVegetarian = watch('isVegetarian') || false;
+
+  // Discount toggle is derived from oldPrice having a value
+  const [hasDiscount, setHasDiscount] = useState(() => !!(product?.oldPrice));
+
+  // Name/Description dot statuses for LangTabsInline
+  const nameStatuses = {
+    KA: (nameKa || '') !== '' ? 'filled' : 'empty',
+    EN: (nameEn || '') !== '' ? 'filled' : 'empty',
+    RU: (nameRu || '') !== '' ? 'filled' : 'empty',
+  } as const;
+
+  const descStatuses = {
+    KA: (descriptionKa || '') !== '' ? 'filled' : 'empty',
+    EN: (descriptionEn || '') !== '' ? 'filled' : 'empty',
+    RU: (descriptionRu || '') !== '' ? 'filled' : 'empty',
+  } as const;
+
+  // Active name field key
+  const nameFieldKey = nameLang === 'KA' ? 'nameKa' : nameLang === 'EN' ? 'nameEn' : 'nameRu';
+  const descFieldKey = descLang === 'KA' ? 'descriptionKa' : descLang === 'EN' ? 'descriptionEn' : 'descriptionRu';
+  const activeDescValue = watch(descFieldKey) || '';
+
+  // Discount percentage pill
+  const priceNum = parseFloat(price);
+  const oldPriceNum = parseFloat(oldPrice || '');
+  const discountPct =
+    Number.isFinite(priceNum) && Number.isFinite(oldPriceNum) && oldPriceNum > 0
+      ? Math.round((1 - priceNum / oldPriceNum) * 100)
+      : null;
 
   const handleSubmit = async (data: ProductFormValues) => {
     await onSubmit(data);
   };
 
+  const handleDiscountToggle = (checked: boolean) => {
+    setHasDiscount(checked);
+    if (!checked) {
+      setValue('oldPrice', '');
+    }
+  };
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        {/* ── Basics ─────────────────────────── */}
-        <FormField
-          control={form.control}
-          name="categoryId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                {t('category')} <span className="text-destructive">*</span>
-              </FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('selectCategory')} />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.nameKa}
-                      {category.nameEn && ` / ${category.nameEn}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <div
+      data-testid="product-drawer-basics"
+    >
+      <form id={formId} onSubmit={form.handleSubmit(handleSubmit)}>
 
-        <FormField
-          control={form.control}
-          name="nameKa"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                {t('nameKa')} <span className="text-destructive">*</span>
-              </FormLabel>
-              <FormControl>
-                <Input placeholder={t('nameKaPlaceholder')} {...field} />
-              </FormControl>
-              <FormDescription>{t('nameKaHelp')}</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="nameEn"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('nameEn')}</FormLabel>
-              <FormControl>
-                <Input placeholder={t('nameEnPlaceholder')} {...field} value={field.value || ''} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="nameRu"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('nameRu')}</FormLabel>
-              <FormControl>
-                <Input placeholder={t('nameRuPlaceholder')} {...field} value={field.value || ''} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* ── Pricing (with optional discount) ───────────── */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="price"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  {t('price')} <span className="text-destructive">*</span>
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder={t('pricePlaceholder')}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="oldPrice"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>ძველი ფასი (Discount)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="20.00"
-                    {...field}
-                    value={field.value || ''}
-                  />
-                </FormControl>
-                <FormDescription>
-                  მიუთითე, თუ გსურს გადახაზული ძველი ფასის ჩვენება
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        {/* ── Product Image ─────────────────────────── */}
-        <FormField
+        {/* ── 1. Product image ──────────────────────────────────────────── */}
+        <Controller
           control={form.control}
           name="imageUrl"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('image')}</FormLabel>
-              <FormControl>
-                <ImageUpload
-                  value={field.value || null}
-                  onChange={(url) => field.onChange(url || '')}
-                  preset="product"
-                  disabled={isLoading}
-                  aspectRatio="square"
-                />
-              </FormControl>
-              <FormDescription>{t('imageHelp')}</FormDescription>
-              <FormMessage />
-            </FormItem>
+            <ProductImageField
+              value={field.value || null}
+              onChange={(url) => field.onChange(url || '')}
+              disabled={isLoading}
+              replaceLabel={t('imageActions.replace')}
+              cropLabel={t('imageActions.crop')}
+              removeLabel={t('imageActions.remove')}
+              recommendedText={t('imageRecommended')}
+              imageLabel={t('image')}
+            />
           )}
         />
 
-        {/* ── Descriptions ─────────────────────────── */}
-        <FormField
-          control={form.control}
-          name="descriptionKa"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('descriptionKa')}</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder={t('descriptionKaPlaceholder')}
-                  className="resize-none"
-                  rows={2}
-                  {...field}
-                  value={field.value || ''}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="descriptionEn"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('descriptionEn')}</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder={t('descriptionEnPlaceholder')}
-                  className="resize-none"
-                  rows={2}
-                  {...field}
-                  value={field.value || ''}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="descriptionRu"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('descriptionRu')}</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder={t('descriptionRuPlaceholder')}
-                  className="resize-none"
-                  rows={2}
-                  {...field}
-                  value={field.value || ''}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* ── Ribbons / Badges ─────────────────────────── */}
-        <FormField
-          control={form.control}
-          name="ribbons"
-          render={() => (
-            <FormItem>
-              <div className="mb-2">
-                <FormLabel>ნიშნულები (Ribbons)</FormLabel>
-                <FormDescription>
-                  ფოტოზე გამოჩნდება აირჩეული ბეჯები
-                </FormDescription>
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {RIBBONS.map((ribbon) => (
-                  <FormField
-                    key={ribbon.value}
-                    control={form.control}
-                    name="ribbons"
-                    render={({ field }) => (
-                      <FormItem
-                        key={ribbon.value}
-                        className="flex flex-row items-center space-x-2 space-y-0"
-                      >
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value?.includes(ribbon.value)}
-                            onCheckedChange={(checked) => {
-                              return checked
-                                ? field.onChange([...(field.value || []), ribbon.value])
-                                : field.onChange(
-                                    field.value?.filter((v) => v !== ribbon.value)
-                                  );
-                            }}
-                          />
-                        </FormControl>
-                        <FormLabel className="text-sm font-normal cursor-pointer">
-                          <span className="mr-1">{ribbon.emoji}</span>
-                          {ribbon.labelKa}
-                        </FormLabel>
-                      </FormItem>
-                    )}
-                  />
-                ))}
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* ── Dietary Flags ─────────────────────────── */}
-        <div className="grid grid-cols-2 gap-4 rounded-lg border p-4">
-          <FormField
+        {/* ── 2. Name ───────────────────────────────────────────────────── */}
+        <div className="mb-[22px]">
+          <div className="mb-2 flex items-baseline justify-between">
+            <span className="text-[12px] font-semibold uppercase tracking-[0.1px] text-text-default">
+              {t('nameLabel')}
+            </span>
+            <span className="text-[11px] text-text-subtle">{t('basicsHintName')}</span>
+          </div>
+          <LangTabsInline
+            active={nameLang}
+            onChange={setNameLang}
+            statuses={nameStatuses}
+            multilangUnlocked={multilangUnlocked}
+            data-testid="product-basics-name-tabs"
+          />
+          <Controller
             control={form.control}
-            name="isVegan"
+            name={nameFieldKey}
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-                <FormLabel className="cursor-pointer font-normal">
-                  🌱 ვეგანური (Vegan)
-                </FormLabel>
-              </FormItem>
+              <Input
+                {...field}
+                value={field.value || ''}
+                data-testid="product-basics-name-input"
+                placeholder={
+                  nameLang === 'KA'
+                    ? t('nameKaPlaceholder')
+                    : nameLang === 'EN'
+                    ? t('nameEnPlaceholder')
+                    : t('nameRuPlaceholder')
+                }
+                className={cn(errors.nameKa && nameLang === 'KA' && 'border-danger ring-[3px] ring-danger-soft')}
+              />
             )}
           />
-
-          <FormField
-            control={form.control}
-            name="isVegetarian"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-                <FormLabel className="cursor-pointer font-normal">
-                  🥗 ვეგეტარიანული (Vegetarian)
-                </FormLabel>
-              </FormItem>
-            )}
-          />
+          {errors.nameKa && nameLang === 'KA' && (
+            <p className="mt-1.5 flex items-center gap-1 text-[11.5px] text-danger">
+              <Info className="h-[11px] w-[11px]" strokeWidth={1.8} aria-hidden="true" />
+              {errors.nameKa.message}
+            </p>
+          )}
         </div>
 
-        {/* ── Allergens (PRO) ─────────────────────────── */}
-        {showAllergens && (
-          <FormField
-            control={form.control}
-            name="allergens"
-            render={() => (
-              <FormItem>
-                <div className="mb-2">
-                  <FormLabel>{t('allergens')}</FormLabel>
-                  <FormDescription>{t('allergensHelp')}</FormDescription>
-                </div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {ALLERGENS.map((allergen) => (
-                    <FormField
-                      key={allergen.value}
-                      control={form.control}
-                      name="allergens"
-                      render={({ field }) => (
-                        <FormItem
-                          key={allergen.value}
-                          className="flex flex-row items-center space-x-2 space-y-0"
-                        >
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(allergen.value)}
-                              onCheckedChange={(checked) => {
-                                return checked
-                                  ? field.onChange([...(field.value || []), allergen.value])
-                                  : field.onChange(
-                                      field.value?.filter((v) => v !== allergen.value)
-                                    );
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="text-sm font-normal cursor-pointer">
-                            {allergen.labelKa}
-                          </FormLabel>
-                        </FormItem>
-                      )}
-                    />
-                  ))}
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
+        {/* ── 3. Description ────────────────────────────────────────────── */}
+        <div className="mb-[22px]">
+          <div className="mb-2 flex items-baseline justify-between">
+            <span className="text-[12px] font-semibold uppercase tracking-[0.1px] text-text-default">
+              {t('descriptionLabel')}
+            </span>
+          </div>
+          <LangTabsInline
+            active={descLang}
+            onChange={setDescLang}
+            statuses={descStatuses}
+            multilangUnlocked={multilangUnlocked}
+            data-testid="product-basics-description-tabs"
           />
-        )}
-
-        {/* ── Nutrition (Collapsible) ─────────────────────────── */}
-        <Collapsible open={nutritionOpen} onOpenChange={setNutritionOpen}>
-          <CollapsibleTrigger asChild>
-            <button
-              type="button"
-              className="flex w-full items-center justify-between rounded-lg border px-4 py-3 text-sm font-medium hover:bg-muted"
-            >
-              <span>🔢 კვებითი ღირებულება (Nutrition)</span>
-              {nutritionOpen ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-3 pt-3">
-            <FormField
+          <div className="relative">
+            <Controller
               control={form.control}
-              name="calories"
+              name={descFieldKey}
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>კალორიები (Kcal)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="1"
-                      placeholder="250"
-                      {...field}
-                      value={field.value || ''}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                <textarea
+                  {...field}
+                  value={field.value || ''}
+                  data-testid="product-basics-description-textarea"
+                  maxLength={500}
+                  placeholder={
+                    descLang === 'KA'
+                      ? t('descriptionKaPlaceholder')
+                      : descLang === 'EN'
+                      ? t('descriptionEnPlaceholder')
+                      : t('descriptionRuPlaceholder')
+                  }
+                  className={cn(
+                    'w-full resize-none rounded-md border border-border bg-card px-3 pb-6 pt-2.5 text-[13px] text-text-default placeholder:text-text-subtle',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1',
+                    'min-h-[72px]',
+                  )}
+                  rows={3}
+                />
               )}
             />
+            <span
+              data-testid="product-basics-description-counter"
+              className={cn(
+                'pointer-events-none absolute bottom-2 right-3 text-[10.5px] tabular-nums',
+                activeDescValue.length > 500 ? 'text-danger' : 'text-text-subtle',
+              )}
+            >
+              {activeDescValue.length} / 500
+            </span>
+          </div>
+        </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
+        {/* ── 4. Category + Price grid ──────────────────────────────────── */}
+        <div className="mb-[22px] grid grid-cols-2 gap-3.5">
+          {/* Category */}
+          <div>
+            <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.1px] text-text-default">
+              {t('category')}
+            </div>
+            <Controller
+              control={form.control}
+              name="categoryId"
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger
+                    data-testid="product-basics-category-select"
+                    className="border border-border text-[13.5px]"
+                  >
+                    <SelectValue placeholder={t('selectCategory')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.iconUrl && /^\p{Emoji}/u.test(cat.iconUrl)
+                          ? `${cat.iconUrl} ${cat.nameKa}`
+                          : cat.nameKa}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.categoryId && (
+              <p className="mt-1 text-[11.5px] text-danger">{errors.categoryId.message}</p>
+            )}
+          </div>
+
+          {/* Price */}
+          <div>
+            <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.1px] text-text-default">
+              {t('priceLabel')}
+            </div>
+            <div className="relative flex items-center">
+              <span className="pointer-events-none absolute left-3 text-[13.5px] font-semibold text-text-muted">
+                ₾
+              </span>
+              <Controller
                 control={form.control}
-                name="protein"
+                name="price"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ცილა (g)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.1" min="0" placeholder="10" {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="fats"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ცხიმი (g)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.1" min="0" placeholder="5" {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="carbs"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ნახშირწყლები (g)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.1" min="0" placeholder="30" {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="fiber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ბოჭკო (g)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.1" min="0" placeholder="2" {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                  <Input
+                    {...field}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    data-testid="product-basics-price-input"
+                    className={cn(
+                      'pl-7 tabular-nums',
+                      errors.price && 'border-danger ring-[3px] ring-danger-soft',
+                    )}
+                  />
                 )}
               />
             </div>
-          </CollapsibleContent>
-        </Collapsible>
+            {errors.price && (
+              <p
+                data-testid="product-basics-price-error"
+                className="mt-1.5 flex items-center gap-1 text-[11.5px] text-danger"
+              >
+                <Info className="h-[11px] w-[11px]" strokeWidth={1.8} aria-hidden="true" />
+                {t('priceError')}
+              </p>
+            )}
+          </div>
+        </div>
 
-        {/* ── Availability ─────────────────────────── */}
-        <FormField
-          control={form.control}
-          name="isAvailable"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-              <div className="space-y-0.5">
-                <FormLabel>{t('isAvailable')}</FormLabel>
-                <FormDescription>{t('isAvailableHelp')}</FormDescription>
+        {/* ── 5. Discount card ─────────────────────────────────────────── */}
+        <div className="mb-[22px] rounded-[10px] border border-border-soft bg-[#FCFBF8] p-3.5">
+          {/* Toggle row */}
+          <div className="flex items-center gap-2.5">
+            <Switch
+              checked={hasDiscount}
+              onCheckedChange={handleDiscountToggle}
+              data-testid="product-basics-discount-toggle"
+            />
+            <div className="flex-1">
+              <div className="text-[13px] font-[550] text-text-default">
+                {t('discount.toggle')}
               </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
+              <div className="text-[11.5px] text-text-muted">
+                {t('discount.toggleHelp')}
+              </div>
+            </div>
+          </div>
+
+          {/* Expanded row */}
+          {hasDiscount && (
+            <div
+              className="mt-3 grid grid-cols-[1fr_1fr_80px] gap-2"
+              data-testid="product-basics-discount-row"
+            >
+              {/* Original price */}
+              <div>
+                <div className="mb-1 text-[10.5px] font-bold uppercase tracking-[0.4px] text-text-subtle">
+                  {t('discount.original')}
+                </div>
+                <div className="relative flex items-center">
+                  <span className="pointer-events-none absolute left-2.5 text-[12px] text-text-subtle line-through">
+                    ₾
+                  </span>
+                  <Controller
+                    control={form.control}
+                    name="oldPrice"
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={field.value || ''}
+                        placeholder="0.00"
+                        data-testid="product-basics-discount-original"
+                        className="pl-6 text-[12.5px] tabular-nums"
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Sale price */}
+              <div>
+                <div className="mb-1 text-[10.5px] font-bold uppercase tracking-[0.4px] text-text-subtle">
+                  {t('discount.sale')}
+                </div>
+                <div className="relative flex items-center">
+                  <span className="pointer-events-none absolute left-2.5 text-[12px] font-semibold text-accent">
+                    ₾
+                  </span>
+                  <Controller
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        data-testid="product-basics-discount-sale"
+                        className="pl-6 text-[12.5px] tabular-nums"
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Discount % pill */}
+              <div>
+                <div className="mb-1 text-[10.5px] font-bold uppercase tracking-[0.4px] text-text-subtle">
+                  &nbsp;
+                </div>
+                {discountPct !== null && discountPct !== 0 ? (
+                  <div
+                    data-testid="product-basics-discount-pill"
+                    className={cn(
+                      'flex h-[30px] items-center justify-center rounded-md text-[12.5px] font-bold tabular-nums',
+                      discountPct > 0
+                        ? 'bg-danger-soft text-danger'
+                        : 'bg-success-soft text-success',
+                    )}
+                  >
+                    {discountPct > 0 ? `−${discountPct}%` : `+${Math.abs(discountPct)}%`}
+                  </div>
+                ) : (
+                  <div className="h-[30px]" />
+                )}
+              </div>
+            </div>
           )}
+        </div>
+
+        {/* ── 6. Tags ───────────────────────────────────────────────────── */}
+        <TagsInput
+          ribbons={ribbons as import('@/types/menu').Ribbon[]}
+          isVegan={isVegan}
+          isVegetarian={isVegetarian}
+          onRibbonsChange={(r) => setValue('ribbons', r)}
+          onIsVeganChange={(v) => setValue('isVegan', v)}
+          onIsVegetarianChange={(v) => setValue('isVegetarian', v)}
+          tagsLabel={t('tagsLabel')}
+          suggestedLabel={t('tagsSuggested')}
+          placeholder={t('tagsPlaceholder')}
+          tagLabels={{
+            vegetarian: t('tagNames.vegetarian'),
+            vegan: t('tagNames.vegan'),
+            popular: t('tagNames.popular'),
+            chefChoice: t('tagNames.chefChoice'),
+            dailyDish: t('tagNames.dailyDish'),
+            spicy: t('tagNames.spicy'),
+            new: t('tagNames.new'),
+          }}
         />
 
-        <div className="flex items-center justify-end gap-3 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-            {tActions('cancel')}
-          </Button>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {product ? tActions('save') : tActions('create')}
-          </Button>
+        {/* ── 7. Availability ───────────────────────────────────────────── */}
+        <div>
+          <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.1px] text-text-default">
+            {t('availabilityLabel')}
+          </div>
+          <div className="flex items-center gap-3 rounded-[10px] border border-border bg-card p-3.5">
+            <Switch
+              checked={isAvailable}
+              onCheckedChange={(v) => setValue('isAvailable', v)}
+              data-testid="product-basics-availability-toggle"
+            />
+            <div className="flex-1">
+              <div className="text-[13px] font-[550] text-text-default">{t('inStock')}</div>
+              <div className="text-[11.5px] text-text-muted">{t('inStockHelp')}</div>
+            </div>
+            <button
+              type="button"
+              data-testid="product-basics-schedule"
+              title="Coming soon"
+              disabled
+              className={cn(
+                'inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-[5px] text-[12px] font-medium text-text-muted',
+                'opacity-50 cursor-not-allowed',
+              )}
+            >
+              <Clock className="h-[13px] w-[13px]" strokeWidth={1.5} aria-hidden="true" />
+              {t('scheduleAvailability')}
+            </button>
+          </div>
         </div>
+
+        {!hideActions && (
+          <div className="mt-6 flex items-center justify-end gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+              {tActions('cancel')}
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {product ? tActions('save') : tActions('create')}
+            </Button>
+          </div>
+        )}
       </form>
-    </Form>
+    </div>
   );
 }
 
