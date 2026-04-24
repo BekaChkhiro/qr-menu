@@ -57,7 +57,7 @@ export function LanguageSwitcher({
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          size={variant === 'compact' ? 'sm' : 'default'}
+          size={variant === 'compact' ? 'sm' : 'md'}
           className={className}
           disabled={isPending}
         >

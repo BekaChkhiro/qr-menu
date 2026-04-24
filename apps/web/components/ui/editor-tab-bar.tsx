@@ -59,7 +59,7 @@ const EditorTabBar = React.forwardRef<HTMLDivElement, EditorTabBarProps>(
     }
 
     const handleKeyDown = (
-      event: React.KeyboardEvent<HTMLDivElement>,
+      event: React.KeyboardEvent<HTMLElement>,
       currentIndex: number,
     ) => {
       if (event.key === "ArrowRight") {
@@ -115,7 +115,7 @@ const EditorTabBar = React.forwardRef<HTMLDivElement, EditorTabBarProps>(
               "data-state": isActive ? ("active" as const) : ("inactive" as const),
               "data-tab-id": item.id,
               tabIndex: isActive ? 0 : -1,
-              onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) =>
+              onKeyDown: (event: React.KeyboardEvent<HTMLElement>) =>
                 handleKeyDown(event, i),
               className: triggerClass,
               children: item.label,

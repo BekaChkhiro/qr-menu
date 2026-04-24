@@ -19,6 +19,7 @@ export {
   type PublishMenuInput,
   type MenuQueryInput,
   type MenuStarterTemplateKey,
+  type MenuVisibility,
 } from './menu';
 
 // Category validations

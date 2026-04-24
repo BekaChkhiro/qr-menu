@@ -261,7 +261,7 @@ import type { LucideIcon } from "lucide-react"
 interface CommandPaletteItemProps
   extends Omit<
     React.ComponentPropsWithoutRef<typeof CommandPrimitive.Item>,
-    "children"
+    "children" | "title"
   > {
   icon?: LucideIcon
   title: React.ReactNode
