@@ -104,7 +104,7 @@ CodeBlock.displayName = "CodeBlock"
 
 // ── Inline code (used alongside CodeBlock in the showcase) ───────────────────
 
-interface InlineCodeProps extends React.HTMLAttributes<HTMLElement> {}
+type InlineCodeProps = React.HTMLAttributes<HTMLElement>
 
 const InlineCode = React.forwardRef<HTMLElement, InlineCodeProps>(
   ({ className, ...props }, ref) => (
