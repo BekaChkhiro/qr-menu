@@ -66,7 +66,7 @@ export default async function DashboardPage() {
       select: { slug: true },
     }),
     prisma.menu.findMany({
-      where: { userId },
+      where: { userId, status: { in: ['DRAFT', 'PUBLISHED'] } },
       orderBy: { updatedAt: 'desc' },
       select: {
         id: true,
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
     id: menu.id,
     name: menu.name,
     slug: menu.slug,
-    status: menu.status,
+    status: menu.status as 'DRAFT' | 'PUBLISHED',
     viewsToday: todayByMenu.get(menu.id) ?? 0,
     viewsWeek: weekByMenu.get(menu.id) ?? 0,
     updatedAt: menu.updatedAt.toISOString(),

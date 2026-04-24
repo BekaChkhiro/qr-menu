@@ -71,7 +71,7 @@ export const analyticsKpisSchema = z.object({
 export const chartEventSchema = z.object({
   date: z.string(),
   type: z.enum(['MENU_PUBLISHED', 'PROMOTION_STARTED', 'PROMOTION_ENDED']),
-  payload: z.record(z.unknown()).default({}),
+  payload: z.record(z.string(), z.unknown()).default({}),
 });
 
 // T15.3 — top categories by MenuView count. `categoryId` is omitted when a

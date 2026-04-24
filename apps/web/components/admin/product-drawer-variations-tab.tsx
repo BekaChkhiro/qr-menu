@@ -355,7 +355,7 @@ function SortableVariationRow({
         <KebabMenuPortal>
           <KebabMenuContent align="end" sideOffset={4}>
             <KebabMenuItem
-              variant="danger"
+              tone="destructive"
               onSelect={(e) => {
                 e.preventDefault();
                 onDelete();

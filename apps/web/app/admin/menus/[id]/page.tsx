@@ -179,7 +179,7 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
         <EditorHeader
           name={menu.name}
           slug={menu.slug}
-          status={menu.status}
+          status={menu.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT'}
           lastPublishedAt={menu.publishedAt ?? null}
           publishing={publishMenu.isPending}
           onTogglePublish={handleTogglePublish}

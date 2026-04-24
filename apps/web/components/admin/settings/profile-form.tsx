@@ -137,7 +137,7 @@ export function ProfileForm() {
 
   const handleAvatarPick = useCallback(
     (file: File) => {
-      upload({ file, options: { preset: 'logo', folder: 'digital-menu/avatars' } });
+      upload(file, { preset: 'logo', folder: 'digital-menu/avatars' });
     },
     [upload]
   );
