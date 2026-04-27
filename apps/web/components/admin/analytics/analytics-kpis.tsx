@@ -7,13 +7,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useMenuAnalytics } from '@/hooks/use-analytics';
 import type { AnalyticsKpis, PeakHour } from '@/lib/validations/analytics';
+import { rangeDays, useAnalyticsRange } from './analytics-range-context';
 
 interface AnalyticsKpisProps {
   menuId: string;
   hasAnalytics: boolean;
 }
-
-const PERIOD_DAYS = 30;
 
 function formatNumber(n: number, locale = 'en-US'): string {
   try {
@@ -36,7 +35,9 @@ function toneForDelta(deltaPercent: number): StatCardTone {
 
 export function AnalyticsKpis({ menuId, hasAnalytics }: AnalyticsKpisProps) {
   const t = useTranslations('admin.editor.analytics');
-  const { data, isLoading } = useMenuAnalytics(menuId, { period: '30d' });
+  const { filters } = useAnalyticsRange();
+  const { data, isLoading } = useMenuAnalytics(menuId, filters);
+  const periodDays = rangeDays(filters);
 
   if (isLoading) {
     return <KpisSkeleton />;
@@ -50,12 +51,12 @@ export function AnalyticsKpis({ menuId, hasAnalytics }: AnalyticsKpisProps) {
   const totalViewsDelta = formatDeltaLabel(
     kpis?.totalViews.deltaPercent ?? 0,
     t,
-    PERIOD_DAYS,
+    periodDays,
   );
   const uniqueScansDelta = formatDeltaLabel(
     kpis?.uniqueScans.deltaPercent ?? 0,
     t,
-    PERIOD_DAYS,
+    periodDays,
   );
   const peakHourCaption =
     kpis && kpis.peakHour.views > 0

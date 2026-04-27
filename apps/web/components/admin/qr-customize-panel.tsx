@@ -38,9 +38,17 @@ interface QrCustomizePanelProps {
   menu: Menu | MenuWithDetails;
   /** `hasFeature('qrWithLogo')` — PRO only. */
   hasQrLogo: boolean;
+  /** Controlled size mode (defaults to 'M' when uncontrolled). */
+  sizeMode?: SizeMode;
+  onSizeChange?: (mode: SizeMode) => void;
 }
 
-export function QrCustomizePanel({ menu, hasQrLogo }: QrCustomizePanelProps) {
+export function QrCustomizePanel({
+  menu,
+  hasQrLogo,
+  sizeMode: controlledSize,
+  onSizeChange,
+}: QrCustomizePanelProps) {
   const t = useTranslations('admin.editor.qr');
   const updateMenu = useUpdateMenu(menu.id);
 
@@ -54,7 +62,12 @@ export function QrCustomizePanel({ menu, hasQrLogo }: QrCustomizePanelProps) {
     hasQrLogo ? Boolean(menu.qrLogoUrl) : false,
   );
   // Size is not persisted — it's a download-only preference (T15.11 wires it).
-  const [sizeMode, setSizeMode] = useState<SizeMode>('M');
+  const [internalSize, setInternalSize] = useState<SizeMode>('M');
+  const sizeMode = controlledSize ?? internalSize;
+  const setSizeMode = (m: SizeMode) => {
+    setInternalSize(m);
+    onSizeChange?.(m);
+  };
 
   // Keep local state in sync when the menu id changes (navigation between menus).
   const prevMenuIdRef = useRef(menu.id);
@@ -143,7 +156,7 @@ export function QrCustomizePanel({ menu, hasQrLogo }: QrCustomizePanelProps) {
       data-qr-bg={bg}
       data-qr-size={sizeMode}
       data-qr-logo={effectiveLogo ? 'true' : 'false'}
-      className="relative flex w-full max-w-[600px] flex-col gap-[22px] rounded-card border border-border bg-card p-9"
+      className="relative flex w-full max-w-[600px] shrink-0 flex-col gap-[22px] rounded-card border border-border bg-card p-9"
     >
       {/* ── Giant QR preview ─────────────────────────────────────────────── */}
       <div

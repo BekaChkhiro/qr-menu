@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 
+import { NotificationsForm } from '@/components/admin/settings/notifications-form';
 import { SettingsPageHeading } from '@/components/admin/settings/settings-page-heading';
-import { SettingsPlaceholderCard } from '@/components/admin/settings/settings-placeholder-card';
 
 export default async function SettingsNotificationsPage() {
   const t = await getTranslations('admin.settings.tabs.notifications');
@@ -9,7 +9,7 @@ export default async function SettingsNotificationsPage() {
   return (
     <div data-testid="settings-tab-notifications">
       <SettingsPageHeading title={t('title')} subtitle={t('subtitle')} />
-      <SettingsPlaceholderCard tabKey="notifications" />
+      <NotificationsForm />
     </div>
   );
 }

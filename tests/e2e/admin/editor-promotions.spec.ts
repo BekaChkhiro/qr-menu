@@ -267,6 +267,19 @@ test.describe('editor promotions tab (T15.7)', () => {
     expect(dbPromos).toHaveLength(0);
   });
 
+  // ── Visual: FREE plan locked state (T15.9) ────────────────────────────────
+
+  test('visual: FREE plan locked state', async ({ page }, testInfo) => {
+    await seedFreePlanScenario(page);
+    await stabilizeAnimations(page);
+
+    const shell = page.getByTestId('editor-shell');
+    await expect(shell).toHaveScreenshot(
+      `editor-promotions-locked-${testInfo.project.name}.png`,
+      { maxDiffPixelRatio: 0.05 },
+    );
+  });
+
   // ── Functional: no promotions → empty state + "New promotion" button ────
 
   test('functional: empty state renders when menu has no promotions', async ({

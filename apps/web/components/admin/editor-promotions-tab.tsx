@@ -8,8 +8,8 @@ import { enUS, ka, ru } from 'date-fns/locale';
 import { toast } from 'sonner';
 import {
   Calendar,
+  Check,
   Eye,
-  Lock,
   Pencil,
   Plus,
   Sparkles,
@@ -38,7 +38,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PromotionDialog } from './promotion-dialog';
+import { PromotionDrawer } from './promotion-drawer';
 import {
   useCreatePromotion,
   useDeletePromotion,
@@ -58,6 +58,8 @@ interface EditorPromotionsTabProps {
   menuId: string;
   /** True for STARTER / PRO plans. FREE shows the locked placeholder. */
   canUsePromotions: boolean;
+  /** True when the user is on PRO (multilingual feature unlocked). */
+  multilangUnlocked?: boolean;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -380,7 +382,7 @@ function Suggestions({
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 
-export function EditorPromotionsTab({ menuId, canUsePromotions }: EditorPromotionsTabProps) {
+export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocked = false }: EditorPromotionsTabProps) {
   const locale = useLocale();
   const t = useTranslations('admin.editor.promotions');
   const tPromo = useTranslations('admin.promotions');
@@ -452,34 +454,8 @@ export function EditorPromotionsTab({ menuId, canUsePromotions }: EditorPromotio
   };
 
   // ── FREE plan locked placeholder ─────────────────────────────────────────
-  // T15.9 replaces this with the rich blurred-ghost-cards overlay. For now
-  // we render a functional locked state so FREE users still get a clear CTA.
   if (!canUsePromotions) {
-    return (
-      <section
-        data-testid="editor-promotions-tab"
-        data-plan-locked="true"
-        className="rounded-2xl border border-dashed border-border bg-card px-8 py-12 text-center"
-      >
-        <div
-          data-testid="editor-promotions-locked-overlay"
-          className="mx-auto flex max-w-md flex-col items-center gap-4"
-        >
-          <div className="flex size-12 items-center justify-center rounded-xl bg-accent-soft text-accent">
-            <Lock className="size-5" strokeWidth={1.5} aria-hidden="true" />
-          </div>
-          <div className="flex flex-col gap-2">
-            <h3 className="text-[18px] font-semibold tracking-[-0.4px] text-text-default">
-              {t('locked.title')}
-            </h3>
-            <p className="text-[13px] leading-[1.55] text-text-muted">{t('locked.body')}</p>
-          </div>
-          <Button asChild data-testid="editor-promotions-upgrade-cta">
-            <Link href="/admin/settings/billing">{t('locked.cta')}</Link>
-          </Button>
-        </div>
-      </section>
-    );
+    return <PromotionsTabFreeLocked />;
   }
 
   // ── Loading / error states ───────────────────────────────────────────────
@@ -601,12 +577,13 @@ export function EditorPromotionsTab({ menuId, canUsePromotions }: EditorPromotio
         onPick={(key) => openNew(t(`suggestions.chips.${key}`))}
       />
 
-      <PromotionDialog
+      <PromotionDrawer
         open={isCreateOpen}
         onOpenChange={(open) => {
           setIsCreateOpen(open);
           if (!open) setPrefillTitle(undefined);
         }}
+        menuId={menuId}
         promotion={
           prefillTitle
             ? ({
@@ -619,14 +596,18 @@ export function EditorPromotionsTab({ menuId, canUsePromotions }: EditorPromotio
         }
         onSubmit={handleCreate}
         isLoading={createPromotion.isPending}
+        multilangUnlocked={multilangUnlocked}
       />
 
-      <PromotionDialog
+      <PromotionDrawer
         open={!!dialogPromotion}
         onOpenChange={(open) => !open && setDialogPromotion(null)}
+        menuId={menuId}
         promotion={dialogPromotion ?? undefined}
         onSubmit={handleUpdate}
         isLoading={updatePromotion.isPending}
+        onDelete={() => dialogPromotion && setDeleteTarget(dialogPromotion)}
+        multilangUnlocked={multilangUnlocked}
       />
 
       <AlertDialog
@@ -654,6 +635,142 @@ export function EditorPromotionsTab({ menuId, canUsePromotions }: EditorPromotio
         </AlertDialogContent>
       </AlertDialog>
     </section>
+  );
+}
+
+// ── FREE-locked (blurred ghost cards + centered upgrade card) ───────────────
+
+function GhostPromoCard() {
+  return (
+    <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
+      {/* Banner */}
+      <div
+        className="relative aspect-[16/9] overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #B8633D, #7A3F27)' }}
+        aria-hidden="true"
+      >
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(115deg, transparent 0 40px, rgba(255,220,190,0.2) 40px 42px)',
+          }}
+        />
+        <div className="absolute -right-[30px] -bottom-[30px] h-[140px] w-[140px] rounded-full border-2 border-white/10" />
+        <div className="absolute -top-[20px] right-0 h-[100px] w-[100px] rounded-full bg-white/10" />
+        <div
+          className="absolute inset-x-[18px] bottom-[14px] text-[26px] font-bold leading-none text-white"
+          style={{
+            fontFamily: "'Playfair Display', 'Times New Roman', serif",
+            letterSpacing: -0.8,
+            textShadow: '0 2px 12px rgba(0,0,0,0.2)',
+          }}
+        >
+          Happy Hour
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-2.5 px-4 py-3.5" aria-hidden="true">
+        <div className="flex items-start justify-between gap-3">
+          <div className="h-4 w-3/4 rounded bg-border" />
+          <div className="h-5 w-14 rounded-[5px] bg-accent-soft" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <div className="h-3 w-2/3 rounded bg-border" />
+          <div className="h-3 w-1/2 rounded bg-border" />
+        </div>
+        <div className="mt-auto flex items-center justify-between border-t border-border-soft pt-2.5">
+          <div className="h-3 w-20 rounded bg-border" />
+          <div className="h-4 w-4 rounded bg-border" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PromotionsTabFreeLocked() {
+  const t = useTranslations('admin.editor.promotions.locked');
+
+  return (
+    <div
+      data-testid="editor-promotions-tab"
+      data-plan-locked="true"
+      className="relative"
+    >
+      {/* Blurred ghost layout */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none select-none space-y-4 opacity-40 blur-[6px]"
+      >
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <GhostPromoCard />
+          <GhostPromoCard />
+        </div>
+      </div>
+
+      {/* Scrim */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0"
+        style={{ background: 'hsl(var(--bg) / 0.4)' }}
+      />
+
+      {/* Centered upgrade card */}
+      <div className="absolute inset-0 flex items-start justify-center px-4 pt-24">
+        <div
+          role="region"
+          aria-label={t('title')}
+          data-testid="editor-promotions-locked-overlay"
+          className="w-full max-w-[460px] rounded-[14px] border border-border bg-card p-[30px] text-center shadow-xl"
+        >
+          <span
+            aria-hidden="true"
+            className="mx-auto mb-3.5 inline-flex size-12 items-center justify-center rounded-xl bg-accent-soft text-accent"
+          >
+            <Tag size={20} strokeWidth={1.5} />
+          </span>
+
+          <h3 className="text-[19px] font-semibold tracking-[-0.4px] text-text-default">
+            {t('title')}
+          </h3>
+          <p className="mx-auto mt-2 max-w-[400px] text-[13px] leading-[1.55] text-text-muted">
+            {t('body')}
+          </p>
+
+          <ul className="mt-4 flex flex-col gap-2 text-left">
+            {(['a', 'b', 'c'] as const).map((key) => (
+              <li
+                key={key}
+                className="flex items-center gap-2.5 text-[13px] text-text-default"
+              >
+                <span
+                  aria-hidden="true"
+                  className="inline-flex size-[18px] shrink-0 items-center justify-center rounded-[5px] bg-success-soft text-success"
+                >
+                  <Check size={12} strokeWidth={2.4} />
+                </span>
+                {t(`bullets.${key}`)}
+              </li>
+            ))}
+          </ul>
+
+          <Link
+            data-testid="editor-promotions-upgrade-cta"
+            href="/admin/settings/billing"
+            className="mt-5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-text-default px-4 py-2.5 text-[13.5px] font-semibold text-white hover:opacity-90"
+          >
+            {t('cta')}
+          </Link>
+
+          <Link
+            href="/admin/settings/billing"
+            className="mt-2 inline-block text-[12px] font-medium text-text-muted hover:text-text-default"
+          >
+            {t('proLink')}
+          </Link>
+        </div>
+      </div>
+    </div>
   );
 }
 

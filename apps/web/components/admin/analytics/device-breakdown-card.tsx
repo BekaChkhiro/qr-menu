@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useMenuAnalytics } from '@/hooks/use-analytics';
+import { useAnalyticsRange } from './analytics-range-context';
 import type {
   BrowserBreakdown,
   DeviceBreakdown,
@@ -133,7 +134,8 @@ export function DeviceBreakdownCard({
   hasAnalytics,
 }: DeviceBreakdownCardProps) {
   const t = useTranslations('admin.editor.analytics.deviceBreakdown');
-  const { data, isLoading } = useMenuAnalytics(menuId, { period: '30d' });
+  const { filters } = useAnalyticsRange();
+  const { data, isLoading } = useMenuAnalytics(menuId, filters);
 
   const deviceRows = data?.deviceBreakdown ?? [];
   const browserRows: BrowserBreakdown[] = data?.browserBreakdown ?? [];

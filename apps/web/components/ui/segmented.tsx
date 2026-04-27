@@ -99,6 +99,7 @@ const SegmentedItem = React.forwardRef<HTMLButtonElement, SegmentedItemProps>(
             prev?.click()
           }
         }}
+        data-active={isActive ? 'true' : 'false'}
         className={cn(
           "inline-flex items-center justify-center whitespace-nowrap",
           "text-[12.5px] font-medium rounded-[5px] transition-colors duration-150",

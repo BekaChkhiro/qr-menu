@@ -27,21 +27,38 @@ if (!globalForPrisma.__planTestPrisma) {
 }
 
 // ---------------------------------------------------------------------------
-// Safety guard: refuse to touch anything that looks like a production DB.
+// Safety guard: only allow seed/reset helpers to touch a local test DB.
+// Anything else (Neon dev/staging/prod, RDS, any remote host) is rejected
+// up-front so a stray `pnpm test:e2e` cannot truncate real data.
 // ---------------------------------------------------------------------------
 
-function assertNotProductionDatabase(): void {
-  const url = process.env.DATABASE_URL ?? '';
-  if (!url) {
+const SAFE_TEST_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+
+function assertSafeTestDatabase(): void {
+  const rawUrl = process.env.DATABASE_URL ?? '';
+  if (!rawUrl) {
     throw new Error(
       'DATABASE_URL is not set. Seed helpers require a database connection. ' +
-        'Check apps/web/.env.local (loaded by playwright.config.ts).',
+        'Set DATABASE_URL to a local Postgres before running E2E tests.',
     );
   }
-  if (/\bprod(uction)?\b/i.test(url)) {
+
+  let host: string;
+  try {
+    host = new URL(rawUrl).hostname.toLowerCase();
+  } catch {
     throw new Error(
-      'Refusing to run seed helpers: DATABASE_URL looks like a production DB. ' +
-        'Set DATABASE_URL to a dev/test database before running E2E tests.',
+      'DATABASE_URL is not a parseable URL. Cannot verify it is safe to truncate.',
+    );
+  }
+
+  if (!SAFE_TEST_HOSTS.has(host)) {
+    throw new Error(
+      `Refusing to run destructive seed/reset helpers against host "${host}". ` +
+        `These helpers TRUNCATE every domain table — they must only run against a local test DB ` +
+        `(${[...SAFE_TEST_HOSTS].join(' / ')}). ` +
+        `Override DATABASE_URL for the test process, e.g.:\n` +
+        `  DATABASE_URL=postgresql://postgres:postgres@localhost:5433/digital_menu_test pnpm test:e2e`,
     );
   }
 }
@@ -59,7 +76,7 @@ function assertNotProductionDatabase(): void {
  * but listing tables makes future schema additions easier to audit.
  */
 export async function resetDb(): Promise<void> {
-  assertNotProductionDatabase();
+  assertSafeTestDatabase();
 
   await prismaTest.$executeRawUnsafe(
     `TRUNCATE TABLE ` +
@@ -71,6 +88,7 @@ export async function resetDb(): Promise<void> {
         '"products"',
         '"categories"',
         '"menus"',
+        '"notification_preferences"',
         '"verification_tokens"',
         '"sessions"',
         '"accounts"',
@@ -96,7 +114,7 @@ export interface SeedUserOptions {
 }
 
 export async function seedUser(opts: SeedUserOptions = {}): Promise<User> {
-  assertNotProductionDatabase();
+  assertSafeTestDatabase();
 
   const email = (opts.email ?? `user-${randomId()}@test.local`).toLowerCase();
   const password = opts.password ? await bcrypt.hash(opts.password, 10) : null;
@@ -152,7 +170,7 @@ export interface SeedMenuOptions {
 }
 
 export async function seedMenu(opts: SeedMenuOptions): Promise<Menu> {
-  assertNotProductionDatabase();
+  assertSafeTestDatabase();
 
   const categoryCount = opts.categoryCount ?? 3;
   const productCount = opts.productCount ?? 5;
@@ -211,10 +229,15 @@ export interface SeedPromotionOptions {
   startDate?: Date;
   endDate?: Date;
   sortOrder?: number;
+  discountType?: string;
+  discountValue?: number;
+  applyTo?: string;
+  categoryId?: string;
+  timeRestrictions?: object;
 }
 
 export async function seedPromotion(opts: SeedPromotionOptions): Promise<Promotion> {
-  assertNotProductionDatabase();
+  assertSafeTestDatabase();
 
   const now = new Date();
   return prismaTest.promotion.create({
@@ -226,6 +249,11 @@ export async function seedPromotion(opts: SeedPromotionOptions): Promise<Promoti
       startDate: opts.startDate ?? now,
       endDate: opts.endDate ?? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
       sortOrder: opts.sortOrder ?? 0,
+      discountType: opts.discountType ?? null,
+      discountValue: opts.discountValue ?? null,
+      applyTo: opts.applyTo ?? null,
+      categoryId: opts.categoryId ?? null,
+      timeRestrictions: opts.timeRestrictions ?? null,
     },
   });
 }
@@ -260,7 +288,7 @@ export interface SeedMenuViewsOptions {
 }
 
 export async function seedMenuViews(opts: SeedMenuViewsOptions): Promise<number> {
-  assertNotProductionDatabase();
+  assertSafeTestDatabase();
 
   const days = opts.days ?? 30;
   const viewsPerDay = opts.viewsPerDay ?? 20;
@@ -355,7 +383,7 @@ export interface SeedCompleteScenarioResult {
 export async function seedCompleteScenario(
   plan: Plan = 'PRO',
 ): Promise<SeedCompleteScenarioResult> {
-  assertNotProductionDatabase();
+  assertSafeTestDatabase();
 
   const user = await seedUser({
     plan,
@@ -395,7 +423,7 @@ export interface SeedActivityLogOptions {
 export async function seedActivityLog(
   opts: SeedActivityLogOptions,
 ): Promise<ActivityLog> {
-  assertNotProductionDatabase();
+  assertSafeTestDatabase();
 
   return prismaTest.activityLog.create({
     data: {

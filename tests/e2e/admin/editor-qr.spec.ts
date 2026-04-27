@@ -392,3 +392,328 @@ test.describe('editor QR tab · customize (T15.10)', () => {
     expect(clipboardText).toContain(`/m/${menu.slug}`);
   });
 });
+
+// ═════════════════════════════════════════════════════════════════════════════
+// T15.11 — QR Tab · Download Panel + Scan Stats
+// ═════════════════════════════════════════════════════════════════════════════
+
+test.describe('editor QR tab · download panel + scan stats (T15.11)', () => {
+  test.describe.configure({ mode: 'serial' });
+
+  test.beforeEach(async ({ context }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'desktop',
+      'Desktop-only tab; mobile variant lands in T17.3',
+    );
+    await resetDb();
+    await context.clearCookies();
+    await context.addCookies([
+      { name: 'NEXT_LOCALE', value: 'en', domain: 'localhost', path: '/' },
+    ]);
+  });
+
+  // ── Visual: full QR tab with download panel ──────────────────────────────
+
+  test('visual: editor-qr-download', async ({ page }, testInfo) => {
+    await seedStarterAndOpenQr(page);
+    await page.evaluate(() => document.fonts.ready);
+    await page.addStyleTag({
+      content:
+        '*, *::before, *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition-duration: 0s !important; }',
+    });
+
+    const shell = page.getByTestId('editor-shell');
+    await expect(shell).toBeVisible();
+    await expect(page.getByTestId('editor-qr-download-panel')).toBeVisible();
+
+    await expect(shell).toHaveScreenshot(
+      `editor-qr-download-${testInfo.project.name}.png`,
+      { maxDiffPixelRatio: 0.05 },
+    );
+  });
+
+  // ── Functional: Download PNG triggers browser download ───────────────────
+
+  test('functional: Download PNG triggers browser download', async ({ page }) => {
+    await seedStarterAndOpenQr(page);
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByTestId('editor-qr-download-btn').click(),
+    ]);
+
+    expect(download.suggestedFilename()).toMatch(/^qr-.*\.png$/);
+  });
+
+  // ── Functional: Short URL copy button writes to clipboard ────────────────
+
+  test('functional: Short URL copy button writes to clipboard', async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+
+    const { menu } = await seedStarterAndOpenQr(page);
+
+    await page.getByTestId('editor-qr-link-copy').click();
+
+    const clipboardText = await page.evaluate(() =>
+      navigator.clipboard.readText(),
+    );
+    expect(clipboardText).toContain(`/m/${menu.slug}`);
+  });
+
+  // ── Functional: format radio selection changes active format ─────────────
+
+  test('functional: format radio selection changes active format', async ({
+    page,
+  }) => {
+    await seedStarterAndOpenQr(page);
+
+    await expect(page.getByTestId('editor-qr-format-png')).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+
+    await page.getByTestId('editor-qr-format-svg').click();
+    await expect(page.getByTestId('editor-qr-format-svg')).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await expect(page.getByTestId('editor-qr-format-png')).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+
+    await page.getByTestId('editor-qr-format-pdf').click();
+    await expect(page.getByTestId('editor-qr-format-pdf')).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+  });
+
+  // ── Functional: include checkboxes toggle state ──────────────────────────
+
+  test('functional: include checkboxes toggle state', async ({ page }) => {
+    await seedStarterAndOpenQr(page);
+
+    await expect(page.getByTestId('editor-qr-include-url')).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await expect(page.getByTestId('editor-qr-include-cta')).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+
+    await page.getByTestId('editor-qr-include-url').click();
+    await expect(page.getByTestId('editor-qr-include-url')).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+
+    await page.getByTestId('editor-qr-include-cta').click();
+    await expect(page.getByTestId('editor-qr-include-cta')).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+  });
+
+  // ── Functional: STARTER sees locked logo include checkbox ────────────────
+
+  test('functional: STARTER sees locked logo include checkbox', async ({
+    page,
+  }) => {
+    await seedStarterAndOpenQr(page);
+
+    const logoCheckbox = page.getByTestId('editor-qr-include-logo');
+    await expect(logoCheckbox).toHaveAttribute('data-locked', 'true');
+    await expect(logoCheckbox).toBeDisabled();
+  });
+
+  // ── Functional: scan stats card renders ──────────────────────────────────
+
+  test('functional: scan stats card renders with deterministic placeholder', async ({
+    page,
+  }) => {
+    await seedStarterAndOpenQr(page);
+
+    const statsCard = page.getByTestId('editor-qr-scan-stats');
+    await expect(statsCard).toBeVisible();
+    await expect(
+      statsCard.getByText(/Most active table:/i),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId('editor-qr-view-analytics'),
+    ).toBeVisible();
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// T15.12 — QR Tab · Template Picker Modal
+// ═════════════════════════════════════════════════════════════════════════════
+
+test.describe('editor QR tab · template picker modal (T15.12)', () => {
+  test.describe.configure({ mode: 'serial' });
+
+  test.beforeEach(async ({ context }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'desktop',
+      'Desktop-only tab; mobile variant lands in T17.3',
+    );
+    await resetDb();
+    await context.clearCookies();
+    await context.addCookies([
+      { name: 'NEXT_LOCALE', value: 'en', domain: 'localhost', path: '/' },
+    ]);
+  });
+
+  // ── Visual: template picker modal open ───────────────────────────────────
+
+  test('visual: editor-qr-templates', async ({ page }, testInfo) => {
+    await seedStarterAndOpenQr(page);
+
+    await page.getByTestId('editor-qr-templates-btn').click();
+
+    const modal = page.getByTestId('qr-template-picker-modal');
+    await expect(modal).toBeVisible();
+
+    // Select a template so the footer shows selection state for a richer baseline.
+    await page.getByTestId('qr-template-card-poster-A3').click();
+    await expect(page.getByTestId('qr-template-card-poster-A3')).toHaveAttribute(
+      'data-selected',
+      'true',
+    );
+
+    await page.evaluate(() => document.fonts.ready);
+    await page.addStyleTag({
+      content:
+        '*, *::before, *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition-duration: 0s !important; }',
+    });
+
+    await expect(modal).toHaveScreenshot(
+      `editor-qr-templates-${testInfo.project.name}.png`,
+      { maxDiffPixelRatio: 0.05 },
+    );
+  });
+
+  // ── Functional: open modal from templates button ─────────────────────────
+
+  test('functional: templates button opens modal', async ({ page }) => {
+    await seedStarterAndOpenQr(page);
+
+    await expect(
+      page.getByTestId('qr-template-picker-modal'),
+    ).not.toBeVisible();
+
+    await page.getByTestId('editor-qr-templates-btn').click();
+
+    const modal = page.getByTestId('qr-template-picker-modal');
+    await expect(modal).toBeVisible();
+
+    // All 6 template cards should be visible.
+    await expect(page.getByTestId('qr-template-card-tent-A4')).toBeVisible();
+    await expect(page.getByTestId('qr-template-card-poster-A3')).toBeVisible();
+    await expect(page.getByTestId('qr-template-card-tent-min')).toBeVisible();
+    await expect(page.getByTestId('qr-template-card-receipt')).toBeVisible();
+    await expect(page.getByTestId('qr-template-card-decal')).toBeVisible();
+    await expect(page.getByTestId('qr-template-card-booklet')).toBeVisible();
+  });
+
+  // ── Functional: select template enables download ─────────────────────────
+
+  test('functional: select template → download enables', async ({ page }) => {
+    await seedStarterAndOpenQr(page);
+    await page.getByTestId('editor-qr-templates-btn').click();
+
+    const downloadBtn = page.getByTestId('qr-template-picker-download');
+    await expect(downloadBtn).toBeDisabled();
+
+    await page.getByTestId('qr-template-card-tent-A4').click();
+    await expect(
+      page.getByTestId('qr-template-card-tent-A4'),
+    ).toHaveAttribute('data-selected', 'true');
+    await expect(downloadBtn).toBeEnabled();
+
+    // Selecting another template switches selection.
+    await page.getByTestId('qr-template-card-decal').click();
+    await expect(
+      page.getByTestId('qr-template-card-decal'),
+    ).toHaveAttribute('data-selected', 'true');
+    await expect(
+      page.getByTestId('qr-template-card-tent-A4'),
+    ).toHaveAttribute('data-selected', 'false');
+    await expect(downloadBtn).toBeEnabled();
+  });
+
+  // ── Functional: filter pills narrow templates ────────────────────────────
+
+  test('functional: filter pills narrow template grid', async ({ page }) => {
+    await seedStarterAndOpenQr(page);
+    await page.getByTestId('editor-qr-templates-btn').click();
+
+    // Default: all 6 visible.
+    await expect(page.getByTestId('qr-template-card-tent-A4')).toBeVisible();
+    await expect(page.getByTestId('qr-template-card-poster-A3')).toBeVisible();
+
+    // Tent filter → 2 tents.
+    await page.getByTestId('qr-template-filter-tent').click();
+    await expect(page.getByTestId('qr-template-filter-tent')).toHaveAttribute(
+      'data-active',
+      'true',
+    );
+    await expect(page.getByTestId('qr-template-card-tent-A4')).toBeVisible();
+    await expect(page.getByTestId('qr-template-card-tent-min')).toBeVisible();
+    await expect(
+      page.getByTestId('qr-template-card-poster-A3'),
+    ).not.toBeVisible();
+
+    // Poster filter → 1 poster.
+    await page.getByTestId('qr-template-filter-poster').click();
+    await expect(page.getByTestId('qr-template-card-poster-A3')).toBeVisible();
+    await expect(
+      page.getByTestId('qr-template-card-tent-A4'),
+    ).not.toBeVisible();
+
+    // All filter → back to 6.
+    await page.getByTestId('qr-template-filter-all').click();
+    await expect(page.getByTestId('qr-template-card-tent-A4')).toBeVisible();
+    await expect(page.getByTestId('qr-template-card-poster-A3')).toBeVisible();
+    await expect(page.getByTestId('qr-template-card-decal')).toBeVisible();
+  });
+
+  // ── Functional: click Download triggers PDF download ─────────────────────
+
+  test('functional: click Download triggers PDF download', async ({ page }) => {
+    const { menu } = await seedStarterAndOpenQr(page);
+    await page.getByTestId('editor-qr-templates-btn').click();
+
+    await page.getByTestId('qr-template-card-booklet').click();
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByTestId('qr-template-picker-download').click(),
+    ]);
+
+    expect(download.suggestedFilename()).toMatch(/^qr-.*\.pdf$/);
+
+    // Verify the download URL hits the QR API with PDF format.
+    const downloadUrl = download.url();
+    expect(downloadUrl).toContain(`/api/qr/${menu.id}`);
+    expect(downloadUrl).toContain('format=pdf');
+    expect(downloadUrl).toContain('download=true');
+  });
+
+  // ── Functional: close button dismisses modal ─────────────────────────────
+
+  test('functional: close button dismisses modal', async ({ page }) => {
+    await seedStarterAndOpenQr(page);
+    await page.getByTestId('editor-qr-templates-btn').click();
+
+    const modal = page.getByTestId('qr-template-picker-modal');
+    await expect(modal).toBeVisible();
+
+    await page.getByTestId('qr-template-picker-close').click();
+    await expect(modal).not.toBeVisible();
+  });
+});

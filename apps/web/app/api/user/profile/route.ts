@@ -18,6 +18,8 @@ const USER_PROFILE_SELECT = {
   phone: true,
   timezone: true,
   dateFormat: true,
+  currency: true,
+  priceFormat: true,
   image: true,
   plan: true,
 } as const;

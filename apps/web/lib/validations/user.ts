@@ -19,6 +19,23 @@ export const updateProfileSchema = z.object({
     .enum(['DD.MM.YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'])
     .optional(),
   image: z.string().url().optional().or(z.literal('')), // empty string = remove avatar
+  currency: z.enum(['GEL', 'USD', 'EUR']).optional(),
+  priceFormat: z.enum(['12.50 ₾', '₾12.50', '12,50 ₾']).optional(),
 });
 
+export const updatePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .max(128, 'Password must be less than 128 characters'),
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type UpdatePasswordInput = z.infer<typeof updatePasswordSchema>;
