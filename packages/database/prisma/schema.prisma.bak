@@ -1,0 +1,528 @@
+// Prisma Schema for Digital Menu SaaS Platform
+// Database: PostgreSQL (Neon)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+}
+
+enum MenuStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum Language {
+  KA  // Georgian
+  EN  // English
+  RU  // Russian
+}
+
+enum Allergen {
+  GLUTEN
+  DAIRY
+  EGGS
+  NUTS
+  PEANUTS
+  SEAFOOD
+  FISH
+  SHELLFISH
+  SOY
+  PORK
+  SESAME
+  MUSTARD
+  CELERY
+  LUPIN
+  SULPHITES
+}
+
+enum Ribbon {
+  POPULAR
+  CHEF_CHOICE
+  DAILY_DISH
+  NEW
+  SPICY
+}
+
+enum AllergenDisplay {
+  TEXT
+  ICON
+  WARNING
+}
+
+enum CaloriesDisplay {
+  DIRECT
+  FLIP_REVEAL
+  HIDDEN
+}
+
+enum QrStyle {
+  SQUARE
+  ROUNDED
+  DOTS
+}
+
+enum CategoryType {
+  FOOD
+  DRINK
+  OTHER
+}
+
+enum MenuLayout {
+  LINEAR
+  CATEGORIES_FIRST
+}
+
+enum MenuTemplate {
+  CLASSIC
+  MAGAZINE
+  COMPACT
+}
+
+enum ProductCardStyle {
+  FLAT
+  BORDERED
+  ELEVATED
+  MINIMAL
+}
+
+enum ProductTouchEffect {
+  NONE
+  SCALE
+  GLOW
+  GRADIENT
+}
+
+enum ActivityType {
+  MENU_CREATED
+  MENU_PUBLISHED
+  CATEGORY_CREATED
+  PRODUCT_CREATED
+  PRICE_CHANGED
+  PROMOTION_STARTED
+  PROMOTION_ENDED
+  QR_SCANNED
+}
+
+// ============================================================================
+// USER MODEL
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  password      String?   // Hashed with bcrypt, nullable for OAuth users
+  image         String?
+  plan          Plan      @default(FREE)
+
+  // Profile fields
+  firstName     String?
+  lastName      String?
+  phone         String?
+  timezone      String?   // IANA timezone id, e.g. "Asia/Tbilisi"
+  dateFormat    String?   // "DD.MM.YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD"
+
+  // OAuth fields
+  accounts      Account[]
+  sessions      Session[]
+
+  // Relations
+  menus         Menu[]
+  activityLogs  ActivityLog[]
+
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([email])
+  @@map("users")
+}
+
+// ============================================================================
+// NEXTAUTH MODELS
+// ============================================================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================================================
+// MENU MODEL
+// ============================================================================
+
+model Menu {
+  id          String     @id @default(cuid())
+  userId      String
+
+  // Menu details
+  name        String
+  slug        String     @unique
+  description String?    @db.Text
+
+  // Status
+  status      MenuStatus @default(DRAFT)
+  publishedAt DateTime?
+
+  // Branding (PRO features)
+  logoUrl         String?
+  coverImageUrl   String?
+  primaryColor    String?   @default("#000000")
+  accentColor     String?   @default("#f59e0b")
+  currencySymbol  String?   @default("₾")
+  cornerRadius    Int?      @default(12)
+
+  // Typography (PRO)
+  headingFont     String?   @default("Noto Sans Georgian")
+  bodyFont        String?   @default("Noto Sans Georgian")
+
+  // Language configuration
+  enabledLanguages Language[] @default([KA])
+  customLanguages  Json?      // [{code:"de", label:"Deutsch"}, ...] — future extension
+
+  // Display settings
+  allergenDisplay AllergenDisplay @default(TEXT)
+  caloriesDisplay CaloriesDisplay @default(DIRECT)
+  showNutrition   Boolean         @default(false)
+  showDiscount    Boolean         @default(true)
+
+  // Layout & visual style
+  splitByType        Boolean            @default(false)
+  menuLayout         MenuLayout         @default(LINEAR)
+  menuTemplate       MenuTemplate       @default(CLASSIC)
+  productCardStyle   ProductCardStyle   @default(BORDERED)
+  productTouchEffect ProductTouchEffect @default(SCALE)
+
+  // Header info widget (address/wifi/WC)
+  address         String?   @db.Text
+  phone           String?
+  wifiSsid        String?
+  wifiPassword    String?
+  wcDirection     String?   @db.Text
+  wcImageUrl      String?
+  locationLat     Decimal?  @db.Decimal(10, 7)
+  locationLng     Decimal?  @db.Decimal(10, 7)
+
+  // QR design
+  qrStyle           QrStyle  @default(SQUARE)
+  qrForegroundColor String?  @default("#000000")
+  qrBackgroundColor String?  @default("#ffffff")
+  qrLogoUrl         String?
+  qrTemplate        String?  // preset template name
+
+  // Visibility gating (T15.13)
+  // When set, status=PUBLISHED menus require password entry on /m/[slug].
+  // null = open (Published) or irrelevant (status=DRAFT = Private draft).
+  passwordHash      String?
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories   Category[]
+  promotions   Promotion[]
+  views        MenuView[]
+  activityLogs ActivityLog[]
+
+  // Timestamps
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([slug])
+  @@index([status])
+  @@map("menus")
+}
+
+// ============================================================================
+// CATEGORY MODEL
+// ============================================================================
+
+model Category {
+  id          String    @id @default(cuid())
+  menuId      String
+
+  // Multi-language names
+  nameKa      String    // Georgian (required)
+  nameEn      String?   // English (optional)
+  nameRu      String?   // Russian (optional)
+
+  // Description
+  descriptionKa String? @db.Text
+  descriptionEn String? @db.Text
+  descriptionRu String? @db.Text
+
+  // Optional icon for category nav (icon-based category display)
+  iconUrl     String?
+  brandLabel  String?   // e.g. "Starbucks" before category title
+
+  // Type (for Foods/Drinks split layout)
+  type        CategoryType @default(OTHER)
+
+  // Ordering
+  sortOrder   Int       @default(0)
+
+  // Relations
+  menu        Menu      @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  products    Product[]
+  views       MenuView[]
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([menuId])
+  @@index([menuId, sortOrder])
+  @@map("categories")
+}
+
+// ============================================================================
+// PRODUCT MODEL
+// ============================================================================
+
+model Product {
+  id          String              @id @default(cuid())
+  categoryId  String
+
+  // Multi-language names
+  nameKa      String              // Georgian (required)
+  nameEn      String?             // English (optional)
+  nameRu      String?             // Russian (optional)
+
+  // Multi-language descriptions
+  descriptionKa String?           @db.Text
+  descriptionEn String?           @db.Text
+  descriptionRu String?           @db.Text
+
+  // Pricing
+  price       Decimal             @db.Decimal(10, 2)
+  oldPrice    Decimal?            @db.Decimal(10, 2)  // crossed-out price when discount is shown
+  currency    String              @default("GEL")
+
+  // Image + crop focal point (0.0-1.0 normalized coords)
+  imageUrl    String?
+  imageFocalX Float?              @default(0.5)
+  imageFocalY Float?              @default(0.5)
+  imageZoom   Float?              @default(1.0)
+
+  // Ribbons / badges
+  ribbons     Ribbon[]
+
+  // Dietary flags
+  isVegan       Boolean           @default(false)
+  isVegetarian  Boolean           @default(false)
+  isHalal       Boolean           @default(false)
+  isKosher      Boolean           @default(false)
+  isGlutenFree  Boolean           @default(false)
+
+  // Allergens
+  allergens   Allergen[]
+
+  // Nutrition (optional, PRO)
+  calories    Int?
+  protein     Decimal?            @db.Decimal(6, 2)
+  fats        Decimal?            @db.Decimal(6, 2)
+  carbs       Decimal?            @db.Decimal(6, 2)
+  fiber       Decimal?            @db.Decimal(6, 2)
+
+  // Availability
+  isAvailable Boolean             @default(true)
+
+  // Ordering
+  sortOrder   Int                 @default(0)
+
+  // Relations
+  category    Category            @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  variations  ProductVariation[]
+
+  // Timestamps
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([categoryId])
+  @@index([categoryId, sortOrder])
+  @@map("products")
+}
+
+// ============================================================================
+// PRODUCT VARIATION MODEL
+// ============================================================================
+
+model ProductVariation {
+  id          String   @id @default(cuid())
+  productId   String
+
+  // Multi-language names (e.g., "Small", "Medium", "Large")
+  nameKa      String
+  nameEn      String?
+  nameRu      String?
+
+  // Price for this variation
+  price       Decimal  @db.Decimal(10, 2)
+
+  // Default variation (exactly zero or one per product)
+  isDefault   Boolean  @default(false)
+
+  // Ordering
+  sortOrder   Int      @default(0)
+
+  // Relations
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([productId])
+  @@index([productId, sortOrder])
+  @@map("product_variations")
+}
+
+// ============================================================================
+// PROMOTION MODEL
+// ============================================================================
+
+model Promotion {
+  id          String    @id @default(cuid())
+  menuId      String
+
+  // Multi-language content (description kept optional — carousel can be image-only)
+  titleKa     String
+  titleEn     String?
+  titleRu     String?
+
+  descriptionKa String? @db.Text
+  descriptionEn String? @db.Text
+  descriptionRu String? @db.Text
+
+  // Image / GIF (media for the carousel)
+  imageUrl    String?
+
+  // Carousel order
+  sortOrder   Int       @default(0)
+
+  // Validity period
+  startDate   DateTime
+  endDate     DateTime
+
+  // Visibility
+  isActive    Boolean   @default(true)
+
+  // Relations
+  menu        Menu      @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([menuId])
+  @@index([menuId, isActive])
+  @@index([menuId, sortOrder])
+  @@index([startDate, endDate])
+  @@map("promotions")
+}
+
+// ============================================================================
+// ANALYTICS MODEL
+// ============================================================================
+
+model MenuView {
+  id          String   @id @default(cuid())
+  menuId      String
+  // Optional attribution to a specific category the visitor interacted with.
+  // Null for general menu-page views (existing tracking behavior).
+  categoryId  String?
+
+  // Tracking data
+  userAgent   String?  @db.Text
+  ipAddress   String?
+  country     String?
+  city        String?
+  device      String?
+  browser     String?
+
+  // Relations
+  menu        Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  // Timestamps
+  viewedAt    DateTime @default(now())
+
+  @@index([menuId])
+  @@index([menuId, viewedAt])
+  @@index([menuId, categoryId, viewedAt])
+  @@map("menu_views")
+}
+
+// ============================================================================
+// ACTIVITY LOG MODEL
+// ============================================================================
+
+model ActivityLog {
+  id        String       @id @default(cuid())
+  userId    String
+  menuId    String?
+  type      ActivityType
+  payload   Json         @default("{}") // contextual data: { productName, categoryName, oldPrice, newPrice, promotionName, menuName, ... }
+
+  // Relations
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  menu      Menu?        @relation(fields: [menuId], references: [id], onDelete: SetNull)
+
+  // Timestamps
+  createdAt DateTime     @default(now())
+
+  @@index([userId, createdAt])
+  @@index([menuId, createdAt])
+  @@map("activity_logs")
+}

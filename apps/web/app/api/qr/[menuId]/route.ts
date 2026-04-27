@@ -26,7 +26,7 @@ interface RouteParams {
  * Generate a QR code for a menu.
  *
  * Query params:
- * - format: png | svg (default png)
+ * - format: png | svg | pdf (default png)
  * - size: small | medium | large (default medium)
  * - download: true | false
  * - fg / bg: hex overrides (falls back to menu settings)

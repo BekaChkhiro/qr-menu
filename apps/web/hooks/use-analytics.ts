@@ -40,10 +40,18 @@ export function useMenuAnalytics(
   const queryString = queryParams.toString();
   const endpoint = `/menus/${menuId}/analytics${queryString ? `?${queryString}` : ''}`;
 
-  return useQuery<AnalyticsResponse, ApiError>({
-    queryKey: filters?.startDate && filters?.endDate
+  // Preset periods share the default '30d' query key so the empty-state check
+  // in AnalyticsTab (which hardcodes 30d) and the initial child renders hit
+  // the same cache entry. Only 7d / 90d / custom get their own keys.
+  const queryKey =
+    filters?.startDate && filters?.endDate
       ? queryKeys.analytics.menuRange(menuId!, filters.startDate, filters.endDate)
-      : queryKeys.analytics.menu(menuId!),
+      : filters?.period === '7d' || filters?.period === '90d'
+        ? [...queryKeys.analytics.menu(menuId!), filters.period]
+        : queryKeys.analytics.menu(menuId!);
+
+  return useQuery<AnalyticsResponse, ApiError>({
+    queryKey,
     queryFn: () => api.get<AnalyticsResponse>(endpoint),
     enabled: !!menuId,
     staleTime: 1000 * 60 * 5, // 5 minutes

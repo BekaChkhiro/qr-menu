@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
-import { Clock } from 'lucide-react';
 
+import { Card, CardContent } from '@/components/ui/card';
 import { EditorHeader } from '@/components/admin/editor-header';
 import { EditorTabBar, type EditorTab } from '@/components/ui/editor-tab-bar';
 import { CategoriesList } from '@/components/admin/categories-list';
@@ -14,12 +14,11 @@ import { BrandingTab } from '@/components/admin/branding-tab';
 import { LanguagesTab } from '@/components/admin/languages-tab';
 import { EditorPromotionsTab } from '@/components/admin/editor-promotions-tab';
 import { AnalyticsTab } from '@/components/admin/analytics/analytics-tab';
-import { QrCustomizePanel } from '@/components/admin/qr-customize-panel';
-import { MenuSettingsForm } from '@/components/admin/menu-settings-form';
-import { MenuUrlVisibilitySection } from '@/components/admin/menu-url-visibility-section';
+import { QrTab } from '@/components/admin/qr-tab';
+import { MenuSettingsTab } from '@/components/admin/menu-settings-tab';
 import { PhonePreviewSkeleton } from '@/components/admin/phone-preview';
 import { PhonePreviewPanel } from '@/components/admin/phone-preview-panel';
-import { Card, CardContent } from '@/components/ui/card';
+
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useMenu, usePublishMenu, useUpdateMenu } from '@/hooks/use-menus';
@@ -242,39 +241,18 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
             <EditorPromotionsTab
               menuId={id}
               canUsePromotions={hasFeature('promotions')}
+              multilangUnlocked={hasFeature('multilingual')}
             />
           )}
 
           {activeTab === 'qr' && (
-            <QrCustomizePanel
+            <QrTab
               menu={menu}
               hasQrLogo={hasFeature('qrWithLogo')}
             />
           )}
 
-          {activeTab === 'settings' && (
-            <div className="space-y-6">
-              <Card className="rounded-[12px]">
-                <CardContent className="px-6 py-6">
-                  <MenuUrlVisibilitySection menu={menu} />
-                </CardContent>
-              </Card>
-              <Card className="rounded-[12px]">
-                <CardContent className="space-y-6 px-6 pt-6">
-                  <MenuSettingsForm menu={menu} />
-                  {menu.createdAt && (
-                    <div className="border-t border-border-soft pt-4">
-                      <p className="flex items-center gap-1 text-[12px] text-text-subtle">
-                        <Clock size={12} strokeWidth={1.5} aria-hidden="true" />
-                        {t('menus.info.createdAt')}:{' '}
-                        {new Date(menu.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
+          {activeTab === 'settings' && <MenuSettingsTab menu={menu} />}
         </div>
 
         {/* Right: sticky phone preview (desktop only, preview-eligible tabs only) */}

@@ -64,6 +64,20 @@ export function useCreateMenu() {
 }
 
 /**
+ * Hook to clone a menu
+ */
+export function useCloneMenu() {
+  const queryClient = useQueryClient();
+
+  return useMutation<Menu, ApiError, string>({
+    mutationFn: (menuId) => api.post<Menu>(`/menus/${menuId}/clone`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.menus.all });
+    },
+  });
+}
+
+/**
  * Hook to update a menu
  */
 export function useUpdateMenu(menuId: string) {

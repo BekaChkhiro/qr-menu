@@ -137,14 +137,18 @@ model User {
   phone         String?
   timezone      String?   // IANA timezone id, e.g. "Asia/Tbilisi"
   dateFormat    String?   // "DD.MM.YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD"
+  currency      String?   @default("GEL") // Account currency: GEL, USD, EUR
+  priceFormat   String?   @default("12.50 ₾") // Price display format
 
   // OAuth fields
   accounts      Account[]
   sessions      Session[]
 
   // Relations
-  menus         Menu[]
-  activityLogs  ActivityLog[]
+  menus                    Menu[]
+  activityLogs             ActivityLog[]
+  notificationPreference   NotificationPreference?
+  business                 Business?
 
   // Timestamps
   createdAt     DateTime  @default(now())
@@ -152,6 +156,76 @@ model User {
 
   @@index([email])
   @@map("users")
+}
+
+// ============================================================================
+// NOTIFICATION PREFERENCES
+// ============================================================================
+
+model NotificationPreference {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  email             String   // email address for alerts
+
+  // Menu activity
+  menuEditEmail     Boolean  @default(true)
+  menuEditPush      Boolean  @default(false)
+  outOfStockEmail   Boolean  @default(false)
+  outOfStockPush    Boolean  @default(true)
+  weeklyDigestEmail Boolean  @default(true)
+  weeklyDigestPush  Boolean  @default(false)
+
+  // Billing & account
+  invoiceReadyEmail Boolean  @default(true)
+  invoiceReadyPush  Boolean  @default(false)
+  paymentFailedEmail Boolean @default(true)
+  paymentFailedPush Boolean  @default(true)
+  newSignInEmail    Boolean  @default(true)
+  newSignInPush     Boolean  @default(true)
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("notification_preferences")
+}
+
+// ============================================================================
+// BUSINESS
+// ============================================================================
+
+model Business {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  logoUrl           String?
+  businessName      String?
+  tagline           String?
+  cuisines          String[]
+  priceRange        Int?     // 1-4
+  taxId             String?
+  businessType      String?
+  description       String?
+  streetAddress     String?
+  city              String?
+  postalCode        String?
+  country           String?  @default("Georgia")
+  publicEmail       String?
+  publicPhone       String?
+  websiteUrl        String?
+  instagramHandle   String?
+  openingHours      Json?    // array of { day: string, open: string, close: string, closed: boolean }
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("businesses")
 }
 
 // ============================================================================
@@ -262,6 +336,15 @@ model Menu {
   qrLogoUrl         String?
   qrTemplate        String?  // preset template name
 
+  // Schedule (T15.14)
+  scheduledPublishAt   DateTime?
+  scheduledUnpublishAt DateTime?
+
+  // SEO / Open Graph (T15.14)
+  metaTitle       String?
+  metaDescription String?   @db.Text
+  shareImageUrl   String?
+
   // Visibility gating (T15.13)
   // When set, status=PUBLISHED menus require password entry on /m/[slug].
   // null = open (Published) or irrelevant (status=DRAFT = Private draft).
@@ -315,6 +398,7 @@ model Category {
   // Relations
   menu        Menu      @relation(fields: [menuId], references: [id], onDelete: Cascade)
   products    Product[]
+  promotions  Promotion[]
   views       MenuView[]
 
   // Timestamps
@@ -458,8 +542,20 @@ model Promotion {
   // Visibility
   isActive    Boolean   @default(true)
 
+  // Discount configuration (T15.8)
+  discountType  String?
+  discountValue Decimal?  @db.Decimal(10, 2)
+
+  // Apply-to scope (T15.8)
+  applyTo       String?
+  categoryId    String?
+
+  // Time restrictions — JSON shape: { enabled: boolean, days: string[], startTime: string, endTime: string }
+  timeRestrictions Json?  @default("{}")
+
   // Relations
   menu        Menu      @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   // Timestamps
   createdAt   DateTime  @default(now())
@@ -469,6 +565,7 @@ model Promotion {
   @@index([menuId, isActive])
   @@index([menuId, sortOrder])
   @@index([startDate, endDate])
+  @@index([categoryId])
   @@map("promotions")
 }
 

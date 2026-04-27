@@ -1,12 +1,13 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import {
   QrCode,
+  UtensilsCrossed,
   Globe,
   Zap,
   BarChart3,
@@ -52,6 +53,11 @@ interface PhoneJourneyProps {
     cta: string;
     secondaryCta: string;
     trustedBy: string;
+    demoModes: {
+      menu: string;
+      qr: string;
+      analytics: string;
+    };
   };
   scenes: {
     create: { title: string; description: string; features: string[] };
@@ -75,12 +81,41 @@ interface PhoneJourneyProps {
 }
 
 // =============================================================================
-// Phone Screens (unchanged)
+// Phone Screens
 // =============================================================================
 
-function MenuPreviewScreen() {
+type HeroDemoMode = 'menu' | 'qr' | 'analytics';
+
+function MiniQrPattern() {
+  const filled = new Set([
+    0, 1, 2, 3, 4, 6, 8, 10, 11, 12, 14, 16, 18, 20, 22, 23, 24,
+    26, 28, 30, 32, 33, 34, 36, 38, 40, 42, 44, 45, 46, 48, 49, 50,
+    52, 54, 56, 58, 60, 62, 63, 64, 66, 68, 70, 72, 74, 75, 76,
+    78, 80,
+  ]);
+
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-[#1a1f36] to-[#1a1f36]/95">
+    <div className="grid grid-cols-9 gap-0.5 rounded-xl bg-white p-2 shadow-sm">
+      {Array.from({ length: 81 }).map((_, index) => (
+        <div
+          key={index}
+          className={cn(
+            'h-2 w-2 rounded-[1px]',
+            filled.has(index) ? 'bg-[#1a1f36]' : 'bg-transparent',
+          )}
+        />
+      ))}
+    </div>
+  );
+}
+
+function MenuPreviewScreen({ mode = 'menu' }: { mode?: HeroDemoMode }) {
+  return (
+    <div
+      data-testid="marketing-hero-phone-screen"
+      data-demo-mode={mode}
+      className="h-full flex flex-col bg-gradient-to-b from-[#1a1f36] to-[#1a1f36]/95"
+    >
       <div className="text-center pt-6 pb-3">
         <div className="w-12 h-12 bg-white/10 rounded-full mx-auto mb-2 flex items-center justify-center">
           <span className="text-2xl">🍕</span>
@@ -88,27 +123,75 @@ function MenuPreviewScreen() {
         <h4 className="text-white text-xs font-bold">Bella Italia</h4>
         <p className="text-white/50 text-[8px]">Italian Restaurant</p>
       </div>
-      <div className="flex-1 px-3 space-y-2">
-        {[
-          { name: 'Margherita', price: '12₾', emoji: '🌿' },
-          { name: 'Pepperoni', price: '15₾', emoji: '🌶️' },
-          { name: 'Quattro Formaggi', price: '18₾', emoji: '⭐' },
-          { name: 'Capricciosa', price: '16₾', emoji: '🍄' },
-        ].map((item) => (
-          <div key={item.name} className="flex gap-2 p-2 rounded-xl bg-white/5">
-            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-              <span className="text-base">{item.emoji}</span>
-            </div>
-            <div className="flex-1">
-              <div className="flex justify-between">
-                <span className="text-white text-[10px] font-semibold">{item.name}</span>
-                <span className="text-white text-[10px] font-bold">{item.price}</span>
+      {mode === 'menu' && (
+        <div className="flex-1 px-3 space-y-2">
+          {[
+            { name: 'Margherita', price: '12₾', emoji: '🌿' },
+            { name: 'Pepperoni', price: '15₾', emoji: '🌶️' },
+            { name: 'Quattro Formaggi', price: '18₾', emoji: '⭐' },
+            { name: 'Capricciosa', price: '16₾', emoji: '🍄' },
+          ].map((item) => (
+            <div key={item.name} className="flex gap-2 p-2 rounded-xl bg-white/5">
+              <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-base">{item.emoji}</span>
               </div>
-              <div className="mt-1 h-1.5 bg-white/5 rounded-full w-3/4" />
+              <div className="flex-1">
+                <div className="flex justify-between">
+                  <span className="text-white text-[10px] font-semibold">{item.name}</span>
+                  <span className="text-white text-[10px] font-bold">{item.price}</span>
+                </div>
+                <div className="mt-1 h-1.5 bg-white/5 rounded-full w-3/4" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {mode === 'qr' && (
+        <div className="flex-1 px-4 py-5">
+          <div className="rounded-3xl bg-white/95 p-4 text-center shadow-2xl">
+            <MiniQrPattern />
+            <div className="mt-3 text-[11px] font-bold text-[#1a1f36]">table 12</div>
+            <div className="mt-1 text-[8px] text-gray-500">cafelinville.ge/m/bella</div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {['PNG', 'SVG', 'PDF', '800px'].map((item) => (
+              <div key={item} className="rounded-xl bg-white/5 py-2 text-center text-[9px] font-medium text-white/70">
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {mode === 'analytics' && (
+        <div className="flex-1 px-3 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              ['2,847', 'views'],
+              ['1,234', 'scans'],
+              ['68%', 'mobile'],
+              ['19:00', 'peak'],
+            ].map(([value, label]) => (
+              <div key={label} className="rounded-xl bg-white/5 p-2">
+                <div className="text-sm font-bold text-white">{value}</div>
+                <div className="text-[7px] uppercase tracking-wide text-white/35">{label}</div>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-xl bg-white/5 p-3">
+            <div className="mb-2 text-[8px] font-semibold text-white/50">Last 7 days</div>
+            <div className="flex h-20 items-end gap-1">
+              {[44, 62, 38, 76, 58, 92, 70].map((height, index) => (
+                <div key={index} className="flex-1 rounded-t bg-white/15">
+                  <div className="rounded-t bg-white" style={{ height: `${height}%` }} />
+                </div>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
       <div className="p-3">
         <div className="flex items-center justify-center gap-1.5 py-2 rounded-full bg-white/5">
           <QrCode className="w-3 h-3 text-white/40" />
@@ -432,7 +515,7 @@ const SCENE_POSITIONS = [
 
 // Floating badges around phone — Lucide icon names + positions
 import type { LucideIcon } from 'lucide-react';
-import { Wifi, Gift, CircleDollarSign, GripVertical, FolderOpen, Paintbrush, SwatchBook, ImagePlus, Camera, Radio, TrendingUp as TrendUp2, Eye } from 'lucide-react';
+import { Gift, CircleDollarSign, GripVertical, FolderOpen, Paintbrush, SwatchBook, ImagePlus, Camera, Radio, TrendingUp as TrendUp2, Eye } from 'lucide-react';
 
 interface BadgeConfig {
   text: string;
@@ -651,6 +734,60 @@ function MobilePhoneFrame({ children }: { children: React.ReactNode }) {
   );
 }
 
+function HeroDemoControls({
+  mode,
+  modes,
+  onChange,
+  compact = false,
+}: {
+  mode: HeroDemoMode;
+  modes: PhoneJourneyProps['hero']['demoModes'];
+  onChange: (mode: HeroDemoMode) => void;
+  compact?: boolean;
+}) {
+  const options: Array<{ value: HeroDemoMode; icon: LucideIcon; label: string }> = [
+    { value: 'menu', icon: UtensilsCrossed, label: modes.menu },
+    { value: 'qr', icon: QrCode, label: modes.qr },
+    { value: 'analytics', icon: BarChart3, label: modes.analytics },
+  ];
+
+  return (
+    <div
+      data-testid="marketing-hero-demo-controls"
+      className={cn(
+        'grid gap-2 rounded-2xl border border-border/50 bg-background/75 p-2 shadow-sm backdrop-blur-xl',
+        compact ? 'grid-cols-3' : 'grid-cols-1',
+      )}
+      aria-label="Demo preview"
+    >
+      {options.map((option) => {
+        const Icon = option.icon;
+        const active = mode === option.value;
+
+        return (
+          <button
+            key={option.value}
+            type="button"
+            data-testid={`marketing-hero-demo-${option.value}`}
+            data-active={active}
+            className={cn(
+              'flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition',
+              active
+                ? 'border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                : 'border-transparent bg-card/70 text-muted-foreground hover:border-border hover:text-foreground',
+              compact && 'justify-center px-2',
+            )}
+            onClick={() => onChange(option.value)}
+          >
+            <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className={cn('truncate', compact && 'sr-only sm:not-sr-only')}>{option.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 
 // =============================================================================
 // Main Component
@@ -659,6 +796,7 @@ function MobilePhoneFrame({ children }: { children: React.ReactNode }) {
 export function PhoneJourney({ hero, scenes, pricing, cta }: PhoneJourneyProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const phoneRef = useRef<HTMLDivElement>(null);
+  const [heroDemoMode, setHeroDemoMode] = useState<HeroDemoMode>('menu');
 
   const sceneTexts = [
     { type: 'hero' as const, ...hero },
@@ -738,9 +876,9 @@ export function PhoneJourney({ hero, scenes, pricing, cta }: PhoneJourneyProps) 
       });
 
       // Set initial state: first text visible
-      gsap.set(textPanels[0], { opacity: 1, y: 0 });
+      gsap.set(textPanels[0], { opacity: 1, y: 0, pointerEvents: 'auto' });
       for (let i = 1; i < textPanels.length; i++) {
-        gsap.set(textPanels[i], { opacity: 0, y: 40 });
+        gsap.set(textPanels[i], { opacity: 0, y: 40, pointerEvents: 'none' });
       }
 
       // ── Build timeline with proper easings (P1) ──
@@ -817,6 +955,10 @@ export function PhoneJourney({ hero, scenes, pricing, cta }: PhoneJourneyProps) 
           if (bgAurora) bgAurora.style.opacity = `${0.02 + sinP * 0.025}`;
 
           if (currentStep !== prevStep) {
+            textPanels.forEach((panel, index) => {
+              panel.style.pointerEvents = index === currentStep ? 'auto' : 'none';
+            });
+
             // Animate background per scene — all layers
             const sceneBg = SCENE_BACKGROUNDS[currentStep];
             if (sceneBg) {
@@ -1434,16 +1576,16 @@ export function PhoneJourney({ hero, scenes, pricing, cta }: PhoneJourneyProps) 
 
           <div className="phone-float-wrapper">
             <PhoneFrame>
-              {PHONE_SCREENS.map((Screen, i) => (
-                <div
-                  key={i}
-                  className="phone-screen absolute inset-0"
-                  style={{ visibility: i === 0 ? 'visible' : 'hidden', opacity: i === 0 ? 1 : 0 }}
-                >
-                  <Screen />
-                </div>
-              ))}
-            </PhoneFrame>
+            {PHONE_SCREENS.map((Screen, i) => (
+              <div
+                key={i}
+                className="phone-screen absolute inset-0"
+                style={{ visibility: i === 0 ? 'visible' : 'hidden', opacity: i === 0 ? 1 : 0 }}
+              >
+                  {i === 0 ? <MenuPreviewScreen mode={heroDemoMode} /> : <Screen />}
+              </div>
+            ))}
+          </PhoneFrame>
           </div>
         </div>
 
@@ -1506,6 +1648,11 @@ export function PhoneJourney({ hero, scenes, pricing, cta }: PhoneJourneyProps) 
             <div className="w-[34%] pl-6">
               {/* Feature highlights */}
               <div className="hero-features space-y-3 mb-6">
+                <HeroDemoControls
+                  mode={heroDemoMode}
+                  modes={hero.demoModes}
+                  onChange={setHeroDemoMode}
+                />
                 {[
                   { icon: QrCode, title: 'QR კოდი', desc: 'მომხმარებელი სკანირებს და მენიუ იხსნება' },
                   { icon: Globe, title: 'მულტიენოვანი', desc: 'ქართული, ინგლისური, რუსული' },
@@ -1804,7 +1951,7 @@ export function PhoneJourney({ hero, scenes, pricing, cta }: PhoneJourneyProps) 
                 className="phone-screen absolute inset-0"
                 style={{ visibility: i === 0 ? 'visible' : 'hidden', opacity: i === 0 ? 1 : 0 }}
               >
-                <Screen />
+                {i === 0 ? <MenuPreviewScreen mode={heroDemoMode} /> : <Screen />}
               </div>
             ))}
           </MobilePhoneFrame>
@@ -1827,6 +1974,14 @@ export function PhoneJourney({ hero, scenes, pricing, cta }: PhoneJourneyProps) 
                   </div>
                   <h1 className="text-3xl font-bold tracking-tight mb-4">{scene.title}</h1>
                   <p className="text-base text-muted-foreground mb-6">{scene.subtitle}</p>
+                  <div className="mb-4">
+                    <HeroDemoControls
+                      mode={heroDemoMode}
+                      modes={scene.demoModes}
+                      onChange={setHeroDemoMode}
+                      compact
+                    />
+                  </div>
                   <div className="flex flex-col gap-3">
                     <Link href="/register">
                       <Button size="lg" className="gap-2 w-full group">

@@ -126,6 +126,15 @@ export const updateMenuSchema = z.object({
   qrLogoUrl: z.string().url().nullable().optional(),
   qrTemplate: z.string().max(50).nullable().optional(),
 
+  // Schedule (T15.14)
+  scheduledPublishAt: z.string().datetime().nullable().optional(),
+  scheduledUnpublishAt: z.string().datetime().nullable().optional(),
+
+  // SEO / Open Graph (T15.14)
+  metaTitle: z.string().max(120).nullable().optional(),
+  metaDescription: z.string().max(300).nullable().optional(),
+  shareImageUrl: z.string().url('Invalid image URL').nullable().optional(),
+
   // Visibility + password (T15.13).
   // `visibility` overrides `status`/`passwordHash` when present; the server
   // ignores any explicit status/passwordHash in the same body.

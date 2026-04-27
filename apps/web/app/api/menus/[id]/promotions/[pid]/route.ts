@@ -56,11 +56,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Fetch promotion
+    // Fetch promotion with category relation
     const promotion = await prisma.promotion.findUnique({
       where: {
         id: promotionId,
         menuId, // Ensure promotion belongs to the specified menu
+      },
+      include: {
+        category: {
+          select: { id: true, nameKa: true, nameEn: true, nameRu: true },
+        },
       },
     });
 
@@ -152,9 +157,20 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     // Update promotion
-    const promotion = await prisma.promotion.update({
+    await prisma.promotion.update({
       where: { id: promotionId },
-      data,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: data as any,
+    });
+
+    // Fetch updated promotion with category relation
+    const promotion = await prisma.promotion.findUnique({
+      where: { id: promotionId },
+      include: {
+        category: {
+          select: { id: true, nameKa: true, nameEn: true, nameRu: true },
+        },
+      },
     });
 
     // Invalidate cache
@@ -170,15 +186,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       existingPromotion.startDate <= now &&
       existingPromotion.endDate >= now;
     const isNowEnded =
-      !promotion.isActive ||
-      promotion.endDate < now ||
-      promotion.startDate > now;
+      !promotion!.isActive ||
+      promotion!.endDate < now ||
+      promotion!.startDate > now;
     if (wasActive && isNowEnded) {
       await logActivity({
         userId: session.user.id,
         menuId,
         type: 'PROMOTION_ENDED',
-        payload: { promotionName: promotion.titleKa },
+        payload: { promotionName: promotion!.titleKa },
       });
     }
 

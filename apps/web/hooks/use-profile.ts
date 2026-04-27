@@ -14,6 +14,8 @@ export interface UserProfile {
   phone: string | null;
   timezone: string | null;
   dateFormat: string | null;
+  currency: string | null;
+  priceFormat: string | null;
   image: string | null;
   plan: 'FREE' | 'STARTER' | 'PRO';
 }

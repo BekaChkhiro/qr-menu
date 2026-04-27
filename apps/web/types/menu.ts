@@ -85,6 +85,15 @@ export interface Menu {
   qrLogoUrl: string | null;
   qrTemplate: string | null;
 
+  // Schedule (T15.14)
+  scheduledPublishAt: string | null;
+  scheduledUnpublishAt: string | null;
+
+  // SEO / Open Graph (T15.14)
+  metaTitle: string | null;
+  metaDescription: string | null;
+  shareImageUrl: string | null;
+
   // Visibility (T15.13). Server never returns `passwordHash`; it returns
   // a boolean `hasPassword` so the settings form can render the right state.
   hasPassword?: boolean;
@@ -118,6 +127,12 @@ export interface Category {
   brandLabel: string | null;
   type: CategoryType;
   sortOrder: number;
+  discountType: string | null;
+  discountValue: number | null;
+  applyTo: string | null;
+  categoryId: string | null;
+  timeRestrictions: { enabled: boolean; days: string[]; startTime: string; endTime: string } | null;
+  category?: { id: string; nameKa: string; nameEn: string | null; nameRu: string | null; } | null;
   createdAt: string;
   updatedAt: string;
   products?: Product[];
@@ -188,6 +203,12 @@ export interface Promotion {
   endDate: string;
   isActive: boolean;
   sortOrder: number;
+  discountType: string | null;
+  discountValue: number | null;
+  applyTo: string | null;
+  categoryId: string | null;
+  timeRestrictions: { enabled: boolean; days: string[]; startTime: string; endTime: string } | null;
+  category?: { id: string; nameKa: string; nameEn: string | null; nameRu: string | null; } | null;
   createdAt: string;
   updatedAt: string;
 }

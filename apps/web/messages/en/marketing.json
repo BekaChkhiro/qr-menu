@@ -29,7 +29,12 @@
     "subtitle": "Create, manage, and share your restaurant menu with a simple QR code. No app downloads needed for your customers.",
     "cta": "Start Free Trial",
     "secondaryCta": "View Demo",
-    "trustedBy": "Trusted by 500+ restaurants in Georgia"
+    "trustedBy": "Trusted by 500+ restaurants in Georgia",
+    "demoModes": {
+      "menu": "Menu",
+      "qr": "QR",
+      "analytics": "Analytics"
+    }
   },
   "features": {
     "title": "Everything You Need",

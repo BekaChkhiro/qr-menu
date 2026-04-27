@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useMenuAnalytics } from '@/hooks/use-analytics';
 import type { ChartEvent } from '@/lib/validations/analytics';
+import { useAnalyticsRange } from './analytics-range-context';
 
 interface ViewsOverTimeChartProps {
   menuId: string;
@@ -53,7 +54,8 @@ export function ViewsOverTimeChart({
   hasAnalytics,
 }: ViewsOverTimeChartProps) {
   const t = useTranslations('admin.editor.analytics.chart');
-  const { data, isLoading } = useMenuAnalytics(menuId, { period: '30d' });
+  const { filters } = useAnalyticsRange();
+  const { data, isLoading } = useMenuAnalytics(menuId, filters);
 
   const dailyViews = data?.dailyViews ?? [];
   const dailyScans = data?.kpis.uniqueScans.daily ?? [];

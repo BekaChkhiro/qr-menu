@@ -35,6 +35,11 @@ export default async function LandingPage() {
         cta: t('hero.cta'),
         secondaryCta: t('hero.secondaryCta'),
         trustedBy: t('hero.trustedBy'),
+        demoModes: {
+          menu: t('hero.demoModes.menu'),
+          qr: t('hero.demoModes.qr'),
+          analytics: t('hero.demoModes.analytics'),
+        },
       }}
       scenes={{
         create: {

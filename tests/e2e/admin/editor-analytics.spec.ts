@@ -654,3 +654,189 @@ test.describe('editor analytics tab · FREE locked + empty states (T15.6)', () =
     expect(clipboard).toBe(expectedUrl);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T15.5 — Date Range Picker
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Covers:
+//   Visual  — picker popover open with two-month grid + presets + footer
+//   Functional —
+//     • Picking 7d preset switches the segmented control + GET ?period=7d fires
+//     • Custom Apply sends ?period=custom&startDate=…&endDate=… and the API
+//       echoes back `data.period.start/end` matching the picked range
+//     • Cancel closes the popover without changing the URL
+//     • "Last 7 days" preset inside the popover resolves to the same window
+//       as the 7d segmented pill (asserted from API echo, not hard-coded)
+
+test.describe('editor analytics tab · date range picker (T15.5)', () => {
+  test.describe.configure({ mode: 'serial' });
+
+  test.beforeEach(async ({ context }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'desktop',
+      'Desktop-only tab; mobile variant lands in T17.3',
+    );
+    await resetDb();
+    await context.clearCookies();
+    await context.addCookies([
+      { name: 'NEXT_LOCALE', value: 'en', domain: 'localhost', path: '/' },
+    ]);
+  });
+
+  test('functional: range picker renders with 30d active by default', async ({
+    page,
+  }) => {
+    await seedProAndOpenAnalytics(page);
+
+    const picker = page.getByTestId('editor-analytics-range');
+    await expect(picker).toBeVisible();
+    await expect(picker).toHaveAttribute('data-active-period', '30d');
+
+    const seg30 = page.getByTestId('editor-analytics-range-30d');
+    await expect(seg30).toHaveAttribute('aria-checked', 'true');
+  });
+
+  test('functional: clicking 7d preset switches API to ?period=7d', async ({
+    page,
+  }) => {
+    const { menu } = await seedProAndOpenAnalytics(page);
+
+    const responsePromise = page.waitForResponse(
+      (res) =>
+        res.url().includes(`/api/menus/${menu.id}/analytics`) &&
+        res.url().includes('period=7d'),
+    );
+
+    await page.getByTestId('editor-analytics-range-7d').click();
+
+    const response = await responsePromise;
+    expect(response.ok()).toBeTruthy();
+
+    const body = (await response.json()) as {
+      data?: { period?: { days?: number } };
+    };
+    // API confirms the 7-day window.
+    expect(body.data?.period?.days).toBe(7);
+
+    await expect(page.getByTestId('editor-analytics-range')).toHaveAttribute(
+      'data-active-period',
+      '7d',
+    );
+    await expect(
+      page.getByTestId('editor-analytics-range-7d'),
+    ).toHaveAttribute('aria-checked', 'true');
+  });
+
+  test('functional: clicking Custom opens popover; Cancel closes it', async ({
+    page,
+  }) => {
+    await seedProAndOpenAnalytics(page);
+
+    await page.getByTestId('editor-analytics-range-custom').click();
+
+    const popover = page.getByTestId('editor-analytics-range-popover');
+    await expect(popover).toBeVisible();
+    await expect(
+      page.getByTestId('editor-analytics-range-presets'),
+    ).toBeVisible();
+
+    // 8 preset options rendered.
+    const presetButtons = page.locator(
+      '[data-testid^="editor-analytics-range-preset-"]',
+    );
+    expect(await presetButtons.count()).toBe(8);
+
+    // Two month grids rendered side by side.
+    const months = page.getByTestId('editor-analytics-range-month');
+    expect(await months.count()).toBe(2);
+
+    await page.getByTestId('editor-analytics-range-cancel').click();
+    await expect(popover).not.toBeVisible();
+
+    // Period unchanged after Cancel.
+    await expect(page.getByTestId('editor-analytics-range')).toHaveAttribute(
+      'data-active-period',
+      '30d',
+    );
+  });
+
+  test('functional: applying "Last 7 days" preset hits API with custom range matching 7d', async ({
+    page,
+  }) => {
+    const { menu } = await seedProAndOpenAnalytics(page);
+
+    await page.getByTestId('editor-analytics-range-custom').click();
+    await expect(
+      page.getByTestId('editor-analytics-range-popover'),
+    ).toBeVisible();
+
+    await page.getByTestId('editor-analytics-range-preset-last7').click();
+
+    // The summary line shows a 7-day count.
+    await expect(
+      page.getByTestId('editor-analytics-range-summary'),
+    ).toContainText('(7 days)');
+
+    const responsePromise = page.waitForResponse(
+      (res) =>
+        res.url().includes(`/api/menus/${menu.id}/analytics`) &&
+        res.url().includes('period=custom'),
+    );
+
+    await page.getByTestId('editor-analytics-range-apply').click();
+
+    const response = await responsePromise;
+    expect(response.ok()).toBeTruthy();
+
+    const url = new URL(response.url());
+    const startDate = url.searchParams.get('startDate');
+    const endDate = url.searchParams.get('endDate');
+    expect(startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(endDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    const body = (await response.json()) as {
+      data?: { period?: { start: string; end: string; days: number } };
+    };
+    // API echoes back the picked range (no hard-coded values).
+    expect(body.data?.period?.start).toBe(startDate);
+    expect(body.data?.period?.end).toBe(endDate);
+    expect(body.data?.period?.days).toBe(7);
+
+    // Picker reflects custom mode now.
+    await expect(page.getByTestId('editor-analytics-range')).toHaveAttribute(
+      'data-active-period',
+      'custom',
+    );
+  });
+
+  test('visual: editor-analytics-range popover open with last-7 preset highlighted', async ({
+    page,
+  }, testInfo) => {
+    await seedProAndOpenAnalytics(page);
+
+    await page.getByTestId('editor-analytics-range-custom').click();
+    const popover = page.getByTestId('editor-analytics-range-popover');
+    await expect(popover).toBeVisible();
+    await page.getByTestId('editor-analytics-range-preset-last7').click();
+
+    await page.evaluate(() => document.fonts.ready);
+    await page.addStyleTag({
+      content:
+        '*, *::before, *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition-duration: 0s !important; }',
+    });
+
+    await expect(popover).toHaveScreenshot(
+      `editor-analytics-daterange-${testInfo.project.name}.png`,
+      {
+        maxDiffPixelRatio: 0.05,
+        // Mask the date label inside the calendar headers + summary footer
+        // since "today" shifts the highlighted range across runs.
+        mask: [
+          page.getByTestId('editor-analytics-range-month-label'),
+          page.getByTestId('editor-analytics-range-summary'),
+        ],
+      },
+    );
+  });
+});

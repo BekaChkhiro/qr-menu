@@ -26,6 +26,8 @@ import {
   TopProductsPreviewCard,
   TrafficSourcePreviewCard,
 } from './advanced-sections';
+import { AnalyticsRangeProvider } from './analytics-range-context';
+import { DateRangePicker } from './date-range-picker';
 
 interface AnalyticsTabProps {
   menuId: string;
@@ -50,7 +52,11 @@ export function AnalyticsTab({
     return <AnalyticsTabEmpty menuId={menuId} menuSlug={menuSlug} />;
   }
 
-  return <AnalyticsTabContent menuId={menuId} />;
+  return (
+    <AnalyticsRangeProvider>
+      <AnalyticsTabContent menuId={menuId} />
+    </AnalyticsRangeProvider>
+  );
 }
 
 // ─── Normal render (PRO, with views) ───────────────────────────────────────
@@ -58,6 +64,8 @@ export function AnalyticsTab({
 function AnalyticsTabContent({ menuId }: { menuId: string }) {
   return (
     <div data-testid="editor-analytics-tab" className="space-y-4">
+      <DateRangePicker />
+
       <AnalyticsKpis menuId={menuId} hasAnalytics />
 
       <ViewsOverTimeChart menuId={menuId} hasAnalytics />

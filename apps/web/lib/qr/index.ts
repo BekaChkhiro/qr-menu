@@ -1,7 +1,8 @@
 import QRCode from 'qrcode';
 import sharp from 'sharp';
+import { PDFDocument, rgb } from 'pdf-lib';
 
-export type QRFormat = 'png' | 'svg';
+export type QRFormat = 'png' | 'svg' | 'pdf';
 export type QRSize = 'small' | 'medium' | 'large';
 export type QRStyle = 'SQUARE' | 'ROUNDED' | 'DOTS';
 
@@ -24,25 +25,6 @@ interface GenerateQRCodeOptions {
   lightColor?: string;
   style?: QRStyle;
   logoUrl?: string | null;
-}
-
-/**
- * Apply a style transform to a raw QR SVG.
- * - SQUARE: no-op
- * - ROUNDED: rx=".3" on rect
- * - DOTS: replace <rect> with <circle>
- */
-function applySvgStyle(svg: string, style: QRStyle): string {
-  if (style === 'SQUARE') return svg;
-
-  if (style === 'ROUNDED') {
-    // qrcode lib emits one big <path> of squares, not per-module rects.
-    // So we fall back to generating per-cell output via `toString` with modules.
-    return svg;
-  }
-
-  // DOTS handled by generateQRCodeSVG with per-module conversion
-  return svg;
 }
 
 /**
@@ -177,6 +159,46 @@ export async function generateQRCodePNG(
 }
 
 /**
+ * Generate a print-ready PDF with the QR code centered on an A4 page.
+ */
+export async function generateQRCodePDF(
+  options: GenerateQRCodeOptions
+): Promise<Buffer> {
+  const { url } = options;
+  const qrBuffer = await generateQRCodePNG(options);
+
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([595.28, 841.89]); // A4 in points
+
+  const { width: pageW, height: pageH } = page.getSize();
+
+  // Embed the QR PNG
+  const qrImage = await pdfDoc.embedPng(qrBuffer);
+
+  // Scale QR to fit within page with comfortable margins (≈ 60 pt / 21 mm)
+  const maxDim = Math.min(pageW, pageH) - 120;
+  const scale = Math.min(1, maxDim / qrImage.width);
+  const qrW = qrImage.width * scale;
+  const qrH = qrImage.height * scale;
+
+  const x = (pageW - qrW) / 2;
+  const y = (pageH - qrH) / 2 + 40; // slightly above center
+
+  page.drawImage(qrImage, { x, y, width: qrW, height: qrH });
+
+  // Draw URL text below the QR
+  page.drawText(url, {
+    x: pageW / 2 - url.length * 2.5,
+    y: y - 24,
+    size: 10,
+    color: rgb(0.2, 0.2, 0.2),
+  });
+
+  const pdfBytes = await pdfDoc.save();
+  return Buffer.from(pdfBytes);
+}
+
+/**
  * Generate a QR code in the specified format.
  */
 export async function generateQRCode(
@@ -197,6 +219,15 @@ export async function generateQRCode(
     };
   }
 
+  if (format === 'pdf') {
+    const buffer = await generateQRCodePDF(options);
+    return {
+      data: buffer,
+      contentType: 'application/pdf',
+      filename: `qr-${slug}-${size}.pdf`,
+    };
+  }
+
   const buffer = await generateQRCodePNG(options);
   return {
     data: buffer,
@@ -214,7 +245,7 @@ export function getPublicMenuUrl(slug: string): string {
 }
 
 export function isValidQRFormat(format: string): format is QRFormat {
-  return format === 'png' || format === 'svg';
+  return format === 'png' || format === 'svg' || format === 'pdf';
 }
 
 export function isValidQRSize(size: string): size is QRSize {

@@ -1305,6 +1305,18 @@
         "subtitle": "Interface language and menu content languages."
       }
     },
+    "team": {
+      "locked": {
+        "title": "Invite your team",
+        "body": "Let managers update menus, and keep the owner login safe. Available on Pro.",
+        "bullet1": "Up to 5 seats on Pro",
+        "bullet2": "Role-based permissions (Owner, Manager, Staff)",
+        "bullet3": "Audit log of every menu change",
+        "cta": "Upgrade to Pro — 59₾/month",
+        "comparePlans": "Compare all plans →",
+        "inviteMember": "Invite member"
+      }
+    },
     "profile": {
       "title": "Profile",
       "name": "Name",
@@ -1351,6 +1363,106 @@
         "saveFailed": "Could not save profile"
       }
     },
+    "notifications": {
+      "sections": {
+        "delivery": "Delivery channels",
+        "menuActivity": "Menu activity",
+        "billing": "Billing & account"
+      },
+      "fields": {
+        "email": "Email for alerts",
+        "push": "Push notifications",
+        "pushHint": "Sent to the Café Linville mobile app",
+        "pushDevice": "iPhone · \"Nino's iPhone\"",
+        "pushPaired": "Paired"
+      },
+      "columns": {
+        "email": "Email",
+        "push": "Push"
+      },
+      "items": {
+        "menuEdit": {
+          "title": "Someone edits a menu",
+          "hint": "Heads up when a teammate updates prices or descriptions."
+        },
+        "outOfStock": {
+          "title": "Out-of-stock auto-hidden",
+          "hint": "When an 86'd item gets hidden from the live menu."
+        },
+        "weeklyDigest": {
+          "title": "Weekly performance digest",
+          "hint": "Top items, scans, and slow movers every Monday morning."
+        },
+        "invoiceReady": {
+          "title": "Invoice ready",
+          "hint": "Sent when a new invoice is generated."
+        },
+        "paymentFailed": {
+          "title": "Payment failed",
+          "hint": "So you don't get downgraded unexpectedly. Can't be disabled."
+        },
+        "newSignIn": {
+          "title": "New sign-in on your account",
+          "hint": "Alert when a new device signs in as you."
+        }
+      },
+      "toast": {
+        "saving": "Saving...",
+        "saved": "Notification preferences saved",
+        "saveFailed": "Could not save preferences"
+      }
+    },
+    "language": {
+      "sections": {
+        "interface": "Admin interface",
+        "interfaceHint": "Changes the dashboard for you only. Your team each pick their own.",
+        "menuLanguages": "Menu languages",
+        "menuLanguagesHint": "Customers can switch between enabled languages on the QR menu. Items must be translated manually or with AI translate.",
+        "currency": "Currency & formatting"
+      },
+      "fields": {
+        "interfaceLanguage": "Display language",
+        "currency": "Currency",
+        "priceFormat": "Price format"
+      },
+      "currencies": {
+        "GEL": "Georgian Lari (₾)",
+        "USD": "US Dollar ($)",
+        "EUR": "Euro (€)"
+      },
+      "menuLanguages": {
+        "primaryBadge": "PRIMARY",
+        "comingSoonBadge": "SOON",
+        "names": {
+          "ka": "Georgian",
+          "en": "English",
+          "ru": "Russian",
+          "tr": "Turkish"
+        },
+        "status": {
+          "primary": "Primary language · always on",
+          "noMenus": "No menus yet",
+          "enabledOnMenus": "Enabled on {count} of {total} menus",
+          "comingSoon": "Coming soon"
+        },
+        "toggleAria": "Toggle {language}"
+      },
+      "aiTranslate": {
+        "title": "AI translate",
+        "body": "can fill in missing translations using DeepL. Review before publish.",
+        "cta": "Translate all",
+        "lockedBody": "AI translate is a PRO feature. Fills in missing translations using DeepL, reviewed before publish.",
+        "upgradeCta": "Upgrade to PRO"
+      },
+      "interfaceLang": {
+        "error": "Could not change language. Please try again."
+      },
+      "toast": {
+        "saving": "Saving...",
+        "saved": "Language settings updated",
+        "saveFailed": "Could not save language settings"
+      }
+    },
     "password": {
       "title": "Change Password",
       "current": "Current Password",
@@ -1389,6 +1501,70 @@
         "free": "Free",
         "starter": "Starter",
         "pro": "Pro"
+      }
+    },
+    "businessInfo": {
+      "title": "Business info",
+      "subtitle": "Public details about your cafe or restaurant.",
+      "sections": {
+        "logo": "Logo",
+        "logoHelper": "Shown at the top of your menu and on printed receipts. PNG or SVG, max 2MB.",
+        "details": "Business details",
+        "address": "Address",
+        "contact": "Contact & social",
+        "hours": "Opening hours"
+      },
+      "logo": {
+        "upload": "Upload logo",
+        "replace": "Replace logo",
+        "remove": "Remove"
+      },
+      "fields": {
+        "businessName": "Business name",
+        "tagline": "Tagline",
+        "taglineHint": "A short phrase that appears under your business name.",
+        "cuisine": "Cuisine",
+        "cuisineHint": "Shown as tags on your public menu page. Pick up to 4.",
+        "priceRange": "Price range",
+        "priceRangeHint": "A quick signal for diners. Budget to premium.",
+        "taxId": "Tax ID (VAT)",
+        "businessType": "Business type",
+        "businessTypePlaceholder": "e.g. LLC, Sole proprietorship",
+        "description": "Short description",
+        "descriptionHint": "Shown on your public menu page. Keep it under 140 characters.",
+        "streetAddress": "Street address",
+        "city": "City",
+        "postalCode": "Postal code",
+        "country": "Country",
+        "publicEmail": "Public email",
+        "publicPhone": "Public phone",
+        "website": "Website",
+        "instagram": "Instagram"
+      },
+      "cuisines": {
+        "add": "Add cuisine",
+        "maxReached": "You can add up to 4 cuisines.",
+        "remove": "Remove {{cuisine}}"
+      },
+      "hours": {
+        "closed": "Closed",
+        "copyToAll": "Copy to all",
+        "copyToAllSuccess": "Copied {{day}} hours to all days",
+        "toggle": "Toggle {{day}}"
+      },
+      "days": {
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday",
+        "sunday": "Sunday"
+      },
+      "toast": {
+        "saving": "Saving...",
+        "saved": "Business info updated",
+        "saveFailed": "Could not save business info"
       }
     }
   },

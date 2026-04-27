@@ -166,9 +166,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Create promotion
     const promotion = await prisma.promotion.create({
       data: {
-        ...data,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...(data as any),
         menuId,
       },
+    });
+
+    // Include category relation for the response
+    const promotionWithCategory = await prisma.promotion.findUnique({
+      where: { id: promotion.id },
+      include: { category: { select: { id: true, nameKa: true, nameEn: true, nameRu: true } } },
     });
 
     // Invalidate cache
@@ -192,7 +199,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
     }
 
-    return createSuccessResponse(promotion, 201);
+    return createSuccessResponse(promotionWithCategory ?? promotion, 201);
   } catch (error) {
     return handleApiError(error);
   }

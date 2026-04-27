@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useMenuAnalytics } from '@/hooks/use-analytics';
 import type { TopCategory } from '@/lib/validations/analytics';
+import { useAnalyticsRange } from './analytics-range-context';
 
 interface TopCategoriesCardProps {
   menuId: string;
@@ -27,7 +28,8 @@ function barOpacityForRank(rank: number): number {
 export function TopCategoriesCard({ menuId, hasAnalytics }: TopCategoriesCardProps) {
   const t = useTranslations('admin.editor.analytics.topCategories');
   const locale = useLocale();
-  const { data, isLoading } = useMenuAnalytics(menuId, { period: '30d' });
+  const { filters } = useAnalyticsRange();
+  const { data, isLoading } = useMenuAnalytics(menuId, filters);
 
   const rows = data?.topCategories ?? [];
   const maxCount = rows.length > 0 ? rows[0].count : 0;
