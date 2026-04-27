@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { signOut } from 'next-auth/react';
 import {
   Bell,
+  ChevronLeft,
   LayoutDashboard,
   LogOut,
   Search,
@@ -161,11 +162,46 @@ export function AdminTopBar({
         data-has-unread={hasUnreadNotifications ? 'true' : 'false'}
         className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-bg px-6"
       >
-        {crumbs.length > 0 ? (
-          <Breadcrumbs items={crumbs} data-testid="topbar-breadcrumbs" />
-        ) : (
-          <div />
-        )}
+        {/* Desktop breadcrumbs */}
+        <div className="hidden md:block">
+          {crumbs.length > 0 ? (
+            <Breadcrumbs items={crumbs} data-testid="topbar-breadcrumbs" />
+          ) : (
+            <div />
+          )}
+        </div>
+
+        {/* Mobile: back button + current page title */}
+        <div className="flex min-w-0 flex-1 items-center gap-2 md:hidden">
+          {(() => {
+            const parent =
+              crumbs.length > 1
+                ? crumbs
+                    .slice(0, -1)
+                    .reverse()
+                    .find((c) => c.href)
+                : undefined;
+            return parent ? (
+              <button
+                type="button"
+                onClick={() => navigate(parent.href!)}
+                className="shrink-0 rounded-sm p-1 text-text-default transition-colors hover:bg-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                aria-label={t('backTo', { page: parent.label })}
+                data-testid="topbar-back"
+              >
+                <ChevronLeft size={18} strokeWidth={1.5} aria-hidden="true" />
+              </button>
+            ) : null;
+          })()}
+          {crumbs.length > 0 && (
+            <span
+              className="truncate text-[13.5px] font-semibold text-text-default"
+              data-testid="topbar-mobile-title"
+            >
+              {crumbs[crumbs.length - 1].label}
+            </span>
+          )}
+        </div>
 
         <div className="flex-1" />
 

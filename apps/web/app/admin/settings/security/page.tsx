@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 
 import { SettingsPageHeading } from '@/components/admin/settings/settings-page-heading';
-import { SettingsPlaceholderCard } from '@/components/admin/settings/settings-placeholder-card';
+import { SecurityForm } from '@/components/admin/settings/security-form';
 
 export default async function SettingsSecurityPage() {
   const t = await getTranslations('admin.settings.tabs.security');
@@ -9,7 +9,7 @@ export default async function SettingsSecurityPage() {
   return (
     <div data-testid="settings-tab-security">
       <SettingsPageHeading title={t('title')} subtitle={t('subtitle')} />
-      <SettingsPlaceholderCard tabKey="security" />
+      <SecurityForm />
     </div>
   );
 }

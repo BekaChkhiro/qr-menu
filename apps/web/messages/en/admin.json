@@ -7,7 +7,8 @@
     "help": "Help",
     "upgrade": "Upgrade",
     "planLabel": "plan",
-    "upgradeToPro": "Upgrade to PRO"
+    "upgradeToPro": "Upgrade to PRO",
+    "mobileNavLabel": "Primary navigation"
   },
   "topbar": {
     "searchPlaceholder": "Search menus, products, settings…",
@@ -18,7 +19,8 @@
     "settings": "Settings",
     "signOut": "Sign out",
     "paletteGroupNav": "Navigation",
-    "paletteEmpty": "No results found."
+    "paletteEmpty": "No results found.",
+    "backTo": "Back to {page}"
   },
   "breadcrumbs": {
     "dashboard": "Dashboard",

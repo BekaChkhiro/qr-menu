@@ -7,7 +7,8 @@
     "help": "დახმარება",
     "upgrade": "განახლება",
     "planLabel": "გეგმა",
-    "upgradeToPro": "PRO-ზე გადასვლა"
+    "upgradeToPro": "PRO-ზე გადასვლა",
+    "mobileNavLabel": "ძირითადი ნავიგაცია"
   },
   "topbar": {
     "searchPlaceholder": "მოძებნე მენიუები, პროდუქტები, პარამეტრები…",
@@ -18,7 +19,8 @@
     "settings": "პარამეტრები",
     "signOut": "გამოსვლა",
     "paletteGroupNav": "ნავიგაცია",
-    "paletteEmpty": "შედეგები ვერ მოიძებნა."
+    "paletteEmpty": "შედეგები ვერ მოიძებნა.",
+    "backTo": "გადადით {page}-ზე"
   },
   "breadcrumbs": {
     "dashboard": "პანელი",

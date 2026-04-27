@@ -7,7 +7,8 @@
     "help": "Помощь",
     "upgrade": "Обновить",
     "planLabel": "план",
-    "upgradeToPro": "Перейти на PRO"
+    "upgradeToPro": "Перейти на PRO",
+    "mobileNavLabel": "Основная навигация"
   },
   "topbar": {
     "searchPlaceholder": "Поиск по меню, продуктам, настройкам…",
@@ -18,7 +19,8 @@
     "settings": "Настройки",
     "signOut": "Выйти",
     "paletteGroupNav": "Навигация",
-    "paletteEmpty": "Ничего не найдено."
+    "paletteEmpty": "Ничего не найдено.",
+    "backTo": "Назад к {page}"
   },
   "breadcrumbs": {
     "dashboard": "Панель",
