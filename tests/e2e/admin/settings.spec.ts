@@ -174,8 +174,8 @@ test.describe('admin settings shell (T16.1)', () => {
     // Clean form → no save bar.
     await expect(page.getByTestId('settings-save-bar')).toHaveCount(0);
 
-    // Dirty the placeholder input.
-    const input = page.getByTestId('settings-placeholder-profile-input');
+    // Dirty the first-name input.
+    const input = page.getByTestId('profile-firstName');
     await input.fill('hello');
 
     // Save bar appears with the unsaved-changes copy.

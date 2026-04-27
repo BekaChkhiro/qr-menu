@@ -19,7 +19,7 @@ export function SettingsSaveBar() {
       data-dirty="true"
       role="region"
       aria-label={t('ariaLabel')}
-      className="flex h-16 flex-shrink-0 items-center justify-between border-t border-border bg-card px-7"
+      className="fixed inset-x-0 bottom-24 z-40 flex h-16 flex-shrink-0 items-center justify-between border-t border-border bg-card px-4 md:static md:bottom-0 md:px-7"
     >
       <div className="flex min-h-[20px] items-center gap-2">
         <span
