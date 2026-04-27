@@ -409,6 +409,59 @@
           "body": "Только вы и ваша команда можете предпросматривать. Гости видят «Меню недоступно»."
         }
       },
+      "schedule": {
+        "label": "Расписание",
+        "helper": "Необязательно — автоматическая публикация или снятие с публикации по дате. Полезно для сезонных меню.",
+        "autoPublishTitle": "Автопубликация по дате",
+        "autoPublishBody": "Запланировать публикацию меню на определённое время.",
+        "autoUnpublishTitle": "Автоснятие с публикации по дате",
+        "autoUnpublishBody": "Хорошо подходит для сезонных меню, например \"Летний бранч\".",
+        "save": "Сохранить изменения",
+        "saving": "Сохранение…",
+        "discard": "Отменить",
+        "saved": "Расписание сохранено",
+        "saveFailed": "Не удалось сохранить расписание"
+      },
+      "seo": {
+        "label": "SEO и публикации",
+        "helper": "Как это меню будет выглядеть при публикации в WhatsApp, Instagram или Facebook.",
+        "metaTitleLabel": "Meta-заголовок",
+        "metaTitleHint": "Если оставить пустым, будет использовано название меню.",
+        "metaTitlePlaceholder": "Главное меню — Café Linville",
+        "metaDescriptionLabel": "Meta-описание",
+        "metaDescriptionPlaceholder": "Авторский кофе, хачапури и сезонный бранч на проспекте Руставели. Открыты ежедневно.",
+        "shareImageLabel": "Изображение для публикации",
+        "shareImageHint": "Рекомендуется 1200 × 630. PNG или JPG, макс. 2 МБ.",
+        "livePreviewLabel": "Предпросмотр публикации",
+        "previewHint": "WhatsApp, Instagram, iMessage и большинство приложений используют теги Open Graph.",
+        "fallbackDescription": "Посмотрите наше цифровое меню — отсканируйте QR-код или перейдите по ссылке.",
+        "save": "Сохранить изменения",
+        "saving": "Сохранение…",
+        "discard": "Отменить",
+        "saved": "SEO-настройки сохранены",
+        "saveFailed": "Не удалось сохранить SEO-настройки"
+      },
+      "advanced": {
+        "label": "Дополнительно",
+        "helper": "Клонировать, заархивировать или навсегда удалить это меню.",
+        "clone": "Клонировать меню",
+        "cloning": "Клонирование…",
+        "cloneSuccess": "Меню клонировано: {name}",
+        "cloneError": "Не удалось клонировать меню. Пожалуйста, попробуйте снова.",
+        "archive": "В архив",
+        "archiving": "Архивирование…",
+        "archiveSuccess": "Меню заархивировано",
+        "archiveError": "Не удалось заархивировать меню. Пожалуйста, попробуйте снова.",
+        "deleteTitle": "Удалить это меню",
+        "deleteDescription": "Все товары, категории и история сканирования QR-кода для {name} будут немедленно удалены. Это действие необратимо.",
+        "deleteButton": "Удалить меню",
+        "deleteConfirmTitle": "Вы уверены?",
+        "deleteConfirmDescription": "Это навсегда удалит {name} и все его категории, товары и аналитику. Это действие необратимо.",
+        "deleteConfirmButton": "Удалить навсегда",
+        "deleteSuccess": "Меню удалено",
+        "deleteError": "Не удалось удалить меню. Пожалуйста, попробуйте снова."
+      },
+      "createdAt": "Создано",
       "actions": {
         "save": "Сохранить изменения",
         "saving": "Сохранение…",
@@ -461,13 +514,54 @@
       },
       "locked": {
         "title": "Акции — функция STARTER",
-        "body": "Запускай временные предложения, Happy hour и сезонные акции. Перейди на STARTER для неограниченных акций.",
-        "cta": "Перейти на STARTER"
+        "body": "Запускай временные предложения, Happy hour и сезонные акции. Акции увеличивают сканирования в среднем в 3 раза.",
+        "cta": "Перейти на STARTER — 29₾/мес",
+        "ctaShort": "Перейти на STARTER",
+        "bullets": {
+          "a": "Неограниченные активные акции",
+          "b": "Авто-завершение по дате окончания",
+          "c": "Планирование заранее"
+        },
+        "proLink": "Смотреть PRO функции →"
       }
     },
     "analytics": {
       "period": {
         "30d": "Последние 30 дней"
+      },
+      "range": {
+        "segmentAriaLabel": "Период аналитики",
+        "presetsAriaLabel": "Готовые диапазоны",
+        "customDefault": "Свой период",
+        "cancel": "Отмена",
+        "apply": "Применить",
+        "prevMonth": "Предыдущий месяц",
+        "nextMonth": "Следующий месяц",
+        "summaryDays": "({count, plural, one {# день} few {# дня} many {# дней} other {# дней}})",
+        "seg": {
+          "7d": "7д",
+          "30d": "30д",
+          "90d": "90д"
+        },
+        "presets": {
+          "today": "Сегодня",
+          "yesterday": "Вчера",
+          "last7": "Последние 7 дней",
+          "last30": "Последние 30 дней",
+          "thisMonth": "Этот месяц",
+          "lastMonth": "Прошлый месяц",
+          "lastQuarter": "Прошлый квартал",
+          "yearToDate": "С начала года"
+        },
+        "weekdays": {
+          "mon": "П",
+          "tue": "В",
+          "wed": "С",
+          "thu": "Ч",
+          "fri": "П",
+          "sat": "С",
+          "sun": "В"
+        }
       },
       "kpis": {
         "totalViews": "Всего просмотров",
@@ -717,7 +811,70 @@
       "copyToast": "URL скопирован",
       "copyError": "Не удалось скопировать URL",
       "saving": "Сохранение…",
-      "saveError": "Не удалось сохранить дизайн QR"
+      "saveError": "Не удалось сохранить дизайн QR",
+      "download": {
+        "title": "Скачать и поделиться",
+        "subtitle": "Экспортируйте QR-код или используйте готовый к печати шаблон плаката.",
+        "format": {
+          "label": "Формат",
+          "pngDesc": "Лучше для цифры · высокое разрешение",
+          "svgDesc": "Идеально масштабируется для печати · вектор",
+          "pdfDesc": "Готов к печати · 3 мм вылеты"
+        },
+        "include": {
+          "label": "Включить",
+          "url": "Ссылка на меню под QR",
+          "cta": "Короткий призыв \"Отсканируйте для меню\"",
+          "logo": "Логотип ресторана над QR"
+        },
+        "downloadBtn": "Скачать QR · {format}",
+        "templatesBtn": "Шаблоны плакатов",
+        "templatesCount": "шаблонов"
+      },
+      "stats": {
+        "heading": "Этот QR отсканирован",
+        "period": "раз за последние 30 дней",
+        "mostActive": "Самый активный стол:",
+        "tableName": "Стол {n}",
+        "scans": "сканирований",
+        "viewAnalytics": "Открыть аналитику"
+      },
+      "link": {
+        "heading": "Прямая ссылка на меню",
+        "copy": "Копировать",
+        "trackingTitle": "Отслеживать источник сканирования",
+        "trackingBody": "Помечайте QR-коды столом или локацией, чтобы аналитика могла атрибутировать сканы."
+      },
+      "templates": {
+        "title": "Шаблоны для печати",
+        "subtitle": "Выберите шаблон и скачайте готовый к печати файл с вашим QR-кодом.",
+        "close": "Закрыть",
+        "download": "Скачать выбранное (PDF)",
+        "selectionCount": "шаблон выбран",
+        "selectionEmpty": "Выберите шаблон для скачивания",
+        "filters": {
+          "all": "Все",
+          "tent": "Тент",
+          "poster": "Постер",
+          "receipt": "Чек",
+          "decal": "Наклейка",
+          "booklet": "Буклет"
+        },
+        "items": {
+          "tentA4": "Настольный тент",
+          "tentA4Dim": "A4 сложенный · 148×210мм",
+          "posterA3": "Настенный постер",
+          "posterA3Dim": "A3 · 297×420мм",
+          "tentMin": "Настольный тент · минимальный",
+          "tentMinDim": "A4 сложенный",
+          "receipt": "Вкладыш в чек",
+          "receiptDim": "80×150мм",
+          "decal": "Оконная наклейка",
+          "decalDim": "200×200мм",
+          "booklet": "Обложка буклета меню",
+          "bookletDim": "A5"
+        }
+      }
     },
     "errors": {
       "notFound": "Меню не найдено",
@@ -1030,6 +1187,66 @@
       "createError": "Не удалось создать акцию",
       "updateError": "Не удалось обновить акцию",
       "deleteError": "Не удалось удалить акцию"
+    },
+    "drawer": {
+      "addTitle": "Новая акция",
+      "editTitle": "Редактировать акцию",
+      "editSubtitle": "{title}",
+      "closeLabel": "Закрыть",
+      "saveErrorTitle": "Не удалось сохранить акцию",
+      "saveErrorDefault": "Что-то пошло не так. Попробуйте ещё раз.",
+      "saving": "Сохранение…",
+      "saveNewPromotion": "Создать акцию",
+      "deletePromotion": "Удалить акцию",
+      "tabs": {
+        "details": "Детали",
+        "appearance": "Оформление",
+        "schedule": "Расписание"
+      },
+      "fields": {
+        "titleLabel": "Заголовок",
+        "titleKaPlaceholder": "напр. ბედნიერი საათი",
+        "titleEnPlaceholder": "напр. Happy Hour",
+        "titleRuPlaceholder": "напр. Хэппи-час",
+        "descriptionLabel": "Краткое описание",
+        "descriptionKaPlaceholder": "აღწერეთ აქცია...",
+        "descriptionEnPlaceholder": "Describe the promotion...",
+        "descriptionRuPlaceholder": "Опишите акцию...",
+        "discountTypeLabel": "Тип скидки",
+        "discountTypes": {
+          "percentage": "Процентная",
+          "fixed": "Фиксированная сумма (₾)",
+          "freeAddon": "Бесплатное дополнение"
+        },
+        "discountValueLabel": "Размер скидки",
+        "discountValueHint": "Введите размер скидки",
+        "applyToLabel": "Применить к",
+        "applyTo": {
+          "entireMenu": {
+            "title": "Всему меню",
+            "hint": "Распространяется на все позиции"
+          },
+          "category": {
+            "title": "Конкретной категории",
+            "hint": "Выберите одну категорию",
+            "placeholder": "Выберите категорию"
+          },
+          "specificItems": {
+            "title": "Конкретным позициям",
+            "hint": "Выберите отдельные позиции"
+          }
+        },
+        "timeRestrictionsLabel": "Ограничения по времени",
+        "timeRestrictionsToggleTitle": "Ограничить по дням и часам",
+        "timeRestrictionsToggleHint": "Если выключено, действует каждый день в указанные даты.",
+        "timeTo": "до",
+        "bannerLabel": "Баннер",
+        "bannerHint": "Загрузите баннер 16:9. Рекомендуемый размер: 1200×600 пикселей.",
+        "startDate": "Дата начала",
+        "endDate": "Дата окончания",
+        "isActive": "Активная",
+        "isActiveHint": "При включении акция будет видна клиентам в указанном диапазоне дат."
+      }
     }
   },
   "settings": {
@@ -1148,6 +1365,31 @@
       "starter": "Стартер",
       "pro": "Про",
       "upgrade": "Обновить"
+    },
+    "billing": {
+      "currentPlanOverline": "Текущий план",
+      "scansOverline": "Сканирования в этом месяце",
+      "menusLabel": "меню",
+      "itemsLabel": "позиций",
+      "unlimited": "безлимитно",
+      "perMonth": "месяц",
+      "perMonthShort": "мес",
+      "nextInvoice": "Следующий счёт",
+      "plansSectionTitle": "Планы",
+      "paymentMethodTitle": "Способ оплаты",
+      "noPaymentMethod": "Способ оплаты не добавлен",
+      "addCard": "Добавить карту",
+      "currentBadge": "Текущий",
+      "manage": "Управлять",
+      "upgrade": "Обновить",
+      "downgrade": "Понизить",
+      "upgradeToPro": "Обновить до Про",
+      "upgradeToast": "Чтобы изменить план, свяжитесь с нами: hello@cafelinville.ge",
+      "planNames": {
+        "free": "Бесплатный",
+        "starter": "Стартер",
+        "pro": "Про"
+      }
     }
   },
   "plan": {

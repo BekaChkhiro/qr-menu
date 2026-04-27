@@ -409,6 +409,59 @@
           "body": "Only you and your team can preview. Customers see \"Menu not available.\""
         }
       },
+      "schedule": {
+        "label": "Schedule",
+        "helper": "Optional — automatically publish or unpublish on a date. Useful for seasonal menus.",
+        "autoPublishTitle": "Auto-publish on a date",
+        "autoPublishBody": "Queue this menu to go live at a specific time.",
+        "autoUnpublishTitle": "Auto-unpublish on a date",
+        "autoUnpublishBody": "Good for seasonal menus like \"Summer brunch\".",
+        "save": "Save changes",
+        "saving": "Saving…",
+        "discard": "Discard",
+        "saved": "Schedule saved",
+        "saveFailed": "Could not save schedule"
+      },
+      "seo": {
+        "label": "SEO & sharing",
+        "helper": "How this menu previews when shared on WhatsApp, Instagram or Facebook.",
+        "metaTitleLabel": "Meta title",
+        "metaTitleHint": "Falls back to menu name if left blank.",
+        "metaTitlePlaceholder": "Main menu — Café Linville",
+        "metaDescriptionLabel": "Meta description",
+        "metaDescriptionPlaceholder": "Small-batch coffee, khachapuri, and seasonal brunch on Rustaveli Avenue. Open daily.",
+        "shareImageLabel": "Share image",
+        "shareImageHint": "1200 × 630 recommended. PNG or JPG, max 2MB.",
+        "livePreviewLabel": "Live share preview",
+        "previewHint": "Rendered by WhatsApp, Instagram, iMessage and most apps using Open Graph tags.",
+        "fallbackDescription": "View our digital menu — scan the QR code or visit the link.",
+        "save": "Save changes",
+        "saving": "Saving…",
+        "discard": "Discard",
+        "saved": "SEO settings saved",
+        "saveFailed": "Could not save SEO settings"
+      },
+      "advanced": {
+        "label": "Advanced",
+        "helper": "Clone, archive, or permanently delete this menu.",
+        "clone": "Clone this menu",
+        "cloning": "Cloning…",
+        "cloneSuccess": "Menu cloned: {name}",
+        "cloneError": "Could not clone menu. Please try again.",
+        "archive": "Archive",
+        "archiving": "Archiving…",
+        "archiveSuccess": "Menu archived",
+        "archiveError": "Could not archive menu. Please try again.",
+        "deleteTitle": "Delete this menu",
+        "deleteDescription": "All items, categories, and QR-code traffic history for {name} are deleted immediately. This can't be undone.",
+        "deleteButton": "Delete menu",
+        "deleteConfirmTitle": "Are you sure?",
+        "deleteConfirmDescription": "This will permanently delete {name} and all its categories, products, and analytics. This action cannot be undone.",
+        "deleteConfirmButton": "Delete permanently",
+        "deleteSuccess": "Menu deleted",
+        "deleteError": "Could not delete menu. Please try again."
+      },
+      "createdAt": "Created",
       "actions": {
         "save": "Save changes",
         "saving": "Saving…",
@@ -461,13 +514,54 @@
       },
       "locked": {
         "title": "Promotions are a STARTER feature",
-        "body": "Launch timed offers, happy hours and seasonal specials. Upgrade to run unlimited promotions.",
-        "cta": "Upgrade to STARTER"
+        "body": "Launch timed offers, happy hours and seasonal specials. Promotions drive 3× more scans on average.",
+        "cta": "Upgrade to STARTER — 29₾/month",
+        "ctaShort": "Upgrade to STARTER",
+        "bullets": {
+          "a": "Unlimited active promotions",
+          "b": "Auto-expire on end date",
+          "c": "Schedule ahead of time"
+        },
+        "proLink": "See PRO features →"
       }
     },
     "analytics": {
       "period": {
         "30d": "Last 30 days"
+      },
+      "range": {
+        "segmentAriaLabel": "Analytics period",
+        "presetsAriaLabel": "Quick range presets",
+        "customDefault": "Custom",
+        "cancel": "Cancel",
+        "apply": "Apply",
+        "prevMonth": "Previous month",
+        "nextMonth": "Next month",
+        "summaryDays": "({count, plural, one {# day} other {# days}})",
+        "seg": {
+          "7d": "7d",
+          "30d": "30d",
+          "90d": "90d"
+        },
+        "presets": {
+          "today": "Today",
+          "yesterday": "Yesterday",
+          "last7": "Last 7 days",
+          "last30": "Last 30 days",
+          "thisMonth": "This month",
+          "lastMonth": "Last month",
+          "lastQuarter": "Last quarter",
+          "yearToDate": "Year to date"
+        },
+        "weekdays": {
+          "mon": "M",
+          "tue": "T",
+          "wed": "W",
+          "thu": "T",
+          "fri": "F",
+          "sat": "S",
+          "sun": "S"
+        }
       },
       "kpis": {
         "totalViews": "Total views",
@@ -717,7 +811,70 @@
       "copyToast": "URL copied",
       "copyError": "Could not copy URL",
       "saving": "Saving…",
-      "saveError": "Failed to save QR design"
+      "saveError": "Failed to save QR design",
+      "download": {
+        "title": "Download & share",
+        "subtitle": "Export your QR code or use a print-ready poster template.",
+        "format": {
+          "label": "Format",
+          "pngDesc": "Best for digital · high-res raster",
+          "svgDesc": "Scales perfectly for print · vector",
+          "pdfDesc": "Print-ready with 3mm bleed"
+        },
+        "include": {
+          "label": "Include",
+          "url": "Menu URL under QR",
+          "cta": "Short call-to-action \"Scan for menu\"",
+          "logo": "Restaurant logo above QR"
+        },
+        "downloadBtn": "Download QR · {format}",
+        "templatesBtn": "Print-ready poster templates",
+        "templatesCount": "templates"
+      },
+      "stats": {
+        "heading": "This QR has been scanned",
+        "period": "times in the last 30 days",
+        "mostActive": "Most active table:",
+        "tableName": "Table {n}",
+        "scans": "scans",
+        "viewAnalytics": "View in Analytics"
+      },
+      "link": {
+        "heading": "Direct menu link",
+        "copy": "Copy",
+        "trackingTitle": "Track scan source per QR",
+        "trackingBody": "Tag QR codes by table or location so Analytics can attribute scans."
+      },
+      "templates": {
+        "title": "Print templates",
+        "subtitle": "Pick a template and download a print-ready file with your QR code.",
+        "close": "Close",
+        "download": "Download selected (PDF)",
+        "selectionCount": "template selected",
+        "selectionEmpty": "Select a template to download",
+        "filters": {
+          "all": "All",
+          "tent": "Tent",
+          "poster": "Poster",
+          "receipt": "Receipt",
+          "decal": "Decal",
+          "booklet": "Booklet"
+        },
+        "items": {
+          "tentA4": "Table tent",
+          "tentA4Dim": "A4 folded · 148×210mm",
+          "posterA3": "Wall poster",
+          "posterA3Dim": "A3 · 297×420mm",
+          "tentMin": "Table tent · minimal",
+          "tentMinDim": "A4 folded",
+          "receipt": "Receipt insert",
+          "receiptDim": "80×150mm",
+          "decal": "Window decal",
+          "decalDim": "200×200mm",
+          "booklet": "Menu booklet back",
+          "bookletDim": "A5"
+        }
+      }
     },
     "errors": {
       "notFound": "Menu not found",
@@ -1030,6 +1187,66 @@
       "createError": "Failed to create promotion",
       "updateError": "Failed to update promotion",
       "deleteError": "Failed to delete promotion"
+    },
+    "drawer": {
+      "addTitle": "New promotion",
+      "editTitle": "Edit promotion",
+      "editSubtitle": "{title}",
+      "closeLabel": "Close",
+      "saveErrorTitle": "Couldn't save promotion",
+      "saveErrorDefault": "Something went wrong. Please try again.",
+      "saving": "Saving…",
+      "saveNewPromotion": "Create promotion",
+      "deletePromotion": "Delete promotion",
+      "tabs": {
+        "details": "Details",
+        "appearance": "Appearance",
+        "schedule": "Schedule"
+      },
+      "fields": {
+        "titleLabel": "Title",
+        "titleKaPlaceholder": "e.g. Happy Hour",
+        "titleEnPlaceholder": "e.g. Happy Hour",
+        "titleRuPlaceholder": "e.g. Хэппи-час",
+        "descriptionLabel": "Short description",
+        "descriptionKaPlaceholder": "Describe the promotion...",
+        "descriptionEnPlaceholder": "Describe the promotion...",
+        "descriptionRuPlaceholder": "Describe the promotion...",
+        "discountTypeLabel": "Discount type",
+        "discountTypes": {
+          "percentage": "Percentage off",
+          "fixed": "Fixed amount (₾)",
+          "freeAddon": "Free add-on"
+        },
+        "discountValueLabel": "Discount value",
+        "discountValueHint": "Enter the discount amount",
+        "applyToLabel": "Apply to",
+        "applyTo": {
+          "entireMenu": {
+            "title": "Entire menu",
+            "hint": "Applies to all items"
+          },
+          "category": {
+            "title": "Specific category",
+            "hint": "Pick one category to discount",
+            "placeholder": "Select a category"
+          },
+          "specificItems": {
+            "title": "Specific items",
+            "hint": "Pick individual items to discount"
+          }
+        },
+        "timeRestrictionsLabel": "Time restrictions",
+        "timeRestrictionsToggleTitle": "Limit to specific days & hours",
+        "timeRestrictionsToggleHint": "When off, runs all day every day within the dates.",
+        "timeTo": "to",
+        "bannerLabel": "Banner image",
+        "bannerHint": "Upload a 16:9 banner image. Recommended: 1200×600 pixels.",
+        "startDate": "Start date",
+        "endDate": "End date",
+        "isActive": "Active",
+        "isActiveHint": "When enabled, the promotion will be visible to customers within the date range."
+      }
     }
   },
   "settings": {
@@ -1148,6 +1365,31 @@
       "starter": "Starter",
       "pro": "Pro",
       "upgrade": "Upgrade"
+    },
+    "billing": {
+      "currentPlanOverline": "Current Plan",
+      "scansOverline": "Scans This Month",
+      "menusLabel": "menus",
+      "itemsLabel": "items",
+      "unlimited": "unlimited",
+      "perMonth": "month",
+      "perMonthShort": "month",
+      "nextInvoice": "Next invoice",
+      "plansSectionTitle": "Plans",
+      "paymentMethodTitle": "Payment method",
+      "noPaymentMethod": "No payment method on file",
+      "addCard": "Add card",
+      "currentBadge": "Current",
+      "manage": "Manage",
+      "upgrade": "Upgrade",
+      "downgrade": "Downgrade",
+      "upgradeToPro": "Upgrade to Pro",
+      "upgradeToast": "Contact us at hello@cafelinville.ge to change your plan.",
+      "planNames": {
+        "free": "Free",
+        "starter": "Starter",
+        "pro": "Pro"
+      }
     }
   },
   "plan": {

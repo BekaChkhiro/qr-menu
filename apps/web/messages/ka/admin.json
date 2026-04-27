@@ -409,6 +409,59 @@
           "body": "მხოლოდ შენ და შენს გუნდს შეგიძლიათ ნახვა. სტუმრები იხილავენ „მენიუ მიუწვდომელია“."
         }
       },
+      "schedule": {
+        "label": "განრიგი",
+        "helper": "არასავალდებულო — მენიუს ავტომატური გამოქვეყნება ან დამალვა კონკრეტულ თარიღზე. გამოსადეგია სეზონური მენიუებისთვის.",
+        "autoPublishTitle": "ავტოგამოქვეყნება თარიღზე",
+        "autoPublishBody": "დაგეგმე მენიუს გააქტიურება კონკრეტულ დროზე.",
+        "autoUnpublishTitle": "ავტოდამალვა თარიღზე",
+        "autoUnpublishBody": "კარგია სეზონური მენიუებისთვის, მაგალითად \"საზაფხულო ბრანჩი\".",
+        "save": "ცვლილებების შენახვა",
+        "saving": "ინახება…",
+        "discard": "გაუქმება",
+        "saved": "განრიგი შენახულია",
+        "saveFailed": "განრიგის შენახვა ვერ მოხერხდა"
+      },
+      "seo": {
+        "label": "SEO და გაზიარება",
+        "helper": "როგორ გამოჩნდება ეს მენიუ WhatsApp-ზე, Instagram-ზე ან Facebook-ზე გაზიარებისას.",
+        "metaTitleLabel": "Meta სათაური",
+        "metaTitleHint": "თუ ცარიელია, გამოიყენება მენიუს სახელი.",
+        "metaTitlePlaceholder": "მთავარი მენიუ — Café Linville",
+        "metaDescriptionLabel": "Meta აღწერა",
+        "metaDescriptionPlaceholder": "ხელით დაყენებული ყავა, ხაჭაპური და სეზონური ბრანჩი რუსთაველის გამზირზე. ღიაა ყოველდღე.",
+        "shareImageLabel": "გაზიარების სურათი",
+        "shareImageHint": "რეკომენდებულია 1200 × 630. PNG ან JPG, მაქს. 2MB.",
+        "livePreviewLabel": "გაზიარების ცოცხალიpreview",
+        "previewHint": "WhatsApp, Instagram, iMessage და უმეტესობა აპლიკაცია Open Graph ტეგებს იყენებს.",
+        "fallbackDescription": "ნახე ჩვენი ციფრული მენიუ — დაასკანერე QR კოდი ან ეწვიე ბმულს.",
+        "save": "ცვლილებების შენახვა",
+        "saving": "ინახება…",
+        "discard": "გაუქმება",
+        "saved": "SEO პარამეტრები შენახულია",
+        "saveFailed": "SEO პარამეტრების შენახვა ვერ მოხერხდა"
+      },
+      "advanced": {
+        "label": "დამატებით",
+        "helper": "მენიუს კლონირება, არქივში გადატანა ან სამუდამოდ წაშლა.",
+        "clone": "მენიუს კლონირება",
+        "cloning": "იკლონირება…",
+        "cloneSuccess": "მენიუ კლონირებულია: {name}",
+        "cloneError": "მენიუს კლონირება ვერ მოხერხდა. სცადეთ თავიდან.",
+        "archive": "არქივში გადატანა",
+        "archiving": "ინახავს…",
+        "archiveSuccess": "მენიუ არქივში გადატანილია",
+        "archiveError": "მენიუს არქივში გადატანა ვერ მოხერხდა. სცადეთ თავიდან.",
+        "deleteTitle": "მენიუს წაშლა",
+        "deleteDescription": "{name}-ის ყველა პროდუქტი, კატეგორია და QR-კოდის ისტორია დაუყოვნებლივ წაიშლება. ეს ქმედება შეუქცევადია.",
+        "deleteButton": "მენიუს წაშლა",
+        "deleteConfirmTitle": "დარწმუნებული ხართ?",
+        "deleteConfirmDescription": "ეს სამუდამოდ წაშლის {name}-ს და მის ყველა კატეგორიას, პროდუქტსა და ანალიტიკას. ეს ქმედება შეუქცევადია.",
+        "deleteConfirmButton": "სამუდამოდ წაშლა",
+        "deleteSuccess": "მენიუ წაშლილია",
+        "deleteError": "მენიუს წაშლა ვერ მოხერხდა. სცადეთ თავიდან."
+      },
+      "createdAt": "შექმნის თარიღი",
       "actions": {
         "save": "ცვლილებების შენახვა",
         "saving": "ინახება…",
@@ -461,13 +514,54 @@
       },
       "locked": {
         "title": "აქციები STARTER-ის ფუნქციაა",
-        "body": "გაუშვი დროებითი შეთავაზებები, Happy hour-ები და სეზონური სპეციალები. განაახლე ULIMITED აქციებისთვის.",
-        "cta": "გადადი STARTER-ზე"
+        "body": "გაუშვი დროებითი შეთავაზებები, Happy hour-ები და სეზონური სპეციალები. აქციები საშუალოდ 3-ჯერ ზრდის სკანირებებს.",
+        "cta": "გადადი STARTER-ზე — 29₾/თვე",
+        "ctaShort": "გადადი STARTER-ზე",
+        "bullets": {
+          "a": "შეუზღუდავი აქტიური აქციები",
+          "b": "ავტომატური დახურვა ვადის ამოწურვისას",
+          "c": "წინასწარ დაგეგმვა"
+        },
+        "proLink": "PRO ფუნქციების ნახვა →"
       }
     },
     "analytics": {
       "period": {
         "30d": "ბოლო 30 დღე"
+      },
+      "range": {
+        "segmentAriaLabel": "ანალიტიკის პერიოდი",
+        "presetsAriaLabel": "სწრაფი დიაპაზონები",
+        "customDefault": "მორგებული",
+        "cancel": "გაუქმება",
+        "apply": "გამოყენება",
+        "prevMonth": "წინა თვე",
+        "nextMonth": "შემდეგი თვე",
+        "summaryDays": "({count, plural, one {# დღე} other {# დღე}})",
+        "seg": {
+          "7d": "7დ",
+          "30d": "30დ",
+          "90d": "90დ"
+        },
+        "presets": {
+          "today": "დღეს",
+          "yesterday": "გუშინ",
+          "last7": "ბოლო 7 დღე",
+          "last30": "ბოლო 30 დღე",
+          "thisMonth": "ეს თვე",
+          "lastMonth": "გასული თვე",
+          "lastQuarter": "გასული კვარტალი",
+          "yearToDate": "წლის დასაწყისიდან"
+        },
+        "weekdays": {
+          "mon": "ო",
+          "tue": "სა",
+          "wed": "ო",
+          "thu": "ხ",
+          "fri": "პ",
+          "sat": "შ",
+          "sun": "კ"
+        }
       },
       "kpis": {
         "totalViews": "ჯამური ნახვები",
@@ -717,7 +811,70 @@
       "copyToast": "ბმული დაკოპირდა",
       "copyError": "ბმულის კოპირება ვერ მოხერხდა",
       "saving": "შენახვა…",
-      "saveError": "QR-ის დიზაინის შენახვა ვერ მოხერხდა"
+      "saveError": "QR-ის დიზაინის შენახვა ვერ მოხერხდა",
+      "download": {
+        "title": "ჩამოტვირთვა და გაზიარება",
+        "subtitle": "ჩამოტვირთეთ თქვენი QR-კოდი ან გამოიყენეთ ბეჭდვისთვის მზად პოსტერის შაბლონი.",
+        "format": {
+          "label": "ფორმატი",
+          "pngDesc": "საუკეთესო ციფრულისთვის · მაღალი გარჩევადობა",
+          "svgDesc": "იდეალურად მასშტაბირდება ბეჭდვისთვის · ვექტორი",
+          "pdfDesc": "ბეჭდვისთვის მზად · 3მმ ნაპირები"
+        },
+        "include": {
+          "label": "ჩართვა",
+          "url": "QR-ის ქვეშ მენიუს ბმული",
+          "cta": "მოკლე მოწოდება \"მენიუსთვის დაასკანერეთ\"",
+          "logo": "QR-ის ზემოთ რესტორნის ლოგო"
+        },
+        "downloadBtn": "QR-ის ჩამოტვირთვა · {format}",
+        "templatesBtn": "პოსტერის შაბლონები",
+        "templatesCount": "შაბლონი"
+      },
+      "stats": {
+        "heading": "ეს QR დასკანერებულია",
+        "period": "ჯერ ბოლო 30 დღეში",
+        "mostActive": "ყველაზე აქტიური მაგიდა:",
+        "tableName": "მაგიდა {n}",
+        "scans": "სკანირება",
+        "viewAnalytics": "ანალიტიკის ნახვა"
+      },
+      "link": {
+        "heading": "მენიუს პირდაპირი ბმული",
+        "copy": "კოპირება",
+        "trackingTitle": "QR სკანირების წყაროს თვალყური",
+        "trackingBody": "მიანიჭეთ QR-კოდებს მაგიდის ან ადგილმდებარეობის ჭდეები, რომ ანალიტიკამ შეძლოს სკანირების ატრიბუცია."
+      },
+      "templates": {
+        "title": "ბეჭდვის შაბლონები",
+        "subtitle": "აირჩიეთ შაბლონი და ჩამოტვირთეთ ბეჭდვისთვის მზად ფაილი თქვენი QR კოდით.",
+        "close": "დახურვა",
+        "download": "არჩეულის ჩამოტვირთვა (PDF)",
+        "selectionCount": "შაბლონი არჩეულია",
+        "selectionEmpty": "ჩამოსატვირთად აირჩიეთ შაბლონი",
+        "filters": {
+          "all": "ყველა",
+          "tent": "ბარათი",
+          "poster": "პოსტერი",
+          "receipt": "ქვითარი",
+          "decal": "სტიკერი",
+          "booklet": "ბუკლეტი"
+        },
+        "items": {
+          "tentA4": "მაგიდის ბარათი",
+          "tentA4Dim": "A4 ნაკეცი · 148×210მმ",
+          "posterA3": "კედლის პოსტერი",
+          "posterA3Dim": "A3 · 297×420მმ",
+          "tentMin": "მაგიდის ბარათი · მინიმალური",
+          "tentMinDim": "A4 ნაკეცი",
+          "receipt": "ქვითრის ჩასაწერი",
+          "receiptDim": "80×150მმ",
+          "decal": "ფანჯრის სტიკერი",
+          "decalDim": "200×200მმ",
+          "booklet": "მენიუს ბუკლეტის უკანა მხარე",
+          "bookletDim": "A5"
+        }
+      }
     },
     "errors": {
       "notFound": "მენიუ ვერ მოიძებნა",
@@ -1030,6 +1187,66 @@
       "createError": "აქციის შექმნა ვერ მოხერხდა",
       "updateError": "აქციის განახლება ვერ მოხერხდა",
       "deleteError": "აქციის წაშლა ვერ მოხერხდა"
+    },
+    "drawer": {
+      "addTitle": "ახალი აქცია",
+      "editTitle": "აქციის რედაქტირება",
+      "editSubtitle": "{title}",
+      "closeLabel": "დახურვა",
+      "saveErrorTitle": "აქცია ვერ შეინახა",
+      "saveErrorDefault": "რაღაც შეცდომა მოხდა. სცადეთ თავიდან.",
+      "saving": "ინახება…",
+      "saveNewPromotion": "აქციის შექმნა",
+      "deletePromotion": "აქციის წაშლა",
+      "tabs": {
+        "details": "დეტალები",
+        "appearance": "გაფორმება",
+        "schedule": "განრიგი"
+      },
+      "fields": {
+        "titleLabel": "სათაური",
+        "titleKaPlaceholder": "მაგ: ბედნიერი საათი",
+        "titleEnPlaceholder": "მაგ: Happy Hour",
+        "titleRuPlaceholder": "მაგ: Хэппи-час",
+        "descriptionLabel": "მოკლე აღწერა",
+        "descriptionKaPlaceholder": "აღწერეთ აქცია...",
+        "descriptionEnPlaceholder": "Describe the promotion...",
+        "descriptionRuPlaceholder": "Опишите акцию...",
+        "discountTypeLabel": "ფასდაკლების ტიპი",
+        "discountTypes": {
+          "percentage": "პროცენტული",
+          "fixed": "ფიქსირებული თანხა (₾)",
+          "freeAddon": "უფასო დამატება"
+        },
+        "discountValueLabel": "ფასდაკლების ოდენობა",
+        "discountValueHint": "შეიყვანეთ ფასდაკლების ოდენობა",
+        "applyToLabel": "გავრცელება",
+        "applyTo": {
+          "entireMenu": {
+            "title": "მთელ მენიუზე",
+            "hint": "ეხება ყველა პროდუქტს"
+          },
+          "category": {
+            "title": "კონკრეტულ კატეგორიაზე",
+            "hint": "აირჩიე ერთი კატეგორია",
+            "placeholder": "აირჩიე კატეგორია"
+          },
+          "specificItems": {
+            "title": "კონკრეტულ პროდუქტებზე",
+            "hint": "აირჩიე ცალკეული პროდუქტები"
+          }
+        },
+        "timeRestrictionsLabel": "დროის შეზღუდვა",
+        "timeRestrictionsToggleTitle": "შეზღუდე კონკრეტულ დღეებსა და საათებზე",
+        "timeRestrictionsToggleHint": "გამორთულის შემთხვევაში, მოქმედებს ყოველ დღე მითითებულ თარიღებში.",
+        "timeTo": "დან",
+        "bannerLabel": "ბანერის სურათი",
+        "bannerHint": "ატვირთე 16:9 ბანერი. რეკომენდებული: 1200×600 პიქსელი.",
+        "startDate": "დაწყების თარიღი",
+        "endDate": "დასრულების თარიღი",
+        "isActive": "აქტიური",
+        "isActiveHint": "ჩართვისას, აქცია ხილული იქნება მომხმარებლებისთვის თარიღების დიაპაზონში."
+      }
     }
   },
   "settings": {
@@ -1148,6 +1365,31 @@
       "starter": "სტარტერი",
       "pro": "პრო",
       "upgrade": "განახლება"
+    },
+    "billing": {
+      "currentPlanOverline": "მიმდინარე გეგმა",
+      "scansOverline": "სკანირებები ამ თვეში",
+      "menusLabel": "მენიუ",
+      "itemsLabel": "ნივთი",
+      "unlimited": "შეუზღუდავი",
+      "perMonth": "თვე",
+      "perMonthShort": "თვე",
+      "nextInvoice": "შემდეგი ინვოისი",
+      "plansSectionTitle": "გეგმები",
+      "paymentMethodTitle": "გადახდის მეთოდი",
+      "noPaymentMethod": "გადახდის მეთოდი არ არის დამატებული",
+      "addCard": "ბარათის დამატება",
+      "currentBadge": "მიმდინარე",
+      "manage": "მართვა",
+      "upgrade": "განახლება",
+      "downgrade": "დაყვანა",
+      "upgradeToPro": "განახლება პროზე",
+      "upgradeToast": "გეგმის შესაცვლელად დაგვიკავშირდით: hello@cafelinville.ge",
+      "planNames": {
+        "free": "უფასო",
+        "starter": "სტარტერი",
+        "pro": "პრო"
+      }
     }
   },
   "plan": {
