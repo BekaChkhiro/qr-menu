@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Box, Loader2, Trash2, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { validateGlbMesh } from '@/lib/validations/3d-upload';
 
 const ALLOWED_MIME = {
   glb: 'model/gltf-binary',
@@ -26,6 +27,37 @@ interface UploadResult {
   url: string;
   publicId: string;
   kind: ModelKind;
+}
+
+interface SignaturePayload {
+  signature: string;
+  timestamp: number;
+  apiKey: string;
+  cloudName: string;
+  folder: string;
+  publicIdPrefix: string;
+  resourceType: 'raw';
+}
+
+/**
+ * Read a JSON envelope from one of our own API routes — but tolerate the
+ * case where Vercel (or a reverse proxy) responds with plain text before the
+ * route handler even runs (e.g. 413 "Request Entity Too Large"). Returns the
+ * parsed JSON on success and throws an Error with a readable message on
+ * failure, never the cryptic "Unexpected token 'R'..." JSON.parse error.
+ */
+async function readJsonEnvelope<T>(res: Response, fallbackMessage: string): Promise<T> {
+  const contentType = res.headers.get('content-type') ?? '';
+  if (contentType.includes('application/json')) {
+    const json = (await res.json()) as { success?: boolean; data?: T; error?: { message?: string } };
+    if (!res.ok || !json.success) {
+      throw new Error(json.error?.message ?? fallbackMessage);
+    }
+    return json.data as T;
+  }
+  // Non-JSON response (most often a Vercel/edge plaintext error page).
+  const text = await res.text().catch(() => '');
+  throw new Error(text.trim() || fallbackMessage);
 }
 
 interface ArModelFieldProps {
@@ -61,17 +93,47 @@ export function ArModelField({
 
   const upload = useMutation<UploadResult, Error, File>({
     mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch('/api/upload/3d', {
+      // 1. Get a signed upload payload from our backend (auth + PRO gate).
+      const sigRes = await fetch('/api/upload/3d/signature', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind }),
       });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json?.error?.message ?? 'Upload failed');
+      const sig = await readJsonEnvelope<SignaturePayload>(sigRes, 'Could not start upload');
+
+      // 2. Upload the file directly to Cloudinary — bypasses our serverless
+      //    function so Vercel's ~4.5MB body limit doesn't apply.
+      const cloudForm = new FormData();
+      cloudForm.append('file', file);
+      cloudForm.append('api_key', sig.apiKey);
+      cloudForm.append('timestamp', String(sig.timestamp));
+      cloudForm.append('signature', sig.signature);
+      cloudForm.append('folder', sig.folder);
+      cloudForm.append('public_id_prefix', sig.publicIdPrefix);
+
+      const cloudRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${sig.cloudName}/${sig.resourceType}/upload`,
+        { method: 'POST', body: cloudForm },
+      );
+      const cloudJson = await cloudRes.json().catch(() => null);
+      if (!cloudRes.ok || !cloudJson?.secure_url || !cloudJson?.public_id) {
+        const message =
+          cloudJson?.error?.message ?? `Cloudinary upload failed (${cloudRes.status})`;
+        throw new Error(message);
       }
-      return json.data as UploadResult;
+
+      // 3. Finalize: server validates ownership + authoritative byte count
+      //    against Cloudinary, returns the canonical { url, publicId, kind }.
+      const finalizeRes = await fetch('/api/upload/3d/finalize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          publicId: cloudJson.public_id as string,
+          secureUrl: cloudJson.secure_url as string,
+          kind,
+        }),
+      });
+      return readJsonEnvelope<UploadResult>(finalizeRes, 'Upload could not be finalized');
     },
     onSuccess: (data) => {
       setError(null);
@@ -83,7 +145,7 @@ export function ArModelField({
   });
 
   const handleFile = useCallback(
-    (file: File) => {
+    async (file: File) => {
       setError(null);
       const expectedMime = ALLOWED_MIME[kind];
       const expectedExt = ALLOWED_EXTENSIONS[kind];
@@ -102,6 +164,22 @@ export function ArModelField({
         return;
       }
 
+      // Mesh-budget check for GLBs runs in the browser now that the file
+      // never traverses our backend (T18.6's 50K-triangle cap).
+      if (kind === 'glb') {
+        try {
+          const bytes = new Uint8Array(await file.arrayBuffer());
+          const meshCheck = validateGlbMesh(bytes);
+          if (!meshCheck.ok) {
+            setError(meshCheck.reason);
+            return;
+          }
+        } catch {
+          setError('Could not read the file');
+          return;
+        }
+      }
+
       // Force the right MIME so the API's strict whitelist accepts it.
       const blobWithMime =
         matchesMime
@@ -114,7 +192,7 @@ export function ArModelField({
 
   const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) handleFile(file);
+    if (file) void handleFile(file);
     e.target.value = '';
   };
 
