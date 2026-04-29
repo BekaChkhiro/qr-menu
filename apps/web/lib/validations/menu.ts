@@ -135,6 +135,11 @@ export const updateMenuSchema = z.object({
   metaDescription: z.string().max(300).nullable().optional(),
   shareImageUrl: z.string().url('Invalid image URL').nullable().optional(),
 
+  // Direct status update — used by the Settings → Advanced "Archive" action.
+  // `visibility` (below) takes precedence: when both are present the server
+  // derives status from visibility and the explicit status value is overwritten.
+  status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).optional(),
+
   // Visibility + password (T15.13).
   // `visibility` overrides `status`/`passwordHash` when present; the server
   // ignores any explicit status/passwordHash in the same body.
