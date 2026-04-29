@@ -968,10 +968,6 @@
           "title": "Save the product first",
           "body": "3D model uploads can happen once the product exists. Fill in the Basics tab and save — then come back here."
         },
-        "arModelLocked": {
-          "title": "AR / 3D models are a PRO feature",
-          "body": "Let guests preview your dish in AR right from their phone camera. Starts at 59₾/month."
-        },
         "nutrition": {
           "title": "Nutrition coming soon",
           "body": "Add calories and macros (protein, fats, carbs, fiber) so guests can browse with confidence."
@@ -1060,6 +1056,11 @@
           "saveError": "Failed to save changes",
           "uploadSuccess": "Model uploaded"
         }
+      },
+      "arLocked": {
+        "title": "Augmented Reality is a PRO feature",
+        "body": "Let guests preview your dish in AR right from their phone camera. Starts at 59₾/month.",
+        "cta": "Upgrade to PRO"
       },
       "allergensTab": {
         "tilesLabel": "Allergens",

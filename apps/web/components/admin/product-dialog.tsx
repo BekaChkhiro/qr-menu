@@ -13,6 +13,7 @@ import { ProductForm, type ProductFormValues } from './product-form';
 import { ProductDrawerVariationsTab } from './product-drawer-variations-tab';
 import { ProductDrawerAllergensTab } from './product-drawer-allergens-tab';
 import { AllergensLocked } from './product-drawer/allergens-locked';
+import { ArLocked } from './product-drawer/ar-locked';
 import { ProductDrawerArTab } from './product-drawer-ar-tab';
 import type { Product, Category } from '@/types/menu';
 
@@ -368,12 +369,7 @@ export function ProductDialog({
               className="m-0 p-6 focus-visible:outline-none"
             >
               {!arUnlocked ? (
-                <PlaceholderPanel
-                  tab="arModel"
-                  locked
-                  title={t('placeholders.arModelLocked.title')}
-                  body={t('placeholders.arModelLocked.body')}
-                />
+                <ArLocked />
               ) : isEditing ? (
                 <ProductDrawerArTab menuId={menuId} product={product} />
               ) : (

@@ -189,6 +189,30 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Check AR / 3D-model feature availability if any AR field is set in the
+    // request. Mirrors the upload/3d guard so a non-PRO user can't bypass the
+    // locked drawer tab by hand-rolling a PUT against this endpoint.
+    const touchesArFields =
+      data.arEnabled !== undefined ||
+      data.arModelUrl !== undefined ||
+      data.arModelUrlIos !== undefined ||
+      data.arPosterUrl !== undefined;
+
+    if (touchesArFields) {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { plan: true },
+      });
+
+      if (!user || !hasFeature(user.plan, 'arViewer')) {
+        return createErrorResponse(
+          ERROR_CODES.FEATURE_NOT_AVAILABLE,
+          'AR / 3D models are not available on your plan. Upgrade to PRO to use AR.',
+          403
+        );
+      }
+    }
+
     // Update product
     const product = await prisma.product.update({
       where: { id: productId },
