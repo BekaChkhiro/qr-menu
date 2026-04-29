@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Eye, EyeOff, AlertTriangle, Flame } from 'lucide-react';
+import { Eye, EyeOff, AlertTriangle, Flame, Box } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Locale } from '@/i18n/config';
 import type { PublicDisplaySettings, PublicProduct } from './product-card';
 import { PriceTag, OldPriceTag } from './price-tag';
 import { DietaryBadge } from './dietary-badge';
+import { ArViewerDialog } from './ar-viewer-dialog';
 import {
   allergenLabels,
   allergenShort,
@@ -32,9 +33,18 @@ interface Props {
  * Magazine template — editorial hero with refined typography.
  * Spacing rhythm: 8/12/16/20/24px grid.
  */
+const arButtonLabel: Record<Locale, string> = {
+  ka: 'AR ხედვაში',
+  en: 'View in AR',
+  ru: 'В AR',
+};
+
 export function ProductCardMagazine({ product, locale, settings }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [caloriesRevealed, setCaloriesRevealed] = useState(false);
+  const [arOpen, setArOpen] = useState(false);
+
+  const arAvailable = !!product.arEnabled && !!product.arModelUrl;
 
   const name = getProductName(product, locale);
   const description = getProductDescription(product, locale);
@@ -112,6 +122,23 @@ export function ProductCardMagazine({ product, locale, settings }: Props) {
           >
             −{discountPct}%
           </span>
+        )}
+
+        {/* AR chip */}
+        {arAvailable && (
+          <button
+            type="button"
+            onClick={() => setArOpen(true)}
+            className={cn(
+              'absolute right-4 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold text-foreground shadow-sm ring-1 ring-black/10 backdrop-blur-sm transition-colors hover:bg-white',
+              showDiscount ? 'top-12' : 'top-4'
+            )}
+            data-testid="public-product-ar-chip"
+            aria-label={arButtonLabel[locale]}
+          >
+            <Box className="h-3 w-3" strokeWidth={2.25} />
+            AR
+          </button>
         )}
 
         {/* Dietary badges — research-based "VG" / "V" text chips */}
@@ -323,6 +350,18 @@ export function ProductCardMagazine({ product, locale, settings }: Props) {
             </div>
           )}
       </div>
+
+      {arAvailable && (
+        <ArViewerDialog
+          open={arOpen}
+          onOpenChange={setArOpen}
+          glbUrl={product.arModelUrl as string}
+          usdzUrl={product.arModelUrlIos}
+          posterUrl={product.arPosterUrl ?? product.imageUrl}
+          alt={name}
+          locale={locale}
+        />
+      )}
     </article>
   );
 }

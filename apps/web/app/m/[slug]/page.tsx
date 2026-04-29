@@ -97,6 +97,10 @@ const menuSelect = {
           fats: true,
           carbs: true,
           fiber: true,
+          arEnabled: true,
+          arModelUrl: true,
+          arModelUrlIos: true,
+          arPosterUrl: true,
           sortOrder: true,
           variations: {
             orderBy: { sortOrder: 'asc' as const },
@@ -420,6 +424,10 @@ interface SerializedProduct {
   fats: number | string | null;
   carbs: number | string | null;
   fiber: number | string | null;
+  arEnabled: boolean;
+  arModelUrl: string | null;
+  arModelUrlIos: string | null;
+  arPosterUrl: string | null;
   sortOrder: number;
   variations: SerializedVariation[];
 }

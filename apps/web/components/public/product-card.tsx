@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   ChevronDown,
   Flame,
+  Box,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,6 +16,7 @@ import { cn } from '@/lib/utils';
 import type { Locale } from '@/i18n/config';
 import { PriceTag, OldPriceTag } from './price-tag';
 import { DietaryBadge } from './dietary-badge';
+import { ArViewerDialog } from './ar-viewer-dialog';
 import {
   allergenLabels,
   allergenShort,
@@ -89,7 +91,17 @@ export interface PublicProduct {
     nameRu: string | null;
     price: number | string;
   }>;
+  arEnabled?: boolean;
+  arModelUrl?: string | null;
+  arModelUrlIos?: string | null;
+  arPosterUrl?: string | null;
 }
+
+const arButtonLabel: Record<Locale, string> = {
+  ka: 'AR ხედვაში',
+  en: 'View in AR',
+  ru: 'В AR',
+};
 
 interface ProductCardProps {
   product: PublicProduct;
@@ -107,6 +119,9 @@ export function ProductCard({ product, locale, settings }: ProductCardProps) {
   const [imageError, setImageError] = useState(false);
   const [caloriesRevealed, setCaloriesRevealed] = useState(false);
   const [nutritionOpen, setNutritionOpen] = useState(false);
+  const [arOpen, setArOpen] = useState(false);
+
+  const arAvailable = !!product.arEnabled && !!product.arModelUrl;
 
   const name = getProductName(product, locale);
   const description = getProductDescription(product, locale);
@@ -187,6 +202,26 @@ export function ProductCard({ product, locale, settings }: ProductCardProps) {
                 <span className="absolute top-1.5 right-1.5 inline-flex items-center rounded-full bg-red-600/95 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
                   −{discountPct}%
                 </span>
+              )}
+
+              {/* AR chip — only when product has a usable 3D model */}
+              {arAvailable && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setArOpen(true);
+                  }}
+                  className={cn(
+                    'absolute right-1.5 inline-flex items-center gap-1 rounded-full bg-white/95 px-1.5 py-0.5 text-[10px] font-bold text-foreground shadow-sm ring-1 ring-black/10 backdrop-blur-sm transition-colors hover:bg-white',
+                    showDiscountRibbon ? 'top-7' : 'top-1.5'
+                  )}
+                  data-testid="public-product-ar-chip"
+                  aria-label={arButtonLabel[locale]}
+                >
+                  <Box className="h-2.5 w-2.5" strokeWidth={2.25} />
+                  AR
+                </button>
               )}
 
               {/* Dietary — VG/V text chip (research: EU convention, accessibility) */}
@@ -431,6 +466,18 @@ export function ProductCard({ product, locale, settings }: ProductCardProps) {
           </div>
         </article>
       </CardContent>
+
+      {arAvailable && (
+        <ArViewerDialog
+          open={arOpen}
+          onOpenChange={setArOpen}
+          glbUrl={product.arModelUrl as string}
+          usdzUrl={product.arModelUrlIos}
+          posterUrl={product.arPosterUrl ?? product.imageUrl}
+          alt={name}
+          locale={locale}
+        />
+      )}
     </Card>
   );
 }
