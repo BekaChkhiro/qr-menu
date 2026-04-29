@@ -1,4 +1,7 @@
-import { v2 as cloudinary } from 'cloudinary';
+// Import the configured singleton — this triggers the `cloudinary.config(...)`
+// side-effect in `./index.ts`, so callers don't get an "api_secret missing"
+// throw at request time when they reach for `api_sign_request`.
+import cloudinary from './index';
 
 /**
  * Resolve the Cloudinary credentials we need to mint signed direct-upload

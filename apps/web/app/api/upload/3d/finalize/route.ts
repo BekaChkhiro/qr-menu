@@ -1,7 +1,11 @@
-import { v2 as cloudinary } from 'cloudinary';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 
+// Import the configured Cloudinary singleton — `lib/cloudinary/index.ts` runs
+// `cloudinary.config({...})` at module load. Importing the SDK directly from
+// `'cloudinary'` would skip that and `api.resource` / `uploader.destroy` would
+// throw synchronously with a missing-credentials error, surfacing as a 500.
+import cloudinary from '@/lib/cloudinary';
 import { auth } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
 import {
