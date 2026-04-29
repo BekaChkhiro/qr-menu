@@ -29,14 +29,12 @@ interface UploadResult {
   kind: ModelKind;
 }
 
-interface SignaturePayload {
-  signature: string;
-  timestamp: number;
-  apiKey: string;
-  cloudName: string;
-  folder: string;
-  publicIdPrefix: string;
-  resourceType: 'raw';
+interface PresignPayload {
+  presignedUrl: string;
+  key: string;
+  publicUrl: string;
+  contentType: string;
+  expiresIn: number;
 }
 
 /**
@@ -93,45 +91,41 @@ export function ArModelField({
 
   const upload = useMutation<UploadResult, Error, File>({
     mutationFn: async (file: File) => {
-      // 1. Get a signed upload payload from our backend (auth + PRO gate).
-      const sigRes = await fetch('/api/upload/3d/signature', {
+      const contentType = ALLOWED_MIME[kind];
+
+      // 1. Ask our backend (auth + PRO gate) for a presigned PUT URL into
+      //    Cloudflare R2. The signature locks ContentType + ContentLength.
+      const presignRes = await fetch('/api/upload/3d/r2-presign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind }),
+        body: JSON.stringify({ kind, size: file.size, contentType }),
       });
-      const sig = await readJsonEnvelope<SignaturePayload>(sigRes, 'Could not start upload');
-
-      // 2. Upload the file directly to Cloudinary — bypasses our serverless
-      //    function so Vercel's ~4.5MB body limit doesn't apply.
-      const cloudForm = new FormData();
-      cloudForm.append('file', file);
-      cloudForm.append('api_key', sig.apiKey);
-      cloudForm.append('timestamp', String(sig.timestamp));
-      cloudForm.append('signature', sig.signature);
-      cloudForm.append('folder', sig.folder);
-      cloudForm.append('public_id_prefix', sig.publicIdPrefix);
-
-      const cloudRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${sig.cloudName}/${sig.resourceType}/upload`,
-        { method: 'POST', body: cloudForm },
+      const presign = await readJsonEnvelope<PresignPayload>(
+        presignRes,
+        'Could not start upload',
       );
-      const cloudJson = await cloudRes.json().catch(() => null);
-      if (!cloudRes.ok || !cloudJson?.secure_url || !cloudJson?.public_id) {
-        const message =
-          cloudJson?.error?.message ?? `Cloudinary upload failed (${cloudRes.status})`;
-        throw new Error(message);
+
+      // 2. Stream the file directly to R2 — never crosses our serverless
+      //    function, so Vercel's ~4.5MB body limit doesn't apply and there
+      //    is no per-asset cap on the R2 free tier.
+      const putRes = await fetch(presign.presignedUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': contentType,
+        },
+        body: file,
+      });
+      if (!putRes.ok) {
+        const text = await putRes.text().catch(() => '');
+        throw new Error(text.trim() || `R2 upload failed (${putRes.status})`);
       }
 
-      // 3. Finalize: server validates ownership + authoritative byte count
-      //    against Cloudinary, returns the canonical { url, publicId, kind }.
-      const finalizeRes = await fetch('/api/upload/3d/finalize', {
+      // 3. Finalize: backend HEADs the object, validates ownership +
+      //    authoritative size, returns the canonical { url, publicId, kind }.
+      const finalizeRes = await fetch('/api/upload/3d/r2-finalize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          publicId: cloudJson.public_id as string,
-          secureUrl: cloudJson.secure_url as string,
-          kind,
-        }),
+        body: JSON.stringify({ key: presign.key, kind }),
       });
       return readJsonEnvelope<UploadResult>(finalizeRes, 'Upload could not be finalized');
     },

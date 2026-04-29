@@ -151,10 +151,11 @@ test.describe('POST /api/upload/3d (T18.2)', () => {
   });
 });
 
-// Direct-to-Cloudinary path used by the admin AR field. The legacy
-// /api/upload/3d above stays for smaller files; these endpoints exist so
-// >4.5MB GLBs don't get killed by Vercel's serverless body limit.
-test.describe('POST /api/upload/3d/signature + finalize', () => {
+// Direct-to-R2 path used by the admin AR field. The legacy /api/upload/3d
+// route above stays for smaller files; these endpoints route GLB/USDZ to
+// Cloudflare R2 so neither Vercel's serverless body limit nor Cloudinary's
+// 10 MB per-raw-asset free-tier cap apply.
+test.describe('POST /api/upload/3d/r2-presign + r2-finalize', () => {
   test.describe.configure({ mode: 'serial' });
 
   test.beforeEach(async ({ context }, testInfo) => {
@@ -166,15 +167,13 @@ test.describe('POST /api/upload/3d/signature + finalize', () => {
     await context.clearCookies();
   });
 
-  test('signature: STARTER user is rejected with 403 FEATURE_NOT_AVAILABLE', async ({
-    page,
-  }) => {
-    const email = 'starter-sig@test.local';
+  test('presign: STARTER user is rejected with 403 FEATURE_NOT_AVAILABLE', async ({ page }) => {
+    const email = 'starter-r2-sig@test.local';
     await seedUser({ plan: 'STARTER', email });
     await loginAs(page, email);
 
-    const res = await page.request.post('/api/upload/3d/signature', {
-      data: { kind: 'glb' },
+    const res = await page.request.post('/api/upload/3d/r2-presign', {
+      data: { kind: 'glb', size: 1024, contentType: 'model/gltf-binary' },
     });
 
     expect(res.status()).toBe(403);
@@ -183,63 +182,77 @@ test.describe('POST /api/upload/3d/signature + finalize', () => {
     expect(body.error.code).toBe('FEATURE_NOT_AVAILABLE');
   });
 
-  test('signature: PRO user gets a signed payload scoped to their folder', async ({ page }) => {
+  test('presign: PRO user gets a presigned PUT URL into R2', async ({ page }) => {
     test.skip(
-      !process.env.CLOUDINARY_API_KEY,
-      'Cloudinary credentials not configured — signature minting requires api_secret',
+      !process.env.R2_ACCESS_KEY_ID,
+      'R2 credentials not configured — presigning requires the bucket-scoped token',
     );
 
-    const email = 'pro-sig@test.local';
+    const email = 'pro-r2-sig@test.local';
     await seedUser({ plan: 'PRO', email });
     await loginAs(page, email);
 
-    const res = await page.request.post('/api/upload/3d/signature', {
-      data: { kind: 'glb' },
+    const res = await page.request.post('/api/upload/3d/r2-presign', {
+      data: { kind: 'glb', size: 1024, contentType: 'model/gltf-binary' },
     });
 
     expect(res.status()).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
-    expect(typeof body.data.signature).toBe('string');
-    expect(body.data.signature.length).toBeGreaterThan(0);
-    expect(typeof body.data.timestamp).toBe('number');
-    expect(typeof body.data.apiKey).toBe('string');
-    expect(typeof body.data.cloudName).toBe('string');
-    expect(body.data.folder).toMatch(/^digital-menu\/.+\/ar-models$/);
-    expect(body.data.publicIdPrefix.startsWith(`${body.data.folder}/`)).toBe(true);
-    expect(body.data.resourceType).toBe('raw');
+    expect(body.data.presignedUrl).toMatch(/^https?:\/\//);
+    expect(body.data.key).toMatch(/^[^/]+\/ar-models\/[^/]+\.glb$/);
+    expect(body.data.publicUrl).toMatch(/\.r2\.dev\//);
+    expect(body.data.publicUrl.endsWith(body.data.key)).toBe(true);
+    expect(body.data.contentType).toBe('model/gltf-binary');
+    expect(typeof body.data.expiresIn).toBe('number');
   });
 
-  test('signature: rejects invalid `kind` with 400', async ({ page }) => {
+  test('presign: rejects mismatched content-type for kind', async ({ page }) => {
     test.skip(
-      !process.env.CLOUDINARY_API_KEY,
-      'Skips when Cloudinary creds are missing — route would otherwise 500',
+      !process.env.R2_ACCESS_KEY_ID,
+      'Skips when R2 creds are missing — route would otherwise 500',
     );
 
-    const email = 'pro-sig-bad@test.local';
+    const email = 'pro-r2-sig-bad-mime@test.local';
     await seedUser({ plan: 'PRO', email });
     await loginAs(page, email);
 
-    const res = await page.request.post('/api/upload/3d/signature', {
-      data: { kind: 'png' },
+    const res = await page.request.post('/api/upload/3d/r2-presign', {
+      data: { kind: 'glb', size: 1024, contentType: 'application/octet-stream' },
     });
 
     expect(res.status()).toBe(400);
     const body = await res.json();
-    expect(body.error.code).toBe('VALIDATION_ERROR');
+    expect(body.error.code).toBe('INVALID_FILE_TYPE');
   });
 
-  test('finalize: rejects publicId outside the user folder with 403 FORBIDDEN', async ({
-    page,
-  }) => {
-    const email = 'pro-finalize-foreign@test.local';
+  test('presign: rejects oversized GLB with 400 FILE_TOO_LARGE', async ({ page }) => {
+    test.skip(
+      !process.env.R2_ACCESS_KEY_ID,
+      'Skips when R2 creds are missing',
+    );
+
+    const email = 'pro-r2-sig-big@test.local';
     await seedUser({ plan: 'PRO', email });
     await loginAs(page, email);
 
-    const res = await page.request.post('/api/upload/3d/finalize', {
+    const res = await page.request.post('/api/upload/3d/r2-presign', {
+      data: { kind: 'glb', size: 16 * 1024 * 1024, contentType: 'model/gltf-binary' },
+    });
+
+    expect(res.status()).toBe(400);
+    const body = await res.json();
+    expect(body.error.code).toBe('FILE_TOO_LARGE');
+  });
+
+  test('finalize: rejects key outside the user folder with 403 FORBIDDEN', async ({ page }) => {
+    const email = 'pro-r2-finalize-foreign@test.local';
+    await seedUser({ plan: 'PRO', email });
+    await loginAs(page, email);
+
+    const res = await page.request.post('/api/upload/3d/r2-finalize', {
       data: {
-        publicId: 'digital-menu/some-other-user/ar-models/abc123',
-        secureUrl: 'https://res.cloudinary.com/example/raw/upload/v1/foreign.glb',
+        key: 'some-other-user/ar-models/abc123.glb',
         kind: 'glb',
       },
     });
@@ -250,14 +263,13 @@ test.describe('POST /api/upload/3d/signature + finalize', () => {
   });
 
   test('finalize: STARTER user is rejected with 403 FEATURE_NOT_AVAILABLE', async ({ page }) => {
-    const email = 'starter-finalize@test.local';
+    const email = 'starter-r2-finalize@test.local';
     await seedUser({ plan: 'STARTER', email });
     await loginAs(page, email);
 
-    const res = await page.request.post('/api/upload/3d/finalize', {
+    const res = await page.request.post('/api/upload/3d/r2-finalize', {
       data: {
-        publicId: 'digital-menu/anyone/ar-models/abc',
-        secureUrl: 'https://res.cloudinary.com/example/raw/upload/v1/x.glb',
+        key: 'anyone/ar-models/x.glb',
         kind: 'glb',
       },
     });
