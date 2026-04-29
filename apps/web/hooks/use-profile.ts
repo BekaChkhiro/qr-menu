@@ -18,6 +18,7 @@ export interface UserProfile {
   priceFormat: string | null;
   image: string | null;
   plan: 'FREE' | 'STARTER' | 'PRO';
+  hasPassword: boolean;
 }
 
 const profileQueryKey = ['user', 'profile'] as const;

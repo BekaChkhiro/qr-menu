@@ -7,9 +7,11 @@ import {
   isValidQRFormat,
   isValidQRSize,
   isValidQRStyle,
+  isValidQRTemplate,
   type QRFormat,
   type QRSize,
   type QRStyle,
+  type QRTemplate,
 } from '@/lib/qr';
 import {
   createErrorResponse,
@@ -29,9 +31,12 @@ interface RouteParams {
  * - format: png | svg | pdf (default png)
  * - size: small | medium | large (default medium)
  * - download: true | false
- * - fg / bg: hex overrides (falls back to menu settings)
- * - style: SQUARE | ROUNDED | DOTS (falls back to menu settings)
- * - logo: 'menu' | 'custom' | 'none' (default: 'menu' — use menu.qrLogoUrl)
+ * - fg: hex foreground (falls back to menu setting)
+ * - bg: hex background, or 'transparent' (falls back to menu setting)
+ * - style: SQUARE | ROUNDED | DOTS (falls back to menu setting)
+ * - logo: 'menu' | 'none' | direct URL (default 'menu')
+ * - includeUrl / includeCta: 'true' | 'false' (PDF only)
+ * - template: tent-A4 | poster-A3 | tent-min | receipt | decal | booklet
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
@@ -55,6 +60,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const bgOverride = searchParams.get('bg');
     const styleOverride = searchParams.get('style');
     const logoMode = searchParams.get('logo') || 'menu';
+    const templateParam = searchParams.get('template');
+    const includeUrl = searchParams.get('includeUrl') !== 'false';
+    const includeCta = searchParams.get('includeCta') !== 'false';
 
     if (!isValidQRFormat(formatParam)) {
       return createErrorResponse(ERROR_CODES.VALIDATION_ERROR, 'Invalid format', 400);
@@ -64,6 +72,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
     if (styleOverride && !isValidQRStyle(styleOverride)) {
       return createErrorResponse(ERROR_CODES.VALIDATION_ERROR, 'Invalid style', 400);
+    }
+    if (templateParam && !isValidQRTemplate(templateParam)) {
+      return createErrorResponse(ERROR_CODES.VALIDATION_ERROR, 'Invalid template', 400);
     }
 
     const menu = await prisma.menu.findUnique({
@@ -89,17 +100,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       (fgOverride && /^#[0-9A-Fa-f]{6}$/.test(fgOverride)
         ? fgOverride
         : menu.qrForegroundColor) || '#000000';
-    const lightColor =
-      (bgOverride && /^#[0-9A-Fa-f]{6}$/.test(bgOverride)
-        ? bgOverride
-        : menu.qrBackgroundColor) || '#ffffff';
+
+    let lightColor: string | null;
+    if (bgOverride === 'transparent') {
+      lightColor = null;
+    } else if (bgOverride && /^#[0-9A-Fa-f]{6}$/.test(bgOverride)) {
+      lightColor = bgOverride;
+    } else {
+      // No bg query param → fall back to menu's stored value (null means transparent).
+      lightColor = menu.qrBackgroundColor;
+    }
+
     const style = (styleOverride as QRStyle | null) || menu.qrStyle || 'SQUARE';
 
     let logoUrl: string | null = null;
     if (logoMode === 'menu') {
       logoUrl = menu.qrLogoUrl;
     } else if (logoMode.startsWith('http')) {
-      // caller passed a direct URL
       logoUrl = logoMode;
     }
 
@@ -111,6 +128,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       lightColor,
       style,
       logoUrl,
+      includeUrl,
+      includeCta,
+      template: (templateParam as QRTemplate) || undefined,
+      menuName: menu.name,
     });
 
     const headers: Record<string, string> = {

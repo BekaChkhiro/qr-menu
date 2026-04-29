@@ -28,6 +28,7 @@ export const PLAN_FEATURES = {
     allergens: false,
     analytics: false,
     qrWithLogo: false,
+    arViewer: false,
   },
   STARTER: {
     basicQR: true,
@@ -38,6 +39,7 @@ export const PLAN_FEATURES = {
     allergens: false,
     analytics: false,
     qrWithLogo: false,
+    arViewer: false,
   },
   PRO: {
     basicQR: true,
@@ -48,6 +50,7 @@ export const PLAN_FEATURES = {
     allergens: true,
     analytics: true,
     qrWithLogo: true,
+    arViewer: true,
   },
 } as const;
 

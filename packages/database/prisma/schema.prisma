@@ -465,6 +465,13 @@ model Product {
   // Availability
   isAvailable Boolean             @default(true)
 
+  // AR / 3D viewer (PRO feature, Phase 18)
+  arEnabled        Boolean        @default(false)
+  arModelUrl       String?        // GLB (web + Android Scene Viewer)
+  arModelUrlIos    String?        // USDZ (iOS Quick Look)
+  arModelPublicId  String?        // Cloudinary raw public id, for deletion
+  arPosterUrl      String?        // Optional poster image while model loads
+
   // Ordering
   sortOrder   Int                 @default(0)
 

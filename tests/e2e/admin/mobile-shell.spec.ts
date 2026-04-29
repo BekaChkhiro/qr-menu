@@ -27,6 +27,10 @@ test.describe('admin mobile shell (T17.1)', () => {
     await context.addCookies([
       { name: 'NEXT_LOCALE', value: 'en', domain: 'localhost', path: '/' },
     ]);
+    // Hide TanStack Query devtools button globally so it never intercepts clicks.
+    await page.addStyleTag({
+      content: '.tsqd-parent-container { display: none !important; }',
+    });
   });
 
   async function seedAndLogin(
@@ -59,11 +63,12 @@ test.describe('admin mobile shell (T17.1)', () => {
         '*, *::before, *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition-duration: 0s !important; }',
     });
 
+
     const shell = page.getByTestId('admin-shell');
     await expect(shell).toBeVisible();
 
     // Sidebar must be hidden on mobile.
-    await expect(page.getByTestId('admin-sidebar')).toHaveCount(0);
+    await expect(page.getByTestId('admin-sidebar')).toBeHidden();
 
     // Mobile tab bar must be visible.
     const tabBar = page.getByTestId('admin-mobile-tab-bar');
@@ -87,7 +92,7 @@ test.describe('admin mobile shell (T17.1)', () => {
     await page.goto('/admin/dashboard');
 
     await expect(page.getByTestId('admin-shell')).toBeVisible();
-    await expect(page.getByTestId('admin-sidebar')).toHaveCount(0);
+    await expect(page.getByTestId('admin-sidebar')).toBeHidden();
 
     const tabBar = page.getByTestId('admin-mobile-tab-bar');
     await expect(tabBar).toBeVisible();
@@ -134,6 +139,11 @@ test.describe('admin mobile shell (T17.1)', () => {
     ).toHaveCount(0);
 
     // Tap Settings.
+    // The TanStack Query devtools button sits in the bottom-right corner and can
+    // overlay the Settings tab. Remove it before clicking.
+    await page.evaluate(() =>
+      document.querySelector('.tsqd-parent-container')?.remove(),
+    );
     await tabBar.locator('[data-tab-id="settings"]').click();
     await expect(page).toHaveURL(/\/admin\/settings(\b|\/)/);
     await expect(
@@ -159,7 +169,7 @@ test.describe('admin mobile shell (T17.1)', () => {
     await page.goto('/admin/dashboard');
 
     // Breadcrumbs must be hidden on mobile.
-    await expect(page.getByTestId('topbar-breadcrumbs')).toHaveCount(0);
+    await expect(page.getByTestId('topbar-breadcrumbs')).toBeHidden();
 
     // Current page title must be visible.
     const title = page.getByTestId('topbar-mobile-title');

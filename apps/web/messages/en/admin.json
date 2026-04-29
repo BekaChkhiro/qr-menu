@@ -710,7 +710,9 @@
       "viewPublic": "View public",
       "viewPublicDisabled": "Publish the menu to view it publicly",
       "shareCopied": "Public link copied",
-      "realtimeHint": "Preview updates in real time"
+      "realtimeHint": "Preview updates in real time",
+      "mobilePreviewButton": "Preview",
+      "mobilePreviewTitle": "Menu preview"
     },
     "languages": {
       "title": "Languages",
@@ -836,16 +838,11 @@
       "stats": {
         "heading": "This QR has been scanned",
         "period": "times in the last 30 days",
-        "mostActive": "Most active table:",
-        "tableName": "Table {n}",
-        "scans": "scans",
         "viewAnalytics": "View in Analytics"
       },
       "link": {
         "heading": "Direct menu link",
-        "copy": "Copy",
-        "trackingTitle": "Track scan source per QR",
-        "trackingBody": "Tag QR codes by table or location so Analytics can attribute scans."
+        "copy": "Copy"
       },
       "templates": {
         "title": "Print templates",
@@ -1465,12 +1462,78 @@
         "saveFailed": "Could not save language settings"
       }
     },
+    "cancel": "Cancel",
     "password": {
       "title": "Change Password",
       "current": "Current Password",
       "new": "New Password",
       "confirm": "Confirm New Password",
       "save": "Change Password"
+    },
+    "security": {
+      "password": {
+        "sectionLabel": "Password",
+        "statusSet": "Password is strong",
+        "statusNone": "No password set",
+        "lastChanged": "Last changed {when}",
+        "setHint": "Set a password to protect your account.",
+        "changeBtn": "Change password",
+        "dialogTitle": "Change password",
+        "dialogBody": "Choose a strong password you don't use elsewhere. You'll be signed out on all devices and will need to sign back in.",
+        "current": "Current password",
+        "currentPlaceholder": "Enter current password",
+        "new": "New password",
+        "newPlaceholder": "At least 8 characters",
+        "confirm": "Confirm new password",
+        "confirmPlaceholder": "Re-enter new password",
+        "saveBtn": "Save password",
+        "success": "Password updated. Please sign in again.",
+        "error": "Could not update password. Please try again.",
+        "errors": {
+          "currentRequired": "Current password is required",
+          "newRequired": "New password is required",
+          "tooShort": "Password must be at least 8 characters",
+          "confirmRequired": "Please confirm your password",
+          "mismatch": "Passwords do not match"
+        }
+      },
+      "twoFactor": {
+        "sectionLabel": "Two-factor authentication",
+        "helper": "Add a second step when signing in so a leaked password alone isn't enough.",
+        "authenticator": {
+          "title": "Authenticator app",
+          "body": "Use Google Authenticator, 1Password, or similar",
+          "aria": "Toggle authenticator app 2FA"
+        },
+        "sms": {
+          "title": "SMS backup codes",
+          "body": "Fallback to {phone}",
+          "aria": "Toggle SMS backup codes"
+        }
+      },
+      "sessions": {
+        "sectionLabel": "Active sessions",
+        "helper": "Sign out of any device you don't recognize.",
+        "thisDevice": "This device",
+        "signOut": "Sign out",
+        "signOutAll": "Sign out of all other sessions",
+        "signOutSuccess": "Session ended",
+        "signOutError": "Could not end session. Please try again.",
+        "signOutAllSuccess": "All other sessions signed out"
+      },
+      "danger": {
+        "sectionLabel": "Danger zone",
+        "title": "Delete this business",
+        "body": "Deletes all menus, QR codes, and analytics for {name}. Team members lose access immediately. This can't be undone.",
+        "deleteBtn": "Delete business",
+        "confirmTitle": "Are you absolutely sure?",
+        "confirmBody": "This will permanently delete {name} and all its menus, categories, products, and analytics. This action cannot be undone.",
+        "confirmInputLabel": "Type DELETE to confirm",
+        "confirmInputPlaceholder": "DELETE",
+        "confirmBtn": "Delete permanently",
+        "deleteSuccess": "Account deleted",
+        "deleteError": "Could not delete account. Please try again."
+      }
     },
     "plan": {
       "title": "Your Plan",

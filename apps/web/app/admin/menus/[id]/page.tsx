@@ -18,10 +18,18 @@ import { QrTab } from '@/components/admin/qr-tab';
 import { MenuSettingsTab } from '@/components/admin/menu-settings-tab';
 import { PhonePreviewSkeleton } from '@/components/admin/phone-preview';
 import { PhonePreviewPanel } from '@/components/admin/phone-preview-panel';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useMenu, usePublishMenu, useUpdateMenu } from '@/hooks/use-menus';
+import { Smartphone } from 'lucide-react';
 import { useMenuRealtime } from '@/hooks/use-menu-realtime';
 import { useUserPlan } from '@/hooks/use-user-plan';
 
@@ -59,6 +67,7 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
   // even in cases where our cached `menu` reference isn't touched (e.g. product
   // mutations that only invalidate lists the admin isn't rendering directly).
   const [previewVersion, setPreviewVersion] = useState(0);
+  const [previewOpen, setPreviewOpen] = useState(false);
   useMenuRealtime(id, {
     onEvent: useCallback(() => {
       setPreviewVersion((v) => v + 1);
@@ -264,6 +273,45 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
           </div>
         )}
       </div>
+
+      {/* Mobile: floating preview button + bottom sheet */}
+      {showPreview && (
+        <div className="fixed bottom-20 right-4 z-40 lg:hidden">
+          <Sheet open={previewOpen} onOpenChange={setPreviewOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="primary"
+                size="md"
+                leadingIcon={Smartphone}
+                data-testid="mobile-preview-trigger"
+                aria-label={tEditor('preview.mobilePreviewButton')}
+              >
+                {tEditor('preview.mobilePreviewButton')}
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="bottom"
+              className="h-[92vh] rounded-t-[16px] px-4 pb-6 pt-2 lg:hidden"
+              hideClose
+            >
+              <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
+              <SheetTitle className="sr-only">
+                {tEditor('preview.mobilePreviewTitle')}
+              </SheetTitle>
+              <SheetDescription className="sr-only">
+                {tEditor('preview.realtimeHint')}
+              </SheetDescription>
+              <div data-testid="mobile-preview-sheet">
+                <PhonePreviewPanel
+                  menu={menu}
+                  refreshKey={previewVersion}
+                  className="border-0 bg-transparent px-0 pb-0 pt-2"
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      )}
     </div>
   );
 }

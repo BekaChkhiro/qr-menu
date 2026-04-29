@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
       name: user.name ?? null,
       email: user.email,
       picture: user.image ?? null,
+      sessionVersion: user.sessionVersion ?? 0,
     },
     secret,
     salt: cookieName,

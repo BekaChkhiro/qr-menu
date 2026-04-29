@@ -22,6 +22,7 @@ const USER_PROFILE_SELECT = {
   priceFormat: true,
   image: true,
   plan: true,
+  password: true,
 } as const;
 
 /**
@@ -53,7 +54,8 @@ export async function GET() {
       );
     }
 
-    return createSuccessResponse({ user });
+    const { password, ...rest } = user;
+    return createSuccessResponse({ user: { ...rest, hasPassword: !!password } });
   } catch (error) {
     return handleApiError(error);
   }

@@ -191,7 +191,7 @@ export function PhonePreview({ children, url, className, refreshKey }: PhonePrev
   }, [refreshKey, reloadIframe]);
 
   return (
-    <div className={cn('hidden lg:block', className)}>
+    <div className={className}>
       {/* Phone Frame */}
       <div
         className="relative mx-auto"
@@ -288,7 +288,7 @@ export function PhonePreview({ children, url, className, refreshKey }: PhonePrev
 
 export function PhonePreviewSkeleton() {
   return (
-    <div className="hidden lg:block">
+    <div>
       <div
         className="relative mx-auto"
         style={{

@@ -113,6 +113,12 @@ const productExtras = {
   fats: nutritionValueSchema,
   carbs: nutritionValueSchema,
   fiber: nutritionValueSchema,
+
+  // AR / 3D model (PRO feature, Phase 18)
+  arEnabled: z.boolean().optional(),
+  arModelUrl: z.string().url('Invalid AR model URL').nullable().optional(),
+  arModelUrlIos: z.string().url('Invalid iOS AR model URL').nullable().optional(),
+  arPosterUrl: z.string().url('Invalid AR poster URL').nullable().optional(),
 };
 
 // Create product schema

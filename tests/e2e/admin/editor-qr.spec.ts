@@ -492,28 +492,40 @@ test.describe('editor QR tab · download panel + scan stats (T15.11)', () => {
     );
   });
 
-  // ── Functional: include checkboxes toggle state ──────────────────────────
+  // ── Functional: include URL/CTA checkboxes are PDF-only ──────────────────
 
-  test('functional: include checkboxes toggle state', async ({ page }) => {
+  test('functional: include URL/CTA toggles activate only on PDF', async ({
+    page,
+  }) => {
     await seedStarterAndOpenQr(page);
 
-    await expect(page.getByTestId('editor-qr-include-url')).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
-    await expect(page.getByTestId('editor-qr-include-cta')).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
-
-    await page.getByTestId('editor-qr-include-url').click();
+    // Default format is PNG → URL/CTA checkboxes are disabled and unchecked.
+    await expect(page.getByTestId('editor-qr-include-url')).toBeDisabled();
     await expect(page.getByTestId('editor-qr-include-url')).toHaveAttribute(
       'aria-checked',
       'false',
     );
-
-    await page.getByTestId('editor-qr-include-cta').click();
+    await expect(page.getByTestId('editor-qr-include-cta')).toBeDisabled();
     await expect(page.getByTestId('editor-qr-include-cta')).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+
+    // Switch to PDF → toggles become active and checked.
+    await page.getByTestId('editor-qr-format-pdf').click();
+    await expect(page.getByTestId('editor-qr-include-url')).toBeEnabled();
+    await expect(page.getByTestId('editor-qr-include-url')).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await expect(page.getByTestId('editor-qr-include-cta')).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+
+    // User can toggle them off while in PDF mode.
+    await page.getByTestId('editor-qr-include-url').click();
+    await expect(page.getByTestId('editor-qr-include-url')).toHaveAttribute(
       'aria-checked',
       'false',
     );
@@ -533,16 +545,13 @@ test.describe('editor QR tab · download panel + scan stats (T15.11)', () => {
 
   // ── Functional: scan stats card renders ──────────────────────────────────
 
-  test('functional: scan stats card renders with deterministic placeholder', async ({
+  test('functional: scan stats card renders with view-analytics link', async ({
     page,
   }) => {
     await seedStarterAndOpenQr(page);
 
     const statsCard = page.getByTestId('editor-qr-scan-stats');
     await expect(statsCard).toBeVisible();
-    await expect(
-      statsCard.getByText(/Most active table:/i),
-    ).toBeVisible();
     await expect(
       page.getByTestId('editor-qr-view-analytics'),
     ).toBeVisible();

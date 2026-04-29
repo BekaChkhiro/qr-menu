@@ -1790,7 +1790,7 @@ digital-menu/
   - Functional: swipe up on preview → expands; tab scroll works
 
 #### T17.4: Product Drawer as Bottom Sheet (mobile)
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 1.5 hours
 - **Dependencies**: T14.1, T17.1
@@ -1855,149 +1855,147 @@ digital-menu/
 
 ---
 
-### Phase 18: Marketing Website
-**Goal**: Build a professional marketing landing page with full SEO optimization
+### Phase 18: AR / 3D Models for Products (PRO)
+**Goal**: Allow PRO users to attach 3D models (GLB + USDZ) to menu products. In the admin Product Drawer, add a new "AR Model" tab to upload, preview, and toggle AR per product. On the public menu, render a "View in AR" button that opens a full-screen viewer using `<model-viewer>` — which routes to native ARKit Quick Look on iOS and ARCore Scene Viewer on Android via QR code, with no app install required.
 
-**Note**: Previously Phase 8. Moved to the end so the redesign work (Phase 9-17) can proceed first.
+**Design Reference**: No artboard yet — mirror the existing PRO-locked tab pattern from `product-drawer.jsx` (Allergens) for the admin lock screen, and the dialog/sheet patterns from `qr-menu-design/components/product-drawer.jsx` for the upload tab. Public AR button: small overlay chip on the product image (top-right, beside ribbons), reusing existing shadcn `Dialog` for the viewer modal.
 
-#### T18.1: Landing Page Foundation & Layout
-- [x] **Status**: DONE ✅
-- **Complexity**: Medium
-- **Estimated**: 4 hours
-- **Dependencies**: T6.6
+**Plan Tier**: PRO only. FREE/STARTER see a locked tab with an upgrade CTA — same UX as `T14.5: Allergens Tab (STARTER locked)`.
+
+**Tech choices** (locked in for this phase):
+- `<model-viewer>` (Google web component, `@google/model-viewer`) — native ARKit Quick Look + ARCore Scene Viewer routing
+- GLB (required) for Android/Web · USDZ (recommended) for iOS native AR
+- Cloudinary `resource_type: 'raw'` for 3D file storage (folder: `digital-menu/{userId}/ar-models/`)
+- Reveal-on-interaction lazy loading — 3D file only downloads when the modal opens
+
+**Out of scope** (move to a later phase):
+- AI generation from product photo (Meshy.ai / Tripo3D integration)
+- Server-side GLB→USDZ conversion
+- Custom AR scale / placement controls beyond `<model-viewer>` defaults
+
+#### T18.1: Schema + Plan Feature Flag
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 1 hour
+- **Dependencies**: —
 - **Description**:
-  - Create `app/(marketing)/page.tsx` landing page structure
-  - Set up Framer Motion for animations
-  - Create responsive layout components (Container, Section)
-  - Implement mobile-first design with Tailwind CSS
-  - Add navigation header with language switcher
-  - Create footer component with links and social media
+  - Add to `Product` model in `packages/database/prisma/schema.prisma`: `arEnabled Boolean @default(false)`, `arModelUrl String?`, `arModelUrlIos String?`, `arModelPublicId String?`, `arPosterUrl String?`
+  - Add `arViewer: false/false/true` to `PLAN_FEATURES` in `apps/web/lib/auth/permissions.ts` (FREE/STARTER/PRO)
+  - Add new optional field set to `productExtras` in `apps/web/lib/validations/product.ts` (`arEnabled`, `arModelUrl`, `arModelUrlIos`, `arPosterUrl`) — auto-flows into create/update API routes
+  - Run `pnpm db:migrate` with migration name `add_product_ar_fields`
+- **Playwright test**:
+  - Not visual — schema-level. Add a unit test under `tests/unit/permissions.test.ts`: `hasFeature('PRO', 'arViewer') === true`, FREE/STARTER === false
 
-#### T18.2: Hero Section with Demo Preview
-- [x] **Status**: DONE ✅
-- **Complexity**: High
-- **Estimated**: 5 hours
-- **Dependencies**: T18.1
-- **Description**:
-  - Design compelling hero section with headline and CTA
-  - Create interactive QR menu demo preview component
-  - Add Framer Motion entrance animations
-  - Implement phone mockup showing live menu demo
-  - Add "Try Demo" and "Start Free" CTA buttons
-  - Create gradient backgrounds and visual effects
-
-#### T18.3: Features Section
+#### T18.2: 3D Model Upload Pipeline
 - [ ] **Status**: TODO
 - **Complexity**: Medium
-- **Estimated**: 4 hours
+- **Estimated**: 2.5 hours
 - **Dependencies**: T18.1
 - **Description**:
-  - Create features grid layout (6-8 features)
-  - Design feature cards with icons (Lucide icons)
-  - Add scroll-triggered animations with Framer Motion
-  - Highlight key features: QR codes, multi-language, analytics
-  - Create "How it works" 3-step process section
-  - Add feature comparison table
+  - Create `apps/web/lib/validations/3d-upload.ts`: `ALLOWED_3D_MIME_TYPES = ['model/gltf-binary', 'model/vnd.usdz+zip']`, `MAX_GLB_SIZE = 15MB`, `MAX_USDZ_SIZE = 25MB`
+  - Create `apps/web/app/api/upload/3d/route.ts` mirroring `app/api/upload/route.ts` but using `resource_type: 'raw'`. Auth check + `hasFeature(user.plan, 'arViewer')` gate (return 403 for FREE/STARTER)
+  - Add `upload3DModel(buffer, options)` to `apps/web/lib/cloudinary/index.ts` — folder `digital-menu/{userId}/ar-models/`, no transformation
+  - Server-side magic-byte validation (GLB: bytes 0-3 = `glTF`; USDZ: bytes 0-3 = `PK\x03\x04`) — never trust MIME alone for binary uploads
+- **Playwright test**:
+  - `tests/e2e/admin/ar-upload.spec.ts` (api-level, no UI)
+  - Functional: PRO user POSTs valid GLB → 201, returns `{ url, publicId }`; STARTER user → 403; oversized file → 400; spoofed extension → 400
 
-#### T18.4: Pricing Section
-- [ ] **Status**: TODO
-- **Complexity**: Medium
-- **Estimated**: 4 hours
-- **Dependencies**: T18.1
-- **Description**:
-  - Create pricing cards for FREE, STARTER (29₾), PRO (59₾) plans
-  - Highlight recommended plan (STARTER)
-  - List features for each plan with checkmarks
-  - Add "Most Popular" badge
-  - Implement toggle for monthly/yearly pricing (future)
-  - Add CTA buttons to register
-
-#### T18.5: Testimonials & Social Proof
+#### T18.3: Product Drawer — AR Tab (PRO unlocked)
 - [ ] **Status**: TODO
 - **Complexity**: Medium
 - **Estimated**: 3 hours
-- **Dependencies**: T18.1
+- **Dependencies**: T14.1, T18.2
 - **Description**:
-  - Create testimonials carousel/grid
-  - Design testimonial cards with photos and quotes
-  - Add company logos section "Trusted by"
-  - Create statistics section (users, menus, scans)
-  - Implement smooth carousel with Framer Motion
-  - Add star ratings display
+  - Add 6th tab `arModel` to `DrawerTab` union in `apps/web/components/admin/product-dialog.tsx` (between `nutrition` and `visibility`)
+  - Create `apps/web/components/admin/product-drawer-ar-tab.tsx`: enable toggle, GLB drop-zone (required), USDZ drop-zone (optional, "Recommended for iOS" hint), live `<model-viewer>` preview with rotate/zoom buttons
+  - Create `apps/web/components/admin/product-drawer/ar-model-field.tsx` mirroring `product-image-field.tsx` but pointing at `/api/upload/3d`
+  - `pnpm add @google/model-viewer` — dynamic import with `next/dynamic({ ssr: false })` (web component, breaks SSR)
+  - React-hook-form integration in `apps/web/components/admin/product-form.tsx`: register `arEnabled`, `arModelUrl`, `arModelUrlIos`, `arPosterUrl`
+- **Playwright test**:
+  - `tests/e2e/admin/product-drawer-ar.spec.ts` (project: `chromium`, PRO user fixture)
+  - Visual: `product-drawer-ar-tab.png` at 1280×900
+  - Functional: tab is unlocked for PRO; upload GLB fixture → preview renders; toggle OFF hides preview; save persists `arEnabled=true` and `arModelUrl` to DB
 
-#### T18.6: FAQ Section
+#### T18.4: Product Drawer — AR Tab (STARTER/FREE locked)
 - [ ] **Status**: TODO
 - **Complexity**: Low
+- **Estimated**: 1 hour
+- **Dependencies**: T18.3
+- **Description**:
+  - Create `apps/web/components/admin/product-drawer/ar-locked.tsx` mirroring `allergens-locked.tsx` — lock icon, "Augmented Reality is a PRO feature" copy, "Upgrade to PRO" CTA
+  - In `product-dialog.tsx` TabsTrigger for `arModel`: `data-pro-locked="true"` for non-PRO, lock badge in trigger label (same pattern as Allergens line 232-243)
+  - Tab content shows `<ArLocked />` instead of upload form for FREE/STARTER
+- **Playwright test**:
+  - `tests/e2e/admin/product-drawer-ar-locked.spec.ts`
+  - Visual: `product-drawer-ar-locked.png` (STARTER fixture)
+  - Functional: lock badge visible; clicking tab shows upgrade screen (not upload UI); attempting direct API call returns 403
+
+#### T18.5: Public Product Card — AR Button + Viewer Dialog
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2.5 hours
+- **Dependencies**: T18.3
+- **Description**:
+  - Extend `PublicProduct` interface in `apps/web/components/public/product-card.tsx:62-92` with `arEnabled`, `arModelUrl`, `arModelUrlIos`, `arPosterUrl`
+  - Update DB select in `apps/web/app/m/[slug]/page.tsx` to include the new AR fields
+  - Add small "AR" chip overlay on product image (only renders when `arEnabled && arModelUrl`) — top-right, beside ribbons (~product-card.tsx:258 area)
+  - Create `apps/web/components/public/ar-viewer-dialog.tsx`: full-screen shadcn `<Dialog>` containing `<model-viewer src={arModelUrl} ios-src={arModelUrlIos} poster={arPosterUrl ?? imageUrl} ar ar-modes="scene-viewer quick-look webxr" camera-controls reveal="interaction" />`
+  - Lazy-load model-viewer via dynamic import to keep public bundle slim
+- **Playwright test**:
+  - `tests/e2e/public/menu-ar.spec.ts`
+  - Visual: `public-product-with-ar.png` (mobile 375×812)
+  - Functional: AR button only renders for products with `arEnabled=true`; clicking opens dialog; dialog contains `<model-viewer>` element; dialog closes on backdrop click
+
+#### T18.6: 3D Model Validation + Size Guards
+- [ ] **Status**: TODO
+- **Complexity**: Medium
 - **Estimated**: 2 hours
-- **Dependencies**: T18.1
+- **Dependencies**: T18.2
 - **Description**:
-  - Create accordion FAQ component with shadcn/ui
-  - Write 8-10 common questions and answers
-  - Add smooth expand/collapse animations
-  - Organize by categories (General, Pricing, Technical)
-  - Support multi-language FAQ content
-  - Add "Contact Us" link for more questions
+  - Add server-side mesh validation to `/api/upload/3d`: parse GLB header, reject if total triangle count > 50K (mobile devices stutter beyond this)
+  - `pnpm add gltf-pipeline` or `gltf-validator` for parsing
+  - Surface the rejection reason in upload error response so the admin sees: "This model is too detailed (76K triangles). Please re-export with reduced geometry."
+  - Add a `Cloudinary plan` doc note in `docs/04-features.md` — Free tier raw uploads cap at 25MB, plan upgrade path
+- **Playwright test**:
+  - Unit test `tests/unit/3d-validator.test.ts` against fixture GLBs (one valid 5K-tri, one rejected 80K-tri)
 
-#### T18.7: Contact Form & Newsletter
-- [ ] **Status**: TODO
-- **Complexity**: Medium
-- **Estimated**: 4 hours
-- **Dependencies**: T18.1
-- **Description**:
-  - Create contact form with React Hook Form + Zod validation
-  - Set up POST /api/contact endpoint
-  - Integrate Resend for email notifications
-  - Create newsletter signup form
-  - Add success/error toast notifications
-  - Implement honeypot spam protection
-
-#### T18.8: SEO & Meta Tags
-- [ ] **Status**: TODO
-- **Complexity**: Medium
-- **Estimated**: 3 hours
-- **Dependencies**: T18.1
-- **Description**:
-  - Configure Next.js metadata API for all pages
-  - Add Open Graph tags for social sharing
-  - Create Twitter Card meta tags
-  - Implement JSON-LD structured data (Organization, Product)
-  - Generate dynamic sitemap.xml
-  - Create robots.txt
-  - Add canonical URLs
-
-#### T18.9: Multi-language Landing Content
-- [ ] **Status**: TODO
-- **Complexity**: Medium
-- **Estimated**: 4 hours
-- **Dependencies**: T18.2, T18.3, T18.4, T18.5, T18.6
-- **Description**:
-  - Create translation files for marketing content (ka, en, ru)
-  - Translate all landing page text
-  - Implement language switcher in header
-  - Add hreflang tags for SEO
-  - Test all languages for proper display
-  - Handle Georgian typography properly
-
-#### T18.10: Live Chat Widget Integration
+#### T18.7: i18n Strings (ka/en/ru)
 - [ ] **Status**: TODO
 - **Complexity**: Low
-- **Estimated**: 2 hours
-- **Dependencies**: T18.1
+- **Estimated**: 0.5 hours
+- **Dependencies**: T18.3, T18.5
 - **Description**:
-  - Integrate Crisp/Tawk.to/Intercom chat widget
-  - Configure widget appearance and position
-  - Set up automated greeting message
-  - Add chat to all marketing pages
-  - Configure mobile-friendly chat button
-  - Test across all supported languages
+  - Add to `apps/web/messages/{ka,en,ru}/admin.json`:
+    - `productDrawer.tabs.arModel`, `productDrawer.tabs.arModelProBadge`
+    - `productDrawer.arModelTab.{title,description,enabledLabel,uploadGlb,uploadUsdz,preview}`
+    - `productDrawer.arLocked.{title,description,upgradeCta}`
+  - Add to `apps/web/messages/{ka,en,ru}/menu.json` (or `common.json` if menu doesn't exist):
+    - `ar.{viewButton,loading,unsupported,closeButton}`
+  - Georgian copy is the source of truth — translate to en/ru after KA is approved
+- **Playwright test**:
+  - No new test — existing `tests/e2e/admin/i18n.spec.ts` (if it exists) covers locale switching
+
+#### T18.8: Real-Device AR Verification
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 1 hour
+- **Dependencies**: T18.5
+- **Description**:
+  - Manual QA — not automatable. Document in `tests/MANUAL_QA.md`:
+    - iPhone (iOS 17+, Safari): scan QR → menu loads → tap AR button → dialog opens → tap "View in your space" → ARKit Quick Look launches → model places on real surface
+    - Android (Chrome on ARCore device): same flow → Scene Viewer launches
+    - Desktop Chrome/Firefox: AR button visible but native AR mode unavailable → falls back to inline 3D rotate/zoom (this is the expected `<model-viewer>` behavior)
+  - Capture screenshots/screen recordings for marketing material
+- **Playwright test**:
+  - None (real-device only). Add a checklist row in `tests/MANUAL_QA.md`
 
 ---
 
 ## 📊 Progress Tracking
 
 ### Overall Progress
-- **Total Tasks**: 112
-- **Completed**: 83
+- **Total Tasks**: 110
+- **Completed**: 81
 - **In Progress**: 2
 - **Blocked**: 0
 - **Progress**: 74%
@@ -2023,10 +2021,10 @@ Progress: 🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜ 74%
 - **Phase 15 - Editor Advanced Tabs**: 11/15 (73%) ← **in progress** (T15.6 done ✅ — Analytics FREE Locked + Empty States shipped; T15.8 done ✅ — Promotions Tab · Drawer shipped; T15.13 done ✅ — Menu Settings Tab · URL + Visibility shipped; T15.14 done ✅ — Menu Settings Tab · Schedule + SEO shipped; T15.15 done ✅ — Menu Settings Tab · Advanced (Clone/Archive/Delete) shipped)
 - **Phase 16 - Account Settings**: 2/8 (25%)
 - **Phase 17 - Mobile Responsive + Polish**: 0/8 (0%)
-- **Phase 18 - Marketing Website** (deferred): 2/10 (20%)
+- **Phase 18 - AR / 3D Models for Products**: 0/8 (0%)
 
 ### Current Focus
-🎯 **Status**: T15.15 done ✅ — Menu Settings Tab · Advanced (Clone/Archive/Delete) shipped. **Phase 15 is now 11/15 (73%)**. Overall 83/112 = 74%. WIP now 1 (T15.15 in progress → done). Summary of what shipped in T14.6: inline Zod errors on `nameKa`/`price`/`categoryId` were already wired by T14.2 (red border + ring-danger-soft + Info icon + helper), so T14.6's delta is focused on the two states that weren't covered yet — save-in-flight (footer Save button: `data-saving="true"` + Loader2 spinner + "Saving…" via existing `isLoading` prop) and save-failure (new banner at the top of the scrollable drawer body via `<Banner tone="error" dismissible title="Couldn't save product" description={serverMessage} />`). Three surgical changes: (1) `apps/web/components/admin/product-dialog.tsx` added `saveError: string | null` state + `Banner` import + try/catch around `onSubmit(data)` so the drawer only closes on success (fixes a data-loss bug where the drawer closed even on failed saves), plus reset `saveError` alongside `activeTab` in the on-`open` useEffect so every re-open starts clean; (2) `apps/web/components/admin/products-list.tsx` `handleCreate` / `handleUpdate` now re-throw errors (removed redundant `toast.error` + removed explicit `setIsCreateOpen(false)` / `setProductToEdit(null)` since the dialog's own `onOpenChange(false)` routes to the same setters on success); (3) `apps/web/components/admin/product-form.tsx` unchanged — the T14.2 inline errors already satisfy the "red border + helper" requirement. Banner copy uses new EN/KA/RU keys `admin.products.drawer.saveErrorTitle` ("Couldn't save product" / "პროდუქტი ვერ შეინახა" / "Не удалось сохранить продукт") + `saveErrorDefault` fallback. Testids: `product-drawer-save-error` (banner container), preserved `product-drawer-save` with `data-saving` for the in-flight state, preserved `product-basics-price-error` + name-input `ring-danger-soft` class for Zod inline errors. Playwright spec `tests/e2e/admin/product-drawer-error-saving.spec.ts` ships 10 enumerated tests (5 desktop + 5 mobile-skipped) — 2 visual baselines (`product-drawer-error-desktop.png` taken after a mocked 500 response `{ success:false, error:{ message:'Database write timed out — please retry.' } }`, `product-drawer-saving-desktop.png` taken with the PATCH route delayed 1500ms so the Save button shows spinner + "Saving…" mid-flight) + 3 functional: (a) empty-name submit → `ring-danger-soft` on name input, drawer stays open, NO save-error banner (Zod short-circuits before any API call); (b) valid edit submit → observe `data-saving="true"` in-flight → PATCH returns 200 → sonner "Product updated successfully" toast surfaces → drawer closes; (c) mocked 500 → banner appears with title "Couldn't save product" + server message "Database write timed out" → drawer stays open → `data-saving="false"` → form values preserved (nameKa round-trip asserted). Validation gates: `tsc --noEmit` clean on touched files (pre-existing TS2688 type-library noise filtered); `next lint` clean on all 3 touched files (only pre-existing unrelated warnings elsewhere); Vitest 248/274 passing (same pre-existing 26 product-card + 2 menus-API mock failures from T11.6/T11.7, unrelated); all 3 admin.json files parse valid via `python3 -c 'json.load(...)'`; Playwright list mode enumerated 10 tests correctly. Visual baselines need first-run `pnpm test:e2e:update` against the Dockerised test DB — local port 3000 held by another dev-server session, same pattern as T11–T15 work. Previously: T15.13 done ✅ — Menu Settings Tab · URL + Visibility shipped. Phase 15 now 7/15 (47%). **T15.14 (Schedule + SEO) + T15.15 (Clone/Archive/Delete) newly unlocked** — both depend on T15.13 ✅. Summary of what shipped in T15.13: (1) New `apps/web/components/admin/menu-url-visibility-section.tsx` — 600px-max card-internal section mirroring artboard `settings-menu-tab` 1:1. Menu URL row = host-prefix + monospace slug Input (lowercased + space→hyphen on input) + Copy-URL button, amber `Banner`-style warning banner ("Changing the URL will break any printed QR codes…") that flips to `role="alert"` while the slug is dirty. Visibility section = 3 custom RadioCards (Published · Password protected · Private draft) each with 18px radio dot + lucide Icon + Title + Body. Picking "Password protected" reveals a password input inside the selected card with show/hide toggle + "A password is already set. Leave blank to keep it." hint when `menu.hasPassword`. Save / Discard actions in a border-top footer, wired to `useUpdateMenu.mutateAsync` with dirty-tracking (`slugDirty`, `visibilityDirty`, `passwordDirty`); `SLUG_EXISTS` 409 surfaces as inline slug error instead of toast. Testids: `settings-url-visibility` (with `data-visibility` + `data-slug-dirty` + `data-visibility-dirty`), `settings-url-chip`, `settings-url-prefix`, `settings-url-slug`, `settings-url-copy`, `settings-url-error`, `settings-url-warning`, `settings-visibility-{published|password_protected|private_draft}` (with `data-selected`), `settings-vis-password-input`/`-error`/`-hint`, `settings-url-visibility-save`/`-discard`/`-actions`. (2) New `apps/web/components/public/menu-password-gate.tsx` — customer-facing gate with Lock icon, menu name, password input with Eye/EyeOff toggle, submit button with spinner, inline error on 403. Posts to `POST /api/menus/public/[slug]/verify-password`; on success calls `router.refresh()` which re-renders the page with the new cookie. (3) New `apps/web/app/api/menus/public/[slug]/verify-password/route.ts` — bcrypt-compares posted password against `menu.passwordHash`, on success sets HttpOnly SameSite=Lax (Secure in prod) cookie `menu-pass-{menuId}` containing an HMAC-SHA256-signed token `${menuId}.${exp}.${hex-sig}` signed by `NEXTAUTH_SECRET`; 24h TTL; `timingSafeEqual` verification in `verifyMenuPassToken`; rejects missing/unpublished menus with the same 403 shape as wrong-password to avoid enumeration. (4) New `apps/web/lib/menu-visibility.ts` — `deriveMenuVisibility(menu)` (status+hash → PUBLISHED/PASSWORD_PROTECTED/PRIVATE_DRAFT), `sanitizeMenuResponse(menu)` (strips `passwordHash`, adds `hasPassword: boolean`), and the cookie helpers. (5) Schema: `packages/database/prisma/schema.prisma` `Menu` gains `passwordHash String?`, pushed to Neon via `pnpm db:push --accept-data-loss` (additive, no data loss), Prisma Client regenerated. (6) API wiring: `PUT /api/menus/[id]` now accepts `visibility` + optional `password` in the body — Zod schema at `lib/validations/menu.ts` adds `menuVisibilityValues` enum + two optional fields; handler maps `PUBLISHED` → `status=PUBLISHED, passwordHash=null`, `PASSWORD_PROTECTED` → `status=PUBLISHED, passwordHash=bcrypt(password, 10)` (400 if neither new password nor existing hash), `PRIVATE_DRAFT` → `status=DRAFT, passwordHash=null`; `publishedAt` is refreshed whenever status crosses from DRAFT→PUBLISHED; `invalidateMenuCache()` fires whenever visibility or slug changes. Response path threads the menu through `sanitizeMenuResponse` so the admin client + Pusher payload never see the hash; `GET /api/menus/[id]`, `GET /api/menus`, and `POST /api/menus` got the same treatment. `types/menu.ts` `Menu` gains `hasPassword?: boolean`. (7) Public menu `app/m/[slug]/page.tsx` now selects `passwordHash` and — when `!isPreview && rawMenu.passwordHash` — checks the signed cookie; on miss, renders `<MenuPasswordGate>` instead of the menu. Before serialising to the client tree the hash is destructured out so it never reaches the browser. Redis cache TTL (5m) + invalidation-on-visibility-change keep the gate fresh. (8) Editor settings tab rework: `app/admin/menus/[id]/page.tsx` wraps the new URL+Visibility section in its own Card above the legacy `MenuSettingsForm` Card, removing the leftover "Public URL"/`publicHref` footer block; the admin route is now the single surface for changing URL, visibility, and everything else Branding/Fonts/Layout-related. (9) EN/KA/RU `admin.editor.settings.{url.{label, helper, slugAriaLabel, slugPlaceholder, copyAriaLabel, copyToast, copyError, warning, errors.{required,tooShort,tooLong,invalidChars,taken}}, visibility.{label, helper, ariaLabel, published.{title,body}, password.{title,body,inputLabelSet,inputLabelChange,placeholderSet,placeholderChange,showAriaLabel,hideAriaLabel,hint,errors.{required,tooShort}}, draft.{title,body}}, actions.{save,saving,discard,saved,saveFailed}}` keys added across all 3 locale files. (10) Playwright spec `tests/e2e/admin/editor-settings.spec.ts` (serial, desktop-only, 10 enumerated = 5 desktop + 5 mobile-skipped) — 1 visual baseline `editor-settings-url-visibility-desktop.png` + 4 functional: (a) slug edit + Save fires PUT /api/menus/{id}, DB slug updates, old slug 404s and new slug returns 200 on `/m/{slug}`; (b) picking "Private draft" + Save writes `status=DRAFT` + `passwordHash=null` to DB + `/m/{slug}` returns 404; (c) picking "Password protected" + entering `linville-2026` + Save bcrypt-hashes + keeps `status=PUBLISHED` + response body has `hasPassword: true` and NO `passwordHash`, then clearing cookies and hitting `/m/{slug}` renders `menu-password-gate`; wrong password returns 403; correct password returns 200 and sets cookie matching `^{menuId}\.\d+\.[a-f0-9]{64}$`; reloading `/m/{slug}` with the cookie bypasses the gate; (d) Copy URL button writes `${origin}/m/{slug}` to `navigator.clipboard`. Validation gates: `tsc --noEmit` clean on all touched files (pre-existing TS2688 type-library noise filtered); `next lint` clean on all new files (only pre-existing `code-block.tsx` + unrelated unused-var warnings across other files remain); Vitest 248/274 pass (same pre-existing 26 product-card mock failures unrelated); all 3 admin.json files parse valid. Visual baseline needs first-run `pnpm test:e2e:update` against the Dockerised test DB — local port 3000 held by another dev-server session, same pattern as T11–T15 work.
+🎯 **Status**: T15.15 done ✅ — Menu Settings Tab · Advanced (Clone/Archive/Delete) shipped. **Phase 15 is now 11/15 (73%)**. Overall 81/102 = 79%. WIP now 1 (T15.15 in progress → done). Summary of what shipped in T14.6: inline Zod errors on `nameKa`/`price`/`categoryId` were already wired by T14.2 (red border + ring-danger-soft + Info icon + helper), so T14.6's delta is focused on the two states that weren't covered yet — save-in-flight (footer Save button: `data-saving="true"` + Loader2 spinner + "Saving…" via existing `isLoading` prop) and save-failure (new banner at the top of the scrollable drawer body via `<Banner tone="error" dismissible title="Couldn't save product" description={serverMessage} />`). Three surgical changes: (1) `apps/web/components/admin/product-dialog.tsx` added `saveError: string | null` state + `Banner` import + try/catch around `onSubmit(data)` so the drawer only closes on success (fixes a data-loss bug where the drawer closed even on failed saves), plus reset `saveError` alongside `activeTab` in the on-`open` useEffect so every re-open starts clean; (2) `apps/web/components/admin/products-list.tsx` `handleCreate` / `handleUpdate` now re-throw errors (removed redundant `toast.error` + removed explicit `setIsCreateOpen(false)` / `setProductToEdit(null)` since the dialog's own `onOpenChange(false)` routes to the same setters on success); (3) `apps/web/components/admin/product-form.tsx` unchanged — the T14.2 inline errors already satisfy the "red border + helper" requirement. Banner copy uses new EN/KA/RU keys `admin.products.drawer.saveErrorTitle` ("Couldn't save product" / "პროდუქტი ვერ შეინახა" / "Не удалось сохранить продукт") + `saveErrorDefault` fallback. Testids: `product-drawer-save-error` (banner container), preserved `product-drawer-save` with `data-saving` for the in-flight state, preserved `product-basics-price-error` + name-input `ring-danger-soft` class for Zod inline errors. Playwright spec `tests/e2e/admin/product-drawer-error-saving.spec.ts` ships 10 enumerated tests (5 desktop + 5 mobile-skipped) — 2 visual baselines (`product-drawer-error-desktop.png` taken after a mocked 500 response `{ success:false, error:{ message:'Database write timed out — please retry.' } }`, `product-drawer-saving-desktop.png` taken with the PATCH route delayed 1500ms so the Save button shows spinner + "Saving…" mid-flight) + 3 functional: (a) empty-name submit → `ring-danger-soft` on name input, drawer stays open, NO save-error banner (Zod short-circuits before any API call); (b) valid edit submit → observe `data-saving="true"` in-flight → PATCH returns 200 → sonner "Product updated successfully" toast surfaces → drawer closes; (c) mocked 500 → banner appears with title "Couldn't save product" + server message "Database write timed out" → drawer stays open → `data-saving="false"` → form values preserved (nameKa round-trip asserted). Validation gates: `tsc --noEmit` clean on touched files (pre-existing TS2688 type-library noise filtered); `next lint` clean on all 3 touched files (only pre-existing unrelated warnings elsewhere); Vitest 248/274 passing (same pre-existing 26 product-card + 2 menus-API mock failures from T11.6/T11.7, unrelated); all 3 admin.json files parse valid via `python3 -c 'json.load(...)'`; Playwright list mode enumerated 10 tests correctly. Visual baselines need first-run `pnpm test:e2e:update` against the Dockerised test DB — local port 3000 held by another dev-server session, same pattern as T11–T15 work. Previously: T15.13 done ✅ — Menu Settings Tab · URL + Visibility shipped. Phase 15 now 7/15 (47%). **T15.14 (Schedule + SEO) + T15.15 (Clone/Archive/Delete) newly unlocked** — both depend on T15.13 ✅. Summary of what shipped in T15.13: (1) New `apps/web/components/admin/menu-url-visibility-section.tsx` — 600px-max card-internal section mirroring artboard `settings-menu-tab` 1:1. Menu URL row = host-prefix + monospace slug Input (lowercased + space→hyphen on input) + Copy-URL button, amber `Banner`-style warning banner ("Changing the URL will break any printed QR codes…") that flips to `role="alert"` while the slug is dirty. Visibility section = 3 custom RadioCards (Published · Password protected · Private draft) each with 18px radio dot + lucide Icon + Title + Body. Picking "Password protected" reveals a password input inside the selected card with show/hide toggle + "A password is already set. Leave blank to keep it." hint when `menu.hasPassword`. Save / Discard actions in a border-top footer, wired to `useUpdateMenu.mutateAsync` with dirty-tracking (`slugDirty`, `visibilityDirty`, `passwordDirty`); `SLUG_EXISTS` 409 surfaces as inline slug error instead of toast. Testids: `settings-url-visibility` (with `data-visibility` + `data-slug-dirty` + `data-visibility-dirty`), `settings-url-chip`, `settings-url-prefix`, `settings-url-slug`, `settings-url-copy`, `settings-url-error`, `settings-url-warning`, `settings-visibility-{published|password_protected|private_draft}` (with `data-selected`), `settings-vis-password-input`/`-error`/`-hint`, `settings-url-visibility-save`/`-discard`/`-actions`. (2) New `apps/web/components/public/menu-password-gate.tsx` — customer-facing gate with Lock icon, menu name, password input with Eye/EyeOff toggle, submit button with spinner, inline error on 403. Posts to `POST /api/menus/public/[slug]/verify-password`; on success calls `router.refresh()` which re-renders the page with the new cookie. (3) New `apps/web/app/api/menus/public/[slug]/verify-password/route.ts` — bcrypt-compares posted password against `menu.passwordHash`, on success sets HttpOnly SameSite=Lax (Secure in prod) cookie `menu-pass-{menuId}` containing an HMAC-SHA256-signed token `${menuId}.${exp}.${hex-sig}` signed by `NEXTAUTH_SECRET`; 24h TTL; `timingSafeEqual` verification in `verifyMenuPassToken`; rejects missing/unpublished menus with the same 403 shape as wrong-password to avoid enumeration. (4) New `apps/web/lib/menu-visibility.ts` — `deriveMenuVisibility(menu)` (status+hash → PUBLISHED/PASSWORD_PROTECTED/PRIVATE_DRAFT), `sanitizeMenuResponse(menu)` (strips `passwordHash`, adds `hasPassword: boolean`), and the cookie helpers. (5) Schema: `packages/database/prisma/schema.prisma` `Menu` gains `passwordHash String?`, pushed to Neon via `pnpm db:push --accept-data-loss` (additive, no data loss), Prisma Client regenerated. (6) API wiring: `PUT /api/menus/[id]` now accepts `visibility` + optional `password` in the body — Zod schema at `lib/validations/menu.ts` adds `menuVisibilityValues` enum + two optional fields; handler maps `PUBLISHED` → `status=PUBLISHED, passwordHash=null`, `PASSWORD_PROTECTED` → `status=PUBLISHED, passwordHash=bcrypt(password, 10)` (400 if neither new password nor existing hash), `PRIVATE_DRAFT` → `status=DRAFT, passwordHash=null`; `publishedAt` is refreshed whenever status crosses from DRAFT→PUBLISHED; `invalidateMenuCache()` fires whenever visibility or slug changes. Response path threads the menu through `sanitizeMenuResponse` so the admin client + Pusher payload never see the hash; `GET /api/menus/[id]`, `GET /api/menus`, and `POST /api/menus` got the same treatment. `types/menu.ts` `Menu` gains `hasPassword?: boolean`. (7) Public menu `app/m/[slug]/page.tsx` now selects `passwordHash` and — when `!isPreview && rawMenu.passwordHash` — checks the signed cookie; on miss, renders `<MenuPasswordGate>` instead of the menu. Before serialising to the client tree the hash is destructured out so it never reaches the browser. Redis cache TTL (5m) + invalidation-on-visibility-change keep the gate fresh. (8) Editor settings tab rework: `app/admin/menus/[id]/page.tsx` wraps the new URL+Visibility section in its own Card above the legacy `MenuSettingsForm` Card, removing the leftover "Public URL"/`publicHref` footer block; the admin route is now the single surface for changing URL, visibility, and everything else Branding/Fonts/Layout-related. (9) EN/KA/RU `admin.editor.settings.{url.{label, helper, slugAriaLabel, slugPlaceholder, copyAriaLabel, copyToast, copyError, warning, errors.{required,tooShort,tooLong,invalidChars,taken}}, visibility.{label, helper, ariaLabel, published.{title,body}, password.{title,body,inputLabelSet,inputLabelChange,placeholderSet,placeholderChange,showAriaLabel,hideAriaLabel,hint,errors.{required,tooShort}}, draft.{title,body}}, actions.{save,saving,discard,saved,saveFailed}}` keys added across all 3 locale files. (10) Playwright spec `tests/e2e/admin/editor-settings.spec.ts` (serial, desktop-only, 10 enumerated = 5 desktop + 5 mobile-skipped) — 1 visual baseline `editor-settings-url-visibility-desktop.png` + 4 functional: (a) slug edit + Save fires PUT /api/menus/{id}, DB slug updates, old slug 404s and new slug returns 200 on `/m/{slug}`; (b) picking "Private draft" + Save writes `status=DRAFT` + `passwordHash=null` to DB + `/m/{slug}` returns 404; (c) picking "Password protected" + entering `linville-2026` + Save bcrypt-hashes + keeps `status=PUBLISHED` + response body has `hasPassword: true` and NO `passwordHash`, then clearing cookies and hitting `/m/{slug}` renders `menu-password-gate`; wrong password returns 403; correct password returns 200 and sets cookie matching `^{menuId}\.\d+\.[a-f0-9]{64}$`; reloading `/m/{slug}` with the cookie bypasses the gate; (d) Copy URL button writes `${origin}/m/{slug}` to `navigator.clipboard`. Validation gates: `tsc --noEmit` clean on all touched files (pre-existing TS2688 type-library noise filtered); `next lint` clean on all new files (only pre-existing `code-block.tsx` + unrelated unused-var warnings across other files remain); Vitest 248/274 pass (same pre-existing 26 product-card mock failures unrelated); all 3 admin.json files parse valid. Visual baseline needs first-run `pnpm test:e2e:update` against the Dockerised test DB — local port 3000 held by another dev-server session, same pattern as T11–T15 work.
 ✅ **Recently Done**: T15.5 — Analytics Tab · Date Range Picker (2026-04-27, query key caching fix for preset periods + build cleanup)
 📅 **Next Task**: T15.11 — QR Tab · Download Panel + Scan Stats (deps T15.10 ✅) or T15.12 — QR Tab · Template Picker Modal (deps T15.10 ✅).
 ✅ **Recently Done**: T15.8 — Promotions Tab · Drawer (2026-04-27, new `apps/web/components/admin/promotion-drawer.tsx` (~900 LOC) replacing the legacy `PromotionDialog` in `editor-promotions-tab.tsx` — 540px right Sheet with 3 tabs: Details (LangTabsInline for multi-lang title/description, segmented discount type [Percent/Banknote/Gift icons], conditional discount value input, RadioGroup apply-to scope [Entire menu/Category/Items] with category Select when scoped, day pills + time range for time restrictions), Appearance (ImageUpload 16:9 banner), Schedule (date pickers + active toggle). Sticky header with thumbnail + title + status pill + close; sticky footer with Delete/Cancel/Save. Error banner at top of scrollable body (pattern from T14.6). Schema changes: `Promotion` model gained `discountType String?`, `discountValue Decimal? @db.Decimal(10,2)`, `applyTo String?`, `categoryId String?`, `timeRestrictions Json? @default("{}")` + reverse `promotions` relation on `Category`; Prisma client regenerated. API routes `[id]/promotions` and `[id]/promotions/[pid]` updated to `include: { category: { select: { id, nameKa, nameEn, nameRu } } }`. Validation schemas extended with new fields. `types/menu.ts` `Promotion` interface extended. Translations added `admin.promotions.drawer.*` keys to EN/KA/RU. Playwright spec `tests/e2e/admin/editor-promotions-drawer.spec.ts` covers visual baseline, create flow, edit flow, discount type switching, apply-to category selection, and error states. Note: `pnpm db:push` to Neon blocked by network timeout (P1001) — retry when online; build passes except pre-existing TS2688 implicit type definition errors (aria-query, babel, d3, chai, etc.) unrelated to this task. tie — `canonicaliseDevices()` buckets the API's `deviceBreakdown` by regex (/^mobile$/i etc.) and re-orders by `DEVICE_ORDER.filter(d => buckets.has(d.key))` regardless of API sort order; percentage aggregation sums per-bucket then rounds to 1dp for display parity. Below the donut is a `border-t` `BrowserList` (max 4 rows, 54px label + 5px accent-less `bg-text-muted` bar + right-aligned integer %) sourced from the API's `browserBreakdown`. Empty state when no devices → renders donut track only + "No device data in this period" copy; empty-state for browsers → "No browser data yet". FREE plan mirror-flags `data-plan-locked="true"` + same blur treatment. Backend: `apps/web/app/api/menus/[id]/analytics/route.ts` adds a `topCategories` aggregation — `prisma.menuView.groupBy({ by: ['categoryId'], where: { menuId, categoryId: { not: null }, viewedAt: { gte, lte } }, _count: { id: true }, orderBy: { _count: { id: 'desc' } }, take: 5 })` joined with `prisma.category.findMany({ where: { id: { in: ids } }, select: { id, nameKa, nameEn, nameRu } })` via a `Map` lookup, percentages computed against `totalCategorizedViews = sum(row._count.id)` (NOT `totalViewsInRange`) so bars stay proportional when only a subset of traffic is attributed; rows without a resolved category or null categoryId are filtered out of the final payload. Schema change: `packages/database/prisma/schema.prisma` `MenuView` model gains nullable `categoryId String?` + `Category?` relation `onDelete: SetNull` + new compound index `@@index([menuId, categoryId, viewedAt])` for the aggregation; `Category` gets back-reference `views MenuView[]`. Pushed to Neon via `pnpm db:push` (additive, no data loss), Prisma Client regenerated. Track-view endpoint `apps/web/app/api/menus/[id]/views/route.ts` is now forward-compatible: parses an optional `{ categoryId }` body (backward-compatible — existing empty-body posts still work via `raw.length > 0` guard) + validates `categoryId` belongs to this menu via `prisma.category.findUnique({ where: { id }, select: { menuId } })` before persisting (silently drops cross-menu attribution attempts); `trackViewSchema` in `lib/validations/analytics.ts` gains `categoryId: z.string().optional()`. Client-side wiring of per-category tap tracking in the public menu is intentionally deferred — Phase 15 scope calls for "views, device, browser = real data" which is satisfied now; the top-categories card renders empty-state until a future task wires the public menu's category nav to POST `{ categoryId }`. Validation schema: `topCategorySchema = z.object({ categoryId, nameKa, nameEn, nameRu, count, percentage })` + extension `menuAnalyticsSchema.topCategories: z.array(topCategorySchema)` + new `TopCategory` type export in `apps/web/lib/validations/analytics.ts`. EN/KA/RU `admin.editor.analytics.{topCategories.{title, hint, empty}, deviceBreakdown.{title, donutAriaLabel, empty, segments.{mobile, desktop, tablet, other}, browsers.{heading, empty}}}` keys added across all three locales (EN: "Top categories" / "Top 5 by views" / "No category views in this period yet" / "Device breakdown" / "Mobile"/"Desktop"/"Tablet"/"Other" / "Browsers" / "No browser data yet"; KA: "ტოპ კატეგორიები" / "ტოპ 5 ნახვების მიხედვით" / "ამ პერიოდში ჯერ არ არის კატეგორიული ნახვები" / "მოწყობილობები" / "მობილური"/"კომპიუტერი"/"პლანშეტი"/"სხვა" / "ბრაუზერები" / "ჯერ არ არის ბრაუზერის მონაცემები"; RU: "Топ-категории" / "Топ-5 по просмотрам" / "В этом периоде пока нет просмотров по категориям" / "Устройства" / "Мобильные"/"Десктоп"/"Планшет"/"Другое" / "Браузеры" / "Пока нет данных о браузерах"); stale `admin.editor.analytics.comingSoon.body` copy rewritten across all 3 locales since it used to mention T15.3 as pending work — now says "Per-product view tracking, geography, and traffic source ship with the analytics data pipeline." / "პროდუქტის დონეზე ნახვების მოდელი, გეოგრაფია და ტრაფიკის წყარო დაემატება ანალიტიკის მომდევნო ეტაპზე." / "Трекинг просмотров по товарам, география и источники трафика появятся вместе с конвейером данных аналитики.". Testids: `editor-analytics-row-3` (grid wrapper), `editor-analytics-top-categories-card` (with `data-plan-locked`), `editor-analytics-top-categories-hint`, `editor-analytics-top-categories-rows`, `editor-analytics-top-categories-row` (with `data-category-id` + `data-rank`), `editor-analytics-top-categories-bar`, `editor-analytics-top-categories-count`, `editor-analytics-top-categories-empty`/`-skeleton`; `editor-analytics-device-card` (with `data-plan-locked`), `editor-analytics-device-body`, `editor-analytics-device-donut`, `editor-analytics-device-arc-{mobile|desktop|tablet|other}` (each carries `data-arc-length` for arithmetic assertions), `editor-analytics-device-legend`, `editor-analytics-device-legend-row` (with `data-device` + `data-rank`), `editor-analytics-device-empty`/`-skeleton`, `editor-analytics-browser-list`, `editor-analytics-browser-row` (with `data-browser`), `editor-analytics-browser-list-empty`. Test fixtures: `tests/e2e/fixtures/seed.ts` `seedMenuViews` gains three new options — `deviceWeights?: number[]` (aligned with `devices` length, enables non-round-robin distribution e.g. `[6,2,1]` → Mobile dominant), `browsers?: string[]` (round-robin through a list of browser names attached to each seeded row), and `categoryDistribution?: Array<{ categoryId: string | null; weight: number }>` (weighted round-robin attribution — null entries produce menu-level views with categoryId NULL to match production tracker default). All new options throw with actionable errors when misconfigured (length mismatches, zero-sum weights). New Playwright spec `tests/e2e/admin/editor-analytics-row-3.spec.ts` (serial, desktop-only, 12 enumerated = 6 desktop + 6 mobile-skipped) — 1 visual baseline `editor-analytics-row-3-desktop.png` (PRO seed with 4 categories × 3 products, 14 days × 24 views/day = 336 views distributed via `categoryDistribution: [cat0:10, cat1:6, cat2:3, cat3:1, null:4]` so DESC order is well-defined, + `deviceWeights: [6,2,1]` mobile-dominant, + 4-browser round-robin Safari/Chrome/Firefox/Edge) + 5 functional tests all sourcing expected values from the live API (not hard-coded): (1) Top categories DESC — row count matches `apiPayload.data.topCategories.length`, row N's `data-rank=${N+1}` + `data-category-id` matches `apiCats[N].categoryId`, count column matches `apiCats[N].count.toLocaleString('en-US')`, rank-1 bar width exactly `100%`, rank-2 bar width exactly `${(c1/c0)*100}%`, non-tautological cross-check `kpis.totalViews.current > sum(apiCats.count)` proving unattributed null-categoryId views are excluded from the aggregation; (2) Device donut — mobile/desktop/tablet arcs visible, first legend row has `data-device="mobile"` regardless of API order, arc length pulled from `data-arc-length` attr matches `(deviceBreakdown.mobile.percentage/100) * 2π*48` within 1px tolerance; (3) Browser list — row count is `min(4, browserBreakdown.length)`, first row's `data-browser` matches `browserBreakdown[0].browser.toLowerCase()`; (4) Empty state — seeded 50 null-categoryId views, `editor-analytics-top-categories-empty` visible + `editor-analytics-top-categories-rows` absent, proving menu-level views don't pollute the aggregation; (5) FREE plan — both cards (`editor-analytics-top-categories-card` + `editor-analytics-device-card`) flagged `data-plan-locked="true"`. `tsc --noEmit --skipLibCheck` clean on touched files (pre-existing TS2688 type-library noise filtered); `next lint` clean on `top-categories-card.tsx` + `device-breakdown-card.tsx` + `analytics-tab.tsx` + `app/api/menus/[id]/analytics/route.ts` + `app/api/menus/[id]/views/route.ts` + `lib/validations/analytics.ts`; Vitest 248 passing (same pre-existing 26 product-card mock failures from T11.6/T11.7, unrelated); all 3 admin.json files parse valid; Playwright list mode enumerated 12 new T15.3 tests + 40 pre-existing analytics tests still enumerate correctly. **Two baseline refreshes needed on first `pnpm test:e2e:update`**: (a) new `tests/e2e/__screenshots__/admin/editor-analytics-row-3-desktop.png`; (b) T15.4 `editor-analytics-advanced-desktop.png` must re-capture because it screenshots the full `editor-analytics-tab` container and masks only KPI+chart above — since row-3 now sits between chart and heatmap, the old baseline's unmasked region grew by one card row and will exceed the 5% diff threshold. This is expected & intentional. Dev-server smoke not captured here (port 3000 held by another session, same pattern as T11–T15 work).)

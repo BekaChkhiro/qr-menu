@@ -215,7 +215,7 @@ export function CategoriesList({
   if (error) {
     return (
       <div
-        className="flex w-[360px] shrink-0 flex-col items-center justify-center self-start rounded-[12px] border border-danger-soft bg-danger-soft/30 p-6 text-center"
+        className="flex w-full lg:w-[360px] lg:shrink-0 flex-col items-center justify-center self-start rounded-[12px] border border-danger-soft bg-danger-soft/30 p-6 text-center"
         data-testid="categories-list-error"
       >
         <p className="text-[13px] text-danger">{error.message}</p>
@@ -231,7 +231,7 @@ export function CategoriesList({
 
   return (
     <div
-      className="flex w-[360px] shrink-0 flex-col gap-3.5 self-start rounded-[12px] border border-border bg-sidebar p-4"
+      className="flex w-full lg:w-[360px] lg:shrink-0 flex-col gap-3.5 self-start rounded-[12px] border border-border bg-sidebar p-4"
       data-testid="categories-list"
     >
       {/* Search */}
@@ -574,7 +574,7 @@ function CategoryIcon({ category, emoji }: { category: Category; emoji: string }
 function CategoriesListSkeleton() {
   return (
     <div
-      className="flex w-[360px] shrink-0 flex-col gap-3.5 self-start rounded-[12px] border border-border bg-sidebar p-4"
+      className="flex w-full lg:w-[360px] lg:shrink-0 flex-col gap-3.5 self-start rounded-[12px] border border-border bg-sidebar p-4"
       data-testid="categories-list-skeleton"
     >
       <Skeleton className="h-8 w-full rounded-md" />

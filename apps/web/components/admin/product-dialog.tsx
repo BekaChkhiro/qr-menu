@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Loader2, Lock, Plus, Trash2, X } from 'lucide-react';
 import * as SheetPrimitive from '@radix-ui/react-dialog';
@@ -57,6 +57,8 @@ export function ProductDialog({
   const isEditing = !!product;
   const [activeTab, setActiveTab] = useState<DrawerTab>('basics');
   const [saveError, setSaveError] = useState<string | null>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -79,6 +81,30 @@ export function ProductDialog({
     onOpenChange(false);
   };
 
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    setTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartY == null || !sheetRef.current) return;
+    const diff = e.touches[0].clientY - touchStartY;
+    if (diff > 0) {
+      sheetRef.current.style.transform = `translateY(${diff}px)`;
+      sheetRef.current.style.transition = 'none';
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartY == null || !sheetRef.current) return;
+    const diff = e.changedTouches[0].clientY - touchStartY;
+    sheetRef.current.style.transform = '';
+    sheetRef.current.style.transition = '';
+    if (diff > 80) {
+      onOpenChange(false);
+    }
+    setTouchStartY(null);
+  };
+
   const title = isEditing ? t('editTitle') : t('addTitle');
   const subtitle = isEditing
     ? [product.nameKa, categories.find((c) => c.id === product.categoryId)?.nameKa]
@@ -89,16 +115,30 @@ export function ProductDialog({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        side="right"
+        side="responsive"
         hideClose
         overlayClassName="bg-black/25 backdrop-blur-0"
         className={cn(
           'flex h-full w-full flex-col gap-0 p-0',
           'sm:max-w-[540px]',
         )}
+        ref={sheetRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         data-testid="product-drawer"
         data-mode={isEditing ? 'edit' : 'create'}
       >
+        {/* ── Mobile drag handle ───────────────────────────────────────── */}
+        <button
+          type="button"
+          onClick={() => onOpenChange(false)}
+          className="flex w-full flex-col items-center justify-center pt-3 pb-1 md:hidden"
+          aria-label={t('closeLabel')}
+          data-testid="product-drawer-drag-handle"
+        >
+          <span className="block h-1 w-10 rounded-full bg-border" />
+        </button>
         {/* ── Sticky header ────────────────────────────────────────────── */}
         <div
           className="flex h-16 flex-shrink-0 items-center gap-3 border-b border-border px-5"

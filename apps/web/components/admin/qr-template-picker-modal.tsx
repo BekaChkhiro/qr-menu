@@ -73,11 +73,10 @@ export function QrTemplatePickerModal({
         sizeMode === 'S' ? 'small' : sizeMode === 'M' ? 'medium' : 'large',
       style: (menu.qrStyle ?? 'SQUARE') as QrStyle,
       fg: menu.qrForegroundColor ?? '#18181B',
+      bg: menu.qrBackgroundColor ?? 'transparent',
+      logo: 'menu',
+      template: selectedTemplate.kind,
     });
-    if (menu.qrBackgroundColor) {
-      params.set('bg', menu.qrBackgroundColor);
-    }
-    params.set('logo', 'menu');
 
     const url = `/api/qr/${menu.id}?${params.toString()}`;
     window.open(url, '_blank');

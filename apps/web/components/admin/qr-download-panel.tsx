@@ -10,11 +10,9 @@ import {
   Globe,
   Image as ImageIcon,
   Lock,
-  MapPin,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { useMenuAnalytics } from '@/hooks/use-analytics';
 import { cn } from '@/lib/utils';
 import type { Menu, MenuWithDetails, QrStyle } from '@/types/menu';
@@ -37,16 +35,6 @@ interface QrDownloadPanelProps {
   onOpenTemplates?: () => void;
 }
 
-/** Simple string hash for deterministic placeholders. */
-function hashString(input: string): number {
-  let h = 0;
-  for (let i = 0; i < input.length; i++) {
-    h = (h << 5) - h + input.charCodeAt(i);
-    h |= 0;
-  }
-  return Math.abs(h);
-}
-
 export function QrDownloadPanel({
   menu,
   hasQrLogo,
@@ -59,7 +47,6 @@ export function QrDownloadPanel({
   const [includeUrl, setIncludeUrl] = useState(true);
   const [includeCta, setIncludeCta] = useState(true);
   const [includeLogo, setIncludeLogo] = useState(hasQrLogo);
-  const [trackingEnabled, setTrackingEnabled] = useState(true);
 
   const { data: analytics } = useMenuAnalytics(menu.id, { period: '30d' });
 
@@ -68,15 +55,8 @@ export function QrDownloadPanel({
     return `${window.location.origin}/m/${menu.slug}`;
   }, [menu.slug]);
 
-
-
-  // ── Scan stats (deterministic placeholder for "most active table") ─────────
   const scanCount = analytics?.kpis?.uniqueScans?.current ?? 0;
-  const tableHash = hashString(menu.id);
-  const activeTableNumber = (tableHash % 20) + 1;
-  const activeTableScans = Math.round(
-    (analytics?.kpis?.uniqueScans?.current ?? 2410) * 0.53,
-  );
+  const isPdf = format === 'pdf';
 
   // ── Download handler ───────────────────────────────────────────────────────
   const handleDownload = () => {
@@ -87,14 +67,18 @@ export function QrDownloadPanel({
       style: (menu.qrStyle ?? 'SQUARE') as QrStyle,
       fg: menu.qrForegroundColor ?? '#18181B',
     });
-    if (menu.qrBackgroundColor) {
-      params.set('bg', menu.qrBackgroundColor);
-    }
+    // Background — explicit 'transparent' when the menu's bg is null.
+    params.set('bg', menu.qrBackgroundColor ?? 'transparent');
+
     if (includeLogo && hasQrLogo && menu.qrLogoUrl) {
       params.set('logo', 'menu');
     } else {
       params.set('logo', 'none');
     }
+
+    // URL/CTA captions only land on the PDF page; for PNG/SVG the API ignores them.
+    params.set('includeUrl', String(includeUrl));
+    params.set('includeCta', String(includeCta));
 
     const url = `/api/qr/${menu.id}?${params.toString()}`;
     window.open(url, '_blank');
@@ -157,14 +141,16 @@ export function QrDownloadPanel({
         {/* ── Include ── */}
         <FieldBlock label={t('download.include.label')}>
           <CheckboxRow
-            checked={includeUrl}
+            checked={includeUrl && isPdf}
             label={t('download.include.url')}
+            disabled={!isPdf}
             onClick={() => setIncludeUrl((v) => !v)}
             dataTestId="editor-qr-include-url"
           />
           <CheckboxRow
-            checked={includeCta}
+            checked={includeCta && isPdf}
             label={t('download.include.cta')}
+            disabled={!isPdf}
             onClick={() => setIncludeCta((v) => !v)}
             dataTestId="editor-qr-include-cta"
           />
@@ -216,22 +202,12 @@ export function QrDownloadPanel({
         <div className="mb-[6px] text-[11.5px] font-semibold uppercase tracking-[0.5px] text-text-muted">
           {t('stats.heading')}
         </div>
-        <div className="mb-[6px] flex items-baseline gap-2">
+        <div className="flex items-baseline gap-2">
           <span className="text-[36px] font-semibold leading-none tracking-[-1px] text-text-default [font-variant-numeric:tabular-nums]">
             {scanCount.toLocaleString()}
           </span>
           <span className="text-[13px] text-text-muted">
             {t('stats.period')}
-          </span>
-        </div>
-        <div className="mt-1 flex items-center gap-[6px] border-t border-border-soft pt-[10px] text-[12.5px] text-text-muted">
-          <MapPin size={12} strokeWidth={1.5} className="shrink-0 text-accent" />
-          <span>{t('stats.mostActive')}</span>
-          <span className="font-semibold text-text-default">
-            {t('stats.tableName', { n: activeTableNumber })}
-          </span>
-          <span className="[font-variant-numeric:tabular-nums] text-text-subtle">
-            ({activeTableScans.toLocaleString()} {t('stats.scans')})
           </span>
           <a
             href={`?tab=analytics`}
@@ -249,7 +225,7 @@ export function QrDownloadPanel({
         <div className="mb-[10px] text-[11.5px] font-semibold uppercase tracking-[0.5px] text-text-muted">
           {t('link.heading')}
         </div>
-        <div className="mb-[14px] flex items-center gap-2 rounded-[8px] border border-border-soft bg-bg px-3 py-[9px]">
+        <div className="flex items-center gap-2 rounded-[8px] border border-border-soft bg-bg px-3 py-[9px]">
           <Globe
             size={13}
             strokeWidth={1.5}
@@ -268,22 +244,6 @@ export function QrDownloadPanel({
             <Copy size={13} strokeWidth={1.5} />
             {t('link.copy')}
           </Button>
-        </div>
-        <div className="flex items-center gap-[10px] border-t border-border-soft pt-[10px]">
-          <div className="flex-1">
-            <div className="text-[13px] font-semibold text-text-default">
-              {t('link.trackingTitle')}
-            </div>
-            <div className="mt-[2px] text-[11.5px] text-text-muted">
-              {t('link.trackingBody')}
-            </div>
-          </div>
-          <Switch
-            checked={trackingEnabled}
-            onCheckedChange={setTrackingEnabled}
-            aria-label={t('link.trackingTitle')}
-            data-testid="editor-qr-tracking-toggle"
-          />
         </div>
       </div>
     </div>
@@ -362,15 +322,18 @@ function CheckboxRow({
   checked,
   label,
   locked,
+  disabled,
   onClick,
   dataTestId,
 }: {
   checked: boolean;
   label: string;
   locked?: boolean;
+  disabled?: boolean;
   onClick: () => void;
   dataTestId: string;
 }) {
+  const inactive = locked || disabled;
   return (
     <button
       type="button"
@@ -379,10 +342,11 @@ function CheckboxRow({
       onClick={onClick}
       data-testid={dataTestId}
       data-locked={locked ? 'true' : 'false'}
-      disabled={locked}
+      data-disabled={disabled ? 'true' : 'false'}
+      disabled={inactive}
       className={cn(
         'flex w-full items-center gap-[10px] py-2 text-left',
-        locked ? 'cursor-not-allowed opacity-55' : 'cursor-pointer',
+        inactive ? 'cursor-not-allowed opacity-55' : 'cursor-pointer',
       )}
     >
       <span

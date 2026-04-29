@@ -50,6 +50,15 @@ const sheetVariants = cva(
         left: "inset-y-0 left-0 h-full w-3/4 border-r border-border data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
         right:
           "inset-y-0 right-0 h-full w-full sm:max-w-[540px] border-l border-border data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
+        responsive: [
+          // Mobile bottom sheet (< 768px)
+          "max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:h-[90vh] max-md:w-full max-md:rounded-t-[16px] max-md:border-t max-md:border-border",
+          "max-md:data-[state=closed]:slide-out-to-bottom max-md:data-[state=open]:slide-in-from-bottom",
+          // Desktop right drawer (≥ 768px)
+          "md:inset-y-0 md:right-0 md:left-auto md:top-0 md:bottom-0 md:h-full md:w-full md:max-w-[540px]",
+          "md:rounded-none md:border-l md:border-t-0 md:border-border",
+          "md:data-[state=closed]:slide-out-to-right md:data-[state=open]:slide-in-from-right",
+        ],
       },
     },
     defaultVariants: {

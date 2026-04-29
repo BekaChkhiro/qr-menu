@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import {
   Key,
@@ -117,7 +116,6 @@ function Card({
 export function SecurityForm() {
   const t = useTranslations('admin.settings.security');
   const tCommon = useTranslations('admin.settings');
-  const router = useRouter();
 
   const { data: profile } = useProfile();
   const { data: sessionsData, isLoading: sessionsLoading } = useSessions();
@@ -139,12 +137,11 @@ export function SecurityForm() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteInput, setDeleteInput] = useState('');
 
-  const hasPassword = !!profile?.password;
+  const hasPassword = profile?.hasPassword ?? false;
   const businessName =
     profile?.name ?? profile?.email ?? 'Café Linville';
 
   const sessions = sessionsData?.sessions ?? [];
-  const currentSession = sessions.find((s) => s.isCurrent);
   const otherSessions = sessions.filter((s) => !s.isCurrent);
 
   /* ── Password handlers ── */
