@@ -80,9 +80,10 @@ export function ArViewerDialog({
               alt={alt}
               poster={posterUrl ?? undefined}
               camera-controls
+              auto-rotate
               ar
               ar-modes="scene-viewer quick-look webxr"
-              reveal="interaction"
+              reveal="auto"
               shadow-intensity="0.7"
               exposure="0.95"
               loading="eager"
