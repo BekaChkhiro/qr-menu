@@ -522,6 +522,7 @@ Valid: 17:00 - 20:00 daily
 | **Multi-language** | ❌ | ❌ | ✅ |
 | **Allergens** | ❌ | ❌ | ✅ |
 | **Analytics** | ❌ | ❌ | ✅ |
+| **AR / 3D Models** | ❌ | ❌ | ✅ |
 | **Real-time** | ✅ | ✅ | ✅ |
 
 ### Limit Enforcement
@@ -551,6 +552,40 @@ if (!hasFeature(session.user.plan, "promotions")) {
 - Show upgrade button when limit reached
 - Feature teaser with "Upgrade to PRO" CTA
 - Pricing comparison modal
+
+---
+
+## AR / 3D Models (PRO)
+
+PRO accounts can attach a 3D model to a product and let guests preview it
+in AR from the public menu (`<model-viewer>` + Scene Viewer / Quick Look).
+
+### Upload constraints
+
+| Format | Max file size | Notes |
+|--------|---------------|-------|
+| `.glb` (glTF binary) | 15 MB | Cross-platform; required |
+| `.usdz` (Apple) | 25 MB | Optional, served to iOS via `ios-src` |
+
+**Geometry budget:** GLB models are rejected if total triangle count exceeds
+**50,000**. Mobile devices stutter beyond this threshold inside `<model-viewer>`.
+Validation runs server-side in `apps/web/lib/validations/3d-upload.ts`
+(`validateGlbMesh`) — admins see a clear rejection like
+`"This model is too detailed (76K triangles). Please re-export with reduced
+geometry."`.
+
+**Magic-byte check:** the upload route never trusts the declared MIME type.
+GLB files must start with `glTF`; USDZ files must start with the ZIP magic
+`PK\x03\x04`. Renamed PNGs/PDFs are rejected with a `400`.
+
+### Cloudinary plan
+
+3D models are uploaded as `resource_type: 'raw'` to
+`digital-menu/{userId}/ar-models/`. Cloudinary's **Free** tier caps raw
+uploads at 25 MB per file — comfortable for our limits today. If we ever
+raise the per-format limit (e.g. for high-fidelity USDZ), the account must
+move to **Plus** or higher (100 MB+ raw uploads). No transformation pipeline
+is applied; models are served as-is.
 
 ---
 

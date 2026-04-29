@@ -14,6 +14,7 @@ import {
   detectModelKind,
   expectedKindForMime,
   getMaxSizeForMimeType,
+  validateGlbMesh,
   type Allowed3DMimeType,
 } from '@/lib/validations/3d-upload';
 
@@ -101,6 +102,13 @@ export async function POST(request: NextRequest) {
           'Expected a valid .glb (glTF binary) or .usdz (zipped USD) file.',
         400
       );
+    }
+
+    if (detectedKind === 'glb') {
+      const meshCheck = validateGlbMesh(buffer);
+      if (!meshCheck.ok) {
+        return createErrorResponse(ERROR_CODES.VALIDATION_ERROR, meshCheck.reason, 400);
+      }
     }
 
     const result = await upload3DModel(buffer, {
