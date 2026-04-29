@@ -5,18 +5,8 @@ import { Loader2 } from 'lucide-react';
 import type { CSSProperties } from 'react';
 
 // `<model-viewer>` is a custom element registered by `@google/model-viewer`.
-// JSX needs an ambient type for it; the namespace form is the documented way
-// to extend `JSX.IntrinsicElements`.
-// eslint-disable-next-line @typescript-eslint/no-namespace
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace JSX {
-    interface IntrinsicElements {
-      'model-viewer': ModelViewerElementAttributes;
-    }
-  }
-}
-
+// JSX needs an ambient type for it. React 19 moved the JSX namespace out of
+// the global scope, so the augmentation lives under `react`.
 interface ModelViewerElementAttributes
   extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> {
   src?: string;
@@ -31,6 +21,15 @@ interface ModelViewerElementAttributes
   'ar-modes'?: string;
   loading?: 'auto' | 'lazy' | 'eager';
   reveal?: 'auto' | 'interaction' | 'manual';
+}
+
+declare module 'react' {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace JSX {
+    interface IntrinsicElements {
+      'model-viewer': ModelViewerElementAttributes;
+    }
+  }
 }
 
 interface ModelViewerProps {
