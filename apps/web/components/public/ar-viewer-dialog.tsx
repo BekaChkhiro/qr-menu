@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import type { Locale } from '@/i18n/config';
@@ -32,11 +32,12 @@ export function ArViewerDialog({
   onOpenChange,
   glbUrl,
   usdzUrl,
-  posterUrl,
   alt,
   locale,
 }: ArViewerDialogProps) {
   const [ready, setReady] = useState(false);
+  const [modelLoaded, setModelLoaded] = useState(false);
+  const viewerRef = useRef<HTMLElement | null>(null);
 
   // Lazy-load `@google/model-viewer` only when the dialog opens. This keeps the
   // public bundle slim — the ~250KB module never ships unless a visitor taps
@@ -52,6 +53,29 @@ export function ArViewerDialog({
     };
   }, [open, ready]);
 
+  // Reset the loaded flag whenever the dialog re-opens or the GLB url changes,
+  // so the spinner shows again on the next open instead of flashing the prior
+  // model for a frame.
+  useEffect(() => {
+    if (!open) setModelLoaded(false);
+  }, [open, glbUrl]);
+
+  // <model-viewer> is a custom element, so React's onLoad doesn't apply.
+  // Subscribe imperatively via the DOM node ref. Some implementations expose
+  // a `loaded` boolean that may already be true if the model finished while
+  // the listener was being attached — read it once on mount as a fallback.
+  useEffect(() => {
+    if (!ready) return;
+    const el = viewerRef.current;
+    if (!el) return;
+    const handle = () => setModelLoaded(true);
+    el.addEventListener('load', handle);
+    if ((el as unknown as { loaded?: boolean }).loaded) handle();
+    return () => el.removeEventListener('load', handle);
+  }, [ready, glbUrl]);
+
+  const showLoading = !ready || !modelLoaded;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -65,20 +89,12 @@ export function ArViewerDialog({
           className="relative overflow-hidden bg-[radial-gradient(circle_at_center,_#FAF7F1_0%,_#EDE7DA_100%)]"
           data-testid="ar-viewer-stage"
         >
-          {!ready ? (
-            <div
-              className="flex h-full w-full items-center justify-center gap-2 text-[13px] text-muted-foreground"
-              data-testid="ar-viewer-loading"
-            >
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {LOADING[locale]}
-            </div>
-          ) : (
+          {ready && (
             <model-viewer
+              ref={viewerRef}
               src={glbUrl}
               ios-src={usdzUrl ?? undefined}
               alt={alt}
-              poster={posterUrl ?? undefined}
               camera-controls
               auto-rotate
               ar
@@ -90,6 +106,15 @@ export function ArViewerDialog({
               style={{ width: '100%', height: '100%' }}
               data-testid="ar-viewer-model"
             />
+          )}
+          {showLoading && (
+            <div
+              className="absolute inset-0 flex items-center justify-center gap-2 bg-[radial-gradient(circle_at_center,_#FAF7F1_0%,_#EDE7DA_100%)] text-[13px] text-muted-foreground"
+              data-testid="ar-viewer-loading"
+            >
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {LOADING[locale]}
+            </div>
           )}
         </div>
       </DialogContent>
