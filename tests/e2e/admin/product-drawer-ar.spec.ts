@@ -152,20 +152,40 @@ test.describe('product drawer — AR tab (T18.3)', () => {
     await openEditDrawerForFirstProduct(page);
     await goToArTab(page);
 
-    // Stub Cloudinary by intercepting the upload endpoint — we don't want the
-    // real cloud here. Local validation (magic bytes, MIME, size) still runs
-    // before the cloud call, so a real GLB buffer is required.
-    await page.route('**/api/upload/3d', async (route) => {
+    // Stub the three-step R2 direct-upload flow — we don't want a real
+    // bucket here. Local validation (magic bytes, MIME, size, mesh budget)
+    // still runs in the browser before the network calls, so a real GLB
+    // buffer is required.
+    const stubKey = 'test-user/ar-models/stub.glb';
+    const stubPublicUrl = 'https://pub-stub.r2.dev/test-user/ar-models/stub.glb';
+    const stubPresignedUrl = 'https://pub-stub.r2.dev/__presigned__/stub.glb';
+
+    await page.route('**/api/upload/3d/r2-presign', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            presignedUrl: stubPresignedUrl,
+            key: stubKey,
+            publicUrl: stubPublicUrl,
+            contentType: 'model/gltf-binary',
+            expiresIn: 300,
+          },
+        }),
+      });
+    });
+    await page.route(stubPresignedUrl, async (route) => {
+      await route.fulfill({ status: 200, body: '' });
+    });
+    await page.route('**/api/upload/3d/r2-finalize', async (route) => {
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: {
-            url: 'https://res.cloudinary.com/demo/raw/upload/v1/digital-menu/test.glb',
-            publicId: 'digital-menu/test',
-            kind: 'glb',
-          },
+          data: { url: stubPublicUrl, publicId: stubKey, kind: 'glb' },
         }),
       });
     });
@@ -200,9 +220,7 @@ test.describe('product drawer — AR tab (T18.3)', () => {
       where: { id: productId },
       select: { arModelUrl: true },
     });
-    expect(after?.arModelUrl).toBe(
-      'https://res.cloudinary.com/demo/raw/upload/v1/digital-menu/test.glb',
-    );
+    expect(after?.arModelUrl).toBe(stubPublicUrl);
   });
 
   test('functional: enable toggle persists arEnabled once a GLB is uploaded', async ({
