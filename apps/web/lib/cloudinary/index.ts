@@ -97,6 +97,49 @@ export async function uploadImage(
 }
 
 /**
+ * Upload a raw 3D model file (.glb / .usdz) to Cloudinary.
+ * Uses `resource_type: 'raw'` — no transformations, no thumbnail derivation.
+ */
+export async function upload3DModel(
+  file: Buffer,
+  options: {
+    folder?: string;
+    publicId?: string;
+  } = {}
+): Promise<{ url: string; publicId: string; bytes: number }> {
+  if (!isCloudinaryConfigured()) {
+    throw new Error('Cloudinary is not configured');
+  }
+
+  const { folder = 'digital-menu/ar-models', publicId } = options;
+
+  const uploadOptions: Record<string, unknown> = {
+    folder,
+    resource_type: 'raw',
+  };
+
+  if (publicId) {
+    uploadOptions.public_id = publicId;
+    uploadOptions.overwrite = true;
+  }
+
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
+      if (error || !result) {
+        reject(error ?? new Error('Cloudinary upload failed'));
+        return;
+      }
+      resolve({
+        url: result.secure_url,
+        publicId: result.public_id,
+        bytes: result.bytes,
+      });
+    });
+    stream.end(file);
+  });
+}
+
+/**
  * Delete an image from Cloudinary
  */
 export async function deleteImage(publicId: string): Promise<boolean> {
