@@ -947,6 +947,8 @@
         "allergens": "Allergens",
         "allergensProBadge": "PRO",
         "nutrition": "Nutrition",
+        "arModel": "AR / 3D",
+        "arModelProBadge": "PRO",
         "visibility": "Visibility"
       },
       "placeholders": {
@@ -961,6 +963,14 @@
         "allergensCreate": {
           "title": "Save the product first",
           "body": "Allergens and dietary badges can be set once the product exists. Fill in the Basics tab and save — then come back here."
+        },
+        "arModelCreate": {
+          "title": "Save the product first",
+          "body": "3D model uploads can happen once the product exists. Fill in the Basics tab and save — then come back here."
+        },
+        "arModelLocked": {
+          "title": "AR / 3D models are a PRO feature",
+          "body": "Let guests preview your dish in AR right from their phone camera. Starts at 59₾/month."
         },
         "nutrition": {
           "title": "Nutrition coming soon",
@@ -1015,6 +1025,41 @@
         "title": "Allergen info is a PRO feature",
         "body": "Help customers with dietary restrictions choose confidently. Starts at 59₾/month.",
         "cta": "Upgrade to PRO"
+      },
+      "arTab": {
+        "intro": "Upload a 3D model (.glb required, .usdz recommended for iOS). Guests can preview the dish in AR using their phone camera.",
+        "enableLabel": "Enable AR for this product",
+        "enableHelp": "When on, a “View in AR” button appears on the public menu.",
+        "glb": {
+          "label": "3D model (.glb)",
+          "required": "Required",
+          "hint": "Up to 15MB — used on Android & web (Scene Viewer)",
+          "uploadCta": "Upload file",
+          "replaceCta": "Replace",
+          "removeCta": "Remove"
+        },
+        "usdz": {
+          "label": "iOS model (.usdz)",
+          "optional": "Optional",
+          "hint": "Recommended for iOS — opens in Apple Quick Look AR. Up to 25MB",
+          "uploadCta": "Upload file",
+          "replaceCta": "Replace",
+          "removeCta": "Remove"
+        },
+        "preview": {
+          "label": "Preview",
+          "empty": "Upload a .glb file to see a live preview.",
+          "loading": "Loading model…",
+          "rotate": "Rotate",
+          "zoomIn": "Zoom in",
+          "zoomOut": "Zoom out"
+        },
+        "uploading": "Uploading…",
+        "uploadError": "Upload failed",
+        "toast": {
+          "saveError": "Failed to save changes",
+          "uploadSuccess": "Model uploaded"
+        }
       },
       "allergensTab": {
         "tilesLabel": "Allergens",

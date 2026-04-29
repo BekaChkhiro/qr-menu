@@ -13,6 +13,7 @@ import { ProductForm, type ProductFormValues } from './product-form';
 import { ProductDrawerVariationsTab } from './product-drawer-variations-tab';
 import { ProductDrawerAllergensTab } from './product-drawer-allergens-tab';
 import { AllergensLocked } from './product-drawer/allergens-locked';
+import { ProductDrawerArTab } from './product-drawer-ar-tab';
 import type { Product, Category } from '@/types/menu';
 
 const FORM_ID = 'product-drawer-form';
@@ -29,6 +30,8 @@ interface ProductDialogProps {
   showAllergens?: boolean;
   /** Pass true when the user is on PRO (multilingual feature unlocked). */
   multilangUnlocked?: boolean;
+  /** Pass true when the user is on PRO (AR / 3D feature unlocked). */
+  arUnlocked?: boolean;
   /**
    * Footer "Delete product" callback. Only shown when `product` is provided
    * (edit mode). Parent typically closes the drawer and opens a confirm
@@ -37,7 +40,13 @@ interface ProductDialogProps {
   onDelete?: () => void;
 }
 
-type DrawerTab = 'basics' | 'variations' | 'allergens' | 'nutrition' | 'visibility';
+type DrawerTab =
+  | 'basics'
+  | 'variations'
+  | 'allergens'
+  | 'nutrition'
+  | 'arModel'
+  | 'visibility';
 
 export function ProductDialog({
   open,
@@ -50,6 +59,7 @@ export function ProductDialog({
   isLoading,
   showAllergens = false,
   multilangUnlocked = false,
+  arUnlocked = false,
   onDelete,
 }: ProductDialogProps) {
   const t = useTranslations('admin.products.drawer');
@@ -249,6 +259,22 @@ export function ProductDialog({
               {t('tabs.nutrition')}
             </TabsTrigger>
             <TabsTrigger
+              value="arModel"
+              className="gap-1.5 px-[14px]"
+              data-testid="product-drawer-tab-arModel"
+              data-pro-locked={arUnlocked ? 'false' : 'true'}
+            >
+              {t('tabs.arModel')}
+              {!arUnlocked && (
+                <Lock
+                  className="h-[10.5px] w-[10.5px] text-text-subtle"
+                  strokeWidth={1.8}
+                  aria-label={t('tabs.arModelProBadge')}
+                  data-testid="product-drawer-tab-arModel-lock"
+                />
+              )}
+            </TabsTrigger>
+            <TabsTrigger
               value="visibility"
               className="px-[14px]"
               data-testid="product-drawer-tab-visibility"
@@ -336,6 +362,29 @@ export function ProductDialog({
                 />
               </TabsContent>
             ))}
+
+            <TabsContent
+              value="arModel"
+              className="m-0 p-6 focus-visible:outline-none"
+            >
+              {!arUnlocked ? (
+                <PlaceholderPanel
+                  tab="arModel"
+                  locked
+                  title={t('placeholders.arModelLocked.title')}
+                  body={t('placeholders.arModelLocked.body')}
+                />
+              ) : isEditing ? (
+                <ProductDrawerArTab menuId={menuId} product={product} />
+              ) : (
+                <PlaceholderPanel
+                  tab="arModel"
+                  locked={false}
+                  title={t('placeholders.arModelCreate.title')}
+                  body={t('placeholders.arModelCreate.body')}
+                />
+              )}
+            </TabsContent>
           </div>
         </Tabs>
 
@@ -400,7 +449,7 @@ export function ProductDialog({
 }
 
 interface PlaceholderPanelProps {
-  tab: 'variations' | 'allergens' | 'nutrition' | 'visibility';
+  tab: 'variations' | 'allergens' | 'nutrition' | 'arModel' | 'visibility';
   locked: boolean;
   title: string;
   body: string;

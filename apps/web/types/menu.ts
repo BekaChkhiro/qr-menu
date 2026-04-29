@@ -170,6 +170,11 @@ export interface Product {
   fats: number | null;
   carbs: number | null;
   fiber: number | null;
+  arEnabled: boolean;
+  arModelUrl: string | null;
+  arModelUrlIos: string | null;
+  arModelPublicId: string | null;
+  arPosterUrl: string | null;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;

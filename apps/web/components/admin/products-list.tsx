@@ -164,6 +164,7 @@ export function ProductsList({
   const { plan, canCreate, hasFeature } = useUserPlan();
   const canAddProduct = canCreate('product', totalMenuProducts);
   const multilangUnlocked = hasFeature('multilingual');
+  const arUnlocked = hasFeature('arViewer');
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -341,6 +342,7 @@ export function ProductsList({
         isLoading={createProduct.isPending}
         showAllergens={showAllergens}
         multilangUnlocked={multilangUnlocked}
+        arUnlocked={arUnlocked}
       />
 
       <ProductDialog
@@ -353,6 +355,7 @@ export function ProductsList({
         isLoading={updateProduct.isPending}
         showAllergens={showAllergens}
         multilangUnlocked={multilangUnlocked}
+        arUnlocked={arUnlocked}
         onDelete={
           productToEdit
             ? () => {
