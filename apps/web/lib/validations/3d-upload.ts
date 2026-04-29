@@ -19,14 +19,23 @@ export function getMaxSizeForMimeType(mime: Allowed3DMimeType): number {
   return mime === 'model/gltf-binary' ? MAX_GLB_SIZE : MAX_USDZ_SIZE;
 }
 
-const GLB_MAGIC = Buffer.from([0x67, 0x6c, 0x54, 0x46]); // "glTF"
-const ZIP_MAGIC = Buffer.from([0x50, 0x4b, 0x03, 0x04]); // PK\x03\x04 (USDZ is a ZIP)
+// Magic byte sequences. Plain arrays (not Buffer) so this module is browser-safe —
+// it's imported from <ArModelField> for client-side mesh validation, where Node
+// `Buffer` is not available without a polyfill.
+const GLB_MAGIC = [0x67, 0x6c, 0x54, 0x46] as const; // "glTF"
+const ZIP_MAGIC = [0x50, 0x4b, 0x03, 0x04] as const; // PK\x03\x04 (USDZ is a ZIP)
 
-export function detectModelKind(buffer: Buffer): ModelKind | null {
-  if (buffer.length < 4) return null;
-  const header = buffer.subarray(0, 4);
-  if (header.equals(GLB_MAGIC)) return 'glb';
-  if (header.equals(ZIP_MAGIC)) return 'usdz';
+function startsWith(bytes: Uint8Array, magic: readonly number[]): boolean {
+  if (bytes.length < magic.length) return false;
+  for (let i = 0; i < magic.length; i++) {
+    if (bytes[i] !== magic[i]) return false;
+  }
+  return true;
+}
+
+export function detectModelKind(bytes: Uint8Array): ModelKind | null {
+  if (startsWith(bytes, GLB_MAGIC)) return 'glb';
+  if (startsWith(bytes, ZIP_MAGIC)) return 'usdz';
   return null;
 }
 
@@ -91,29 +100,35 @@ export type GlbValidationResult =
  *
  * Non-triangle topologies (LINES, POINTS) contribute 0. Returns `null` when
  * the file isn't a valid GLB v2 with a parseable JSON chunk.
+ *
+ * Accepts `Uint8Array` so this is callable from the browser (where `Buffer`
+ * is not available). Node `Buffer` extends `Uint8Array`, so existing callers
+ * passing a Buffer keep working unchanged.
  */
-export function countGlbTriangles(buffer: Buffer): number | null {
-  if (buffer.length < GLB_HEADER_BYTES) return null;
-  if (!buffer.subarray(0, 4).equals(GLB_MAGIC)) return null;
+export function countGlbTriangles(bytes: Uint8Array): number | null {
+  if (bytes.length < GLB_HEADER_BYTES) return null;
+  if (!startsWith(bytes, GLB_MAGIC)) return null;
 
-  const version = buffer.readUInt32LE(4);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+
+  const version = view.getUint32(4, true);
   if (version !== GLB_VERSION) return null;
 
-  const totalLength = buffer.readUInt32LE(8);
-  if (totalLength > buffer.length) return null;
+  const totalLength = view.getUint32(8, true);
+  if (totalLength > bytes.length) return null;
 
-  if (buffer.length < GLB_HEADER_BYTES + GLB_CHUNK_HEADER_BYTES) return null;
-  const jsonChunkLength = buffer.readUInt32LE(GLB_HEADER_BYTES);
-  const jsonChunkType = buffer.readUInt32LE(GLB_HEADER_BYTES + 4);
+  if (bytes.length < GLB_HEADER_BYTES + GLB_CHUNK_HEADER_BYTES) return null;
+  const jsonChunkLength = view.getUint32(GLB_HEADER_BYTES, true);
+  const jsonChunkType = view.getUint32(GLB_HEADER_BYTES + 4, true);
   if (jsonChunkType !== GLB_JSON_CHUNK_TYPE) return null;
 
   const jsonStart = GLB_HEADER_BYTES + GLB_CHUNK_HEADER_BYTES;
   const jsonEnd = jsonStart + jsonChunkLength;
-  if (jsonEnd > buffer.length) return null;
+  if (jsonEnd > bytes.length) return null;
 
   let parsed: GlbJson;
   try {
-    parsed = JSON.parse(buffer.subarray(jsonStart, jsonEnd).toString('utf8'));
+    parsed = JSON.parse(new TextDecoder('utf-8').decode(bytes.subarray(jsonStart, jsonEnd)));
   } catch {
     return null;
   }
@@ -156,10 +171,10 @@ export function countGlbTriangles(buffer: Buffer): number | null {
  * The error reason is suitable for surfacing to the admin in upload errors.
  */
 export function validateGlbMesh(
-  buffer: Buffer,
+  bytes: Uint8Array,
   maxTriangles: number = MAX_TRIANGLES
 ): GlbValidationResult {
-  const triangles = countGlbTriangles(buffer);
+  const triangles = countGlbTriangles(bytes);
   if (triangles === null) {
     return {
       ok: false,

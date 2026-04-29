@@ -150,3 +150,120 @@ test.describe('POST /api/upload/3d (T18.2)', () => {
     expect(body.data.kind).toBe('glb');
   });
 });
+
+// Direct-to-Cloudinary path used by the admin AR field. The legacy
+// /api/upload/3d above stays for smaller files; these endpoints exist so
+// >4.5MB GLBs don't get killed by Vercel's serverless body limit.
+test.describe('POST /api/upload/3d/signature + finalize', () => {
+  test.describe.configure({ mode: 'serial' });
+
+  test.beforeEach(async ({ context }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'desktop',
+      'API-only test — single project run is enough',
+    );
+    await resetDb();
+    await context.clearCookies();
+  });
+
+  test('signature: STARTER user is rejected with 403 FEATURE_NOT_AVAILABLE', async ({
+    page,
+  }) => {
+    const email = 'starter-sig@test.local';
+    await seedUser({ plan: 'STARTER', email });
+    await loginAs(page, email);
+
+    const res = await page.request.post('/api/upload/3d/signature', {
+      data: { kind: 'glb' },
+    });
+
+    expect(res.status()).toBe(403);
+    const body = await res.json();
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('FEATURE_NOT_AVAILABLE');
+  });
+
+  test('signature: PRO user gets a signed payload scoped to their folder', async ({ page }) => {
+    test.skip(
+      !process.env.CLOUDINARY_API_KEY,
+      'Cloudinary credentials not configured — signature minting requires api_secret',
+    );
+
+    const email = 'pro-sig@test.local';
+    await seedUser({ plan: 'PRO', email });
+    await loginAs(page, email);
+
+    const res = await page.request.post('/api/upload/3d/signature', {
+      data: { kind: 'glb' },
+    });
+
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(typeof body.data.signature).toBe('string');
+    expect(body.data.signature.length).toBeGreaterThan(0);
+    expect(typeof body.data.timestamp).toBe('number');
+    expect(typeof body.data.apiKey).toBe('string');
+    expect(typeof body.data.cloudName).toBe('string');
+    expect(body.data.folder).toMatch(/^digital-menu\/.+\/ar-models$/);
+    expect(body.data.publicIdPrefix.startsWith(`${body.data.folder}/`)).toBe(true);
+    expect(body.data.resourceType).toBe('raw');
+  });
+
+  test('signature: rejects invalid `kind` with 400', async ({ page }) => {
+    test.skip(
+      !process.env.CLOUDINARY_API_KEY,
+      'Skips when Cloudinary creds are missing — route would otherwise 500',
+    );
+
+    const email = 'pro-sig-bad@test.local';
+    await seedUser({ plan: 'PRO', email });
+    await loginAs(page, email);
+
+    const res = await page.request.post('/api/upload/3d/signature', {
+      data: { kind: 'png' },
+    });
+
+    expect(res.status()).toBe(400);
+    const body = await res.json();
+    expect(body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  test('finalize: rejects publicId outside the user folder with 403 FORBIDDEN', async ({
+    page,
+  }) => {
+    const email = 'pro-finalize-foreign@test.local';
+    await seedUser({ plan: 'PRO', email });
+    await loginAs(page, email);
+
+    const res = await page.request.post('/api/upload/3d/finalize', {
+      data: {
+        publicId: 'digital-menu/some-other-user/ar-models/abc123',
+        secureUrl: 'https://res.cloudinary.com/example/raw/upload/v1/foreign.glb',
+        kind: 'glb',
+      },
+    });
+
+    expect(res.status()).toBe(403);
+    const body = await res.json();
+    expect(body.error.code).toBe('FORBIDDEN');
+  });
+
+  test('finalize: STARTER user is rejected with 403 FEATURE_NOT_AVAILABLE', async ({ page }) => {
+    const email = 'starter-finalize@test.local';
+    await seedUser({ plan: 'STARTER', email });
+    await loginAs(page, email);
+
+    const res = await page.request.post('/api/upload/3d/finalize', {
+      data: {
+        publicId: 'digital-menu/anyone/ar-models/abc',
+        secureUrl: 'https://res.cloudinary.com/example/raw/upload/v1/x.glb',
+        kind: 'glb',
+      },
+    });
+
+    expect(res.status()).toBe(403);
+    const body = await res.json();
+    expect(body.error.code).toBe('FEATURE_NOT_AVAILABLE');
+  });
+});
