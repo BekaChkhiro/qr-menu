@@ -154,6 +154,13 @@ export function ProductsList({
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   const { data: products, isLoading, error } = useProductsByCategory(menuId, categoryId);
+  // `productToEdit` is a one-time snapshot taken when the user clicks Edit;
+  // it doesn't observe the cache. Derive the live row from `products` so the
+  // drawer reflects in-flight updates (AR uploads, variations, etc.) without
+  // forcing a page refresh.
+  const liveProductToEdit = productToEdit
+    ? products?.find((p) => p.id === productToEdit.id) ?? productToEdit
+    : null;
   const createProduct = useCreateProduct(menuId);
   const updateProduct = useUpdateProduct(menuId, productToEdit?.id || '');
   const deleteProduct = useDeleteProduct(menuId);
@@ -349,7 +356,7 @@ export function ProductsList({
         open={!!productToEdit}
         onOpenChange={(open) => !open && setProductToEdit(null)}
         menuId={menuId}
-        product={productToEdit || undefined}
+        product={liveProductToEdit || undefined}
         categories={categories}
         onSubmit={handleUpdate}
         isLoading={updateProduct.isPending}
@@ -357,9 +364,9 @@ export function ProductsList({
         multilangUnlocked={multilangUnlocked}
         arUnlocked={arUnlocked}
         onDelete={
-          productToEdit
+          liveProductToEdit
             ? () => {
-                const target = productToEdit;
+                const target = liveProductToEdit;
                 setProductToEdit(null);
                 setProductToDelete(target);
               }
