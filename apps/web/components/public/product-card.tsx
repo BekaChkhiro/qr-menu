@@ -20,6 +20,7 @@ import { ArViewerDialog } from './ar-viewer-dialog';
 import {
   allergenLabels,
   allergenShort,
+  arStrings,
   ribbonLabels,
   ribbonOverlayClass,
   ribbonPillClass,
@@ -96,12 +97,6 @@ export interface PublicProduct {
   arModelUrlIos?: string | null;
   arPosterUrl?: string | null;
 }
-
-const arButtonLabel: Record<Locale, string> = {
-  ka: 'AR ხედვაში',
-  en: 'View in AR',
-  ru: 'В AR',
-};
 
 interface ProductCardProps {
   product: PublicProduct;
@@ -217,7 +212,7 @@ export function ProductCard({ product, locale, settings }: ProductCardProps) {
                     showDiscountRibbon ? 'top-7' : 'top-1.5'
                   )}
                   data-testid="public-product-ar-chip"
-                  aria-label={arButtonLabel[locale]}
+                  aria-label={arStrings[locale].viewButton}
                 >
                   <Box className="h-2.5 w-2.5" strokeWidth={2.25} />
                   AR

@@ -1,5 +1,15 @@
 import type { Locale } from '@/i18n/config';
 import type { PublicProduct, PublicDisplaySettings } from './product-card';
+import kaMenu from '@/messages/ka/menu.json';
+import enMenu from '@/messages/en/menu.json';
+import ruMenu from '@/messages/ru/menu.json';
+
+// ── AR strings (sourced from messages/{locale}/menu.json `ar` block) ─────
+export const arStrings: Record<Locale, typeof kaMenu.ar> = {
+  ka: kaMenu.ar,
+  en: enMenu.ar,
+  ru: ruMenu.ar,
+};
 
 // ── Allergens ────────────────────────────────────────────────────
 export const allergenLabels: Record<string, Record<Locale, string>> = {

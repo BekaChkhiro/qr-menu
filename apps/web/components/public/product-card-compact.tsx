@@ -12,6 +12,7 @@ import { ArViewerDialog } from './ar-viewer-dialog';
 import {
   allergenLabels,
   allergenShort,
+  arStrings,
   ribbonLabels,
   ribbonPillClass,
   sortRibbons,
@@ -40,11 +41,6 @@ const ribbonStripeColor: Record<string, string> = {
  * Compact template — list-style restaurant menu. Comfortable touch
  * targets (min 52px tall), left-edge ribbon stripe, expandable detail.
  */
-const arButtonLabel: Record<Locale, string> = {
-  ka: 'AR ხედვაში',
-  en: 'View in AR',
-  ru: 'В AR',
-};
 
 export function ProductCardCompact({ product, locale, settings }: Props) {
   const [expanded, setExpanded] = useState(false);
@@ -103,7 +99,7 @@ export function ProductCardCompact({ product, locale, settings }: Props) {
           }}
           className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-white/95 px-1.5 py-0.5 text-[9.5px] font-bold text-foreground shadow-sm ring-1 ring-black/10 backdrop-blur-sm transition-colors hover:bg-white"
           data-testid="public-product-ar-chip"
-          aria-label={arButtonLabel[locale]}
+          aria-label={arStrings[locale].viewButton}
         >
           <Box className="h-2.5 w-2.5" strokeWidth={2.25} />
           AR

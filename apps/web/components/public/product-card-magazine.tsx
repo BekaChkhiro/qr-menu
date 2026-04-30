@@ -12,6 +12,7 @@ import { ArViewerDialog } from './ar-viewer-dialog';
 import {
   allergenLabels,
   allergenShort,
+  arStrings,
   ribbonLabels,
   ribbonOverlayClass,
   ribbonPillClass,
@@ -33,11 +34,6 @@ interface Props {
  * Magazine template — editorial hero with refined typography.
  * Spacing rhythm: 8/12/16/20/24px grid.
  */
-const arButtonLabel: Record<Locale, string> = {
-  ka: 'AR ხედვაში',
-  en: 'View in AR',
-  ru: 'В AR',
-};
 
 export function ProductCardMagazine({ product, locale, settings }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -134,7 +130,7 @@ export function ProductCardMagazine({ product, locale, settings }: Props) {
               showDiscount ? 'top-12' : 'top-4'
             )}
             data-testid="public-product-ar-chip"
-            aria-label={arButtonLabel[locale]}
+            aria-label={arStrings[locale].viewButton}
           >
             <Box className="h-3 w-3" strokeWidth={2.25} />
             AR

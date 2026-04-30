@@ -43,5 +43,11 @@
     "seafood": "Seafood",
     "soy": "Soy",
     "pork": "Pork"
+  },
+  "ar": {
+    "viewButton": "View in AR",
+    "loading": "Loading 3D model…",
+    "unsupported": "AR is not supported on this device",
+    "closeButton": "Close"
   }
 }

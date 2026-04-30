@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import type { Locale } from '@/i18n/config';
+import { arStrings } from './product-card-shared';
 
 interface ArViewerDialogProps {
   open: boolean;
@@ -14,18 +15,6 @@ interface ArViewerDialogProps {
   alt: string;
   locale: Locale;
 }
-
-const TITLE: Record<Locale, string> = {
-  ka: 'AR ხედვა',
-  en: 'View in AR',
-  ru: 'Просмотр в AR',
-};
-
-const LOADING: Record<Locale, string> = {
-  ka: '3D მოდელის ჩატვირთვა…',
-  en: 'Loading 3D model…',
-  ru: 'Загрузка 3D-модели…',
-};
 
 export function ArViewerDialog({
   open,
@@ -38,6 +27,7 @@ export function ArViewerDialog({
   const [ready, setReady] = useState(false);
   const [modelLoaded, setModelLoaded] = useState(false);
   const viewerRef = useRef<HTMLElement | null>(null);
+  const ar = arStrings[locale];
 
   // Lazy-load `@google/model-viewer` only when the dialog opens. This keeps the
   // public bundle slim — the ~250KB module never ships unless a visitor taps
@@ -83,7 +73,7 @@ export function ArViewerDialog({
         data-testid="ar-viewer-dialog"
       >
         <DialogTitle className="px-5 pt-5 pb-3 text-[15px] font-semibold tracking-tight">
-          {TITLE[locale]}
+          {ar.viewButton}
         </DialogTitle>
         <div
           className="relative overflow-hidden bg-[radial-gradient(circle_at_center,_#FAF7F1_0%,_#EDE7DA_100%)]"
@@ -113,7 +103,7 @@ export function ArViewerDialog({
               data-testid="ar-viewer-loading"
             >
               <Loader2 className="h-4 w-4 animate-spin" />
-              {LOADING[locale]}
+              {ar.loading}
             </div>
           )}
         </div>
