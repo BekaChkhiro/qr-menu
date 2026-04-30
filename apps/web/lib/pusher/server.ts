@@ -31,6 +31,7 @@ function getPusherServer(): Pusher | null {
 export const CHANNELS = {
   menu: (menuId: string) => `menu-${menuId}`,
   user: (userId: string) => `private-user-${userId}`,
+  table: (code: string) => `table-${code}`,
 } as const;
 
 // Event types
@@ -57,6 +58,14 @@ export const EVENTS = {
   PROMOTION_CREATED: 'promotion:created',
   PROMOTION_UPDATED: 'promotion:updated',
   PROMOTION_DELETED: 'promotion:deleted',
+
+  // Shared-table session events
+  TABLE_GUEST_JOINED: 'table:guest_joined',
+  TABLE_GUEST_LEFT: 'table:guest_left',
+  TABLE_SELECTION_ADDED: 'table:selection_added',
+  TABLE_SELECTION_REMOVED: 'table:selection_removed',
+  TABLE_CLOSED: 'table:closed',
+  TABLE_EXTENDED: 'table:extended',
 } as const;
 
 export type EventType = (typeof EVENTS)[keyof typeof EVENTS];

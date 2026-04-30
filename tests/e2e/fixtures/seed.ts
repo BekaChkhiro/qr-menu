@@ -81,6 +81,9 @@ export async function resetDb(): Promise<void> {
   await prismaTest.$executeRawUnsafe(
     `TRUNCATE TABLE ` +
       [
+        '"table_selections"',
+        '"table_guests"',
+        '"table_sessions"',
         '"activity_logs"',
         '"menu_views"',
         '"promotions"',
