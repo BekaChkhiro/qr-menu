@@ -1,4 +1,17 @@
 {
+  "menuSettings": {
+    "sharedTable": {
+      "title": "Enable shared tables",
+      "description": "The host creates a 4-hour table from the public menu and invites guests with a PIN. Disabling won't end active sessions — they keep running until they expire.",
+      "enabledLabel": "Shared table is enabled",
+      "disableNote": "Disabling won't end active sessions — they keep running until they expire.",
+      "locked": {
+        "title": "Shared tables is a PRO feature",
+        "description": "Let groups order together — the host opens a 4-hour table and guests scan a private QR. Available on PRO.",
+        "upgradeCta": "Upgrade to PRO"
+      }
+    }
+  },
   "sidebar": {
     "dashboard": "Dashboard",
     "menus": "Menus",

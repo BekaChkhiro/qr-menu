@@ -1,0 +1,60 @@
+{
+  "cta": {
+    "createTable": "Create table",
+    "joinTable": "Join table"
+  },
+  "create": {
+    "title": "Create a shared table",
+    "nameLabel": "Table name",
+    "namePlaceholder": "e.g. Nino's birthday",
+    "pinLabel": "4-digit PIN",
+    "pinHelper": "Share this PIN only with your guests — they'll need it to join.",
+    "capLabel": "Guest limit",
+    "capHelper": "Maximum guests who can join this table. You can change it later.",
+    "submit": "Create",
+    "cancel": "Cancel"
+  },
+  "join": {
+    "title": "Join the table",
+    "namePlaceholder": "Your name",
+    "pinPlaceholder": "4-digit PIN",
+    "submit": "Join",
+    "errors": {
+      "wrongPin": "Wrong PIN. Try again.",
+      "tableFull": "Table is full. Ask the host to raise the limit.",
+      "tableClosed": "This table is closed. You can't join.",
+      "tableExpired": "This table has expired.",
+      "rateLimited": "Too many attempts. Try again in a moment."
+    }
+  },
+  "host": {
+    "tableCode": "Table code",
+    "sharePin": "Share PIN: {pin}",
+    "copyLink": "Copy link",
+    "copied": "Copied",
+    "closeTable": "Close table",
+    "closeConfirm": "Close this table? New guests won't be able to join, but anyone already at the table stays.",
+    "extend": "Extend time",
+    "extendDone": "Table time extended",
+    "expiresIn": "Expires in {time}",
+    "expiringSoon": "Expiring soon — {time}",
+    "emptyState": "No guests yet. Share the link or PIN so they can start picking dishes."
+  },
+  "guest": {
+    "myPicks": "My picks",
+    "tray": {
+      "title": "My picks",
+      "total": "Total: {amount}",
+      "removeItem": "Remove",
+      "leaveTable": "Leave table",
+      "leaveConfirm": "Leave this table? Your picks will be cleared.",
+      "empty": "No picks yet. Add something from the menu."
+    }
+  },
+  "system": {
+    "tableClosed": "The host closed this table.",
+    "guestJoined": "{name} joined the table",
+    "itemAdded": "{name} added {item}",
+    "itemRemoved": "{name} removed {item}"
+  }
+}
