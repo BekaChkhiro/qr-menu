@@ -1991,17 +1991,272 @@ digital-menu/
 
 ---
 
+### Phase 19: Shared Table Sessions (PRO)
+**Goal**: On the public menu, allow a group of guests sitting at one café table to create a shared "table session." The host scans the menu QR, taps "Create Table," sets a 4-digit PIN and a guest cap. A table-scoped QR is generated inline. Friends scan that QR, enter their name + PIN, and land on the same menu — but every Add now writes to a per-guest selection list. The host sees a real-time aggregated view of every guest's picks, grouped by name. **Browse-and-decide tool only — no order placement, no payment, no kitchen/staff integration, no admin visibility.**
+
+**Design Reference**: No artboard yet. Reuse existing public-menu primitives (Sheet for create/join forms, Drawer for "My selections" tray, Dialog for QR display) with the design tokens in `docs/design-tokens.md`. Host view is a new layout: mobile-first single-column with one card per guest showing their tray. Locked card on the admin toggle mirrors the PRO-locked pattern from `T14.5: Allergens Tab (STARTER locked)`.
+
+**Plan Tier**: PRO only. Per-menu opt-in toggle in admin Menu Settings tab — FREE/STARTER see a locked upgrade card. The admin toggle must be ON for the public CTA to render.
+
+**Tech choices** (locked in for this phase):
+- **Identity**: anonymous guests authenticated by signed httpOnly cookie (`dm_table_token`, HMAC-signed `tableId + guestId + isHost`). NextAuth is not involved on the public side — guests never become Users.
+- **PIN**: 4-digit numeric, set by host at table creation. Hashed at rest (bcrypt cost 10 — lower than user passwords because PIN is short-lived and brute-force-protected separately). Never encoded in QR — only the table code is.
+- **Real-time**: Pusher channel `table-{code}` (extending existing `lib/pusher/server.ts` CHANNELS + EVENTS).
+- **Caching**: tables are dynamic and short-lived → **no Redis caching** of table state. Public menu Redis cache (5min TTL) remains untouched.
+- **Expiration**: 4 hours hard cap from creation. One-time host-triggered 2-hour extension (max 6h total). No inactivity-based expiry. Closed tables retained for 24h then hard-deleted by cron.
+- **Cleanup**: Vercel Cron (preferred) at `/api/cron/tables-cleanup` running every 30 minutes. Safety-net auto-close also enforced inline on every read (idempotent: `if (table.expiresAt < now && status === 'OPEN') tx.update({ status: 'CLOSED' })`).
+- **Rate limiting**: existing Upstash `Ratelimit` pattern. Join attempts: 10 per IP per 10min. PIN failures per table: lockout that table for that IP for 15min after 5 wrong PINs.
+- **Routes**: `/m/[slug]/t/[code]` (guest), `/m/[slug]/t/[code]/host` (host). Role enforced server-side from cookie — never trust path.
+
+**Out of scope** (do **not** add to this phase — they would balloon scope):
+- Order placement to staff / kitchen / POS
+- Payment, billing, bill split
+- Cafe-staff dashboard with live tables
+- Per-guest dietary filtering or allergen alerts
+- Host re-assignment on device loss (host-only PIN-recovery flow; if host loses their device the table is effectively orphaned and dies at 4h)
+- Multi-language guest names (KA/EN/RU UI strings — yes; guest-typed names — stored verbatim, no transliteration)
+- Analytics on table sessions (no MenuView/TableView aggregate yet)
+
+#### T19.1: Schema + Plan Feature Flag + Per-Menu Toggle
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2 hours
+- **Dependencies**: —
+- **Description**:
+  - Add to `packages/database/prisma/schema.prisma`:
+    - New enum `TableStatus { OPEN, CLOSED, EXPIRED }`
+    - New model `TableSession`: `id` (cuid), `menuId` (FK → Menu, cascade), `code` (unique 8-char nanoid for QR URL), `pinHash` (string), `hostName` (string), `maxGuests` (int 2-20), `status` (TableStatus, default OPEN), `expiresAt` (datetime), `extendedAt` (datetime?, nullable — set when host extends), `createdAt`, `updatedAt`. Indexes: `code` unique, `menuId`, `status + expiresAt` composite.
+    - New model `TableGuest`: `id` (cuid), `tableId` (FK → TableSession, cascade), `name` (string, max 32), `isHost` (boolean), `joinedAt`, `lastSeenAt`. Index: `tableId`.
+    - New model `TableSelection`: `id` (cuid), `tableId` (FK), `guestId` (FK → TableGuest, cascade), `productId` (FK → Product, cascade), `variationId` (FK → ProductVariation, optional, set null), `quantity` (int default 1), `note` (string?, max 200), `createdAt`. Indexes: `tableId`, `guestId`.
+    - Add to `Menu`: `sharedTableEnabled Boolean @default(false)` + relation `tables TableSession[]`.
+  - Add `sharedTable: false/false/true` to `PLAN_FEATURES` in `apps/web/lib/auth/permissions.ts`.
+  - Add Zod schemas in `apps/web/lib/validations/table.ts`: `createTableSchema` (hostName, pin 4-digit, maxGuests 2-20), `joinTableSchema` (name, pin), `addSelectionSchema` (productId, variationId?, quantity 1-99, note?).
+  - Run `pnpm db:migrate` with name `add_shared_table_sessions`.
+- **Playwright test**:
+  - Unit: `tests/unit/permissions.test.ts` — assert `hasFeature('PRO', 'sharedTable') === true`, FREE/STARTER false.
+  - Unit: `tests/unit/validations/table.test.ts` — pin must be exactly 4 digits, name 1-32 chars, maxGuests 2-20.
+
+#### T19.2: Backend — Table Lifecycle APIs (Create/Join/Get/Close/Extend)
+- [ ] **Status**: TODO
+- **Complexity**: High
+- **Estimated**: 5 hours
+- **Dependencies**: T19.1
+- **Description**:
+  - Create `apps/web/lib/auth/table-token.ts`: HMAC-signed cookie helpers — `signTableToken({tableId, guestId, isHost})`, `verifyTableToken(cookie)`, `setTableCookie(response, token)`. Uses `NEXTAUTH_SECRET` for signing. Cookie name `dm_table_token`, httpOnly, sameSite lax, 6h max-age.
+  - Create `apps/web/lib/rate-limit/index.ts` (if not present, otherwise extend) with two limiters: `tableJoinLimiter` (10 req / 10 min per IP), `tablePinLimiter` (5 failures / 15 min per `tableId+IP`).
+  - `POST /api/public/menus/[slug]/tables` (`app/api/public/menus/[slug]/tables/route.ts`):
+    1. Look up menu by slug, verify `status === PUBLISHED` and `sharedTableEnabled === true`. 404 otherwise.
+    2. Verify menu owner has PRO plan via `hasFeature(user.plan, 'sharedTable')` — if owner downgraded, return 403 with `code: 'PLAN_DOWNGRADED'`.
+    3. Validate body with `createTableSchema`. Generate 8-char nanoid `code`. Hash PIN. `expiresAt = now + 4h`.
+    4. Transaction: create `TableSession` + create host `TableGuest` (`isHost: true`).
+    5. Sign cookie, set on response. Return `{ code, hostGuestId, expiresAt }`.
+  - `POST /api/public/tables/[code]/join`:
+    1. Apply `tableJoinLimiter`. 429 on limit.
+    2. Look up table by code. 404 if not found, 410 if `CLOSED` or `expiresAt < now`.
+    3. Apply `tablePinLimiter`. Compare PIN with bcrypt. On mismatch: increment limiter, return 401 `code: 'WRONG_PIN'`.
+    4. Count existing guests: if `>= maxGuests`, return 409 `code: 'TABLE_FULL'`.
+    5. If cookie already binds this `tableId`, return existing guest (rejoin path).
+    6. Otherwise: create `TableGuest` (`isHost: false`), set cookie, return `{ guestId, tableCode, role: 'guest' }`.
+  - `GET /api/public/tables/[code]`:
+    1. Verify cookie binds `code`. 401 otherwise.
+    2. Auto-close-on-read: `if (expiresAt < now && status === OPEN) tx.update(status: EXPIRED)`.
+    3. Update `lastSeenAt` for the requesting guest.
+    4. **Role-based response shape**: host gets all guests with all selections (joined). Guest gets only their own selections + the public guest list (names only, no other guests' selections).
+  - `POST /api/public/tables/[code]/close`: host only (cookie role check). Sets `status: CLOSED`. Pusher broadcast.
+  - `POST /api/public/tables/[code]/extend`: host only. Returns 409 if `extendedAt !== null`. Sets `expiresAt = expiresAt + 2h`, `extendedAt = now`. Pusher broadcast.
+- **Playwright test**:
+  - `tests/e2e/api/table-lifecycle.spec.ts` (api-only, no UI):
+    - Create table on a non-PRO menu → 403
+    - Create on a PRO menu with `sharedTableEnabled=false` → 404
+    - Create with bad PIN format → 400
+    - Join with wrong PIN 5 times → locked (429), 6th attempt with right PIN → still 429 within window
+    - Join when table full → 409 `TABLE_FULL`
+    - Get without cookie → 401
+    - Get as guest sees only own selections (assert second guest's selections absent in response)
+    - Get as host sees all guests' selections
+    - Close as guest → 403; close as host → 200, subsequent ops → 410
+    - Extend twice → second call 409
+
+#### T19.3: Backend — Selections API + Pusher Broadcasts
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2.5 hours
+- **Dependencies**: T19.2
+- **Description**:
+  - Extend `apps/web/lib/pusher/server.ts`:
+    - `CHANNELS.table = (code) => \`table-${code}\``
+    - Add EVENTS: `TABLE_GUEST_JOINED: 'table:guest_joined'`, `TABLE_GUEST_LEFT: 'table:guest_left'`, `TABLE_SELECTION_ADDED: 'table:selection_added'`, `TABLE_SELECTION_REMOVED: 'table:selection_removed'`, `TABLE_CLOSED: 'table:closed'`, `TABLE_EXTENDED: 'table:extended'`.
+  - `POST /api/public/tables/[code]/selections`:
+    1. Cookie verify → resolve `guestId`.
+    2. Validate body with `addSelectionSchema`.
+    3. Verify product belongs to this menu (defense in depth — guest could spoof productId from another menu).
+    4. Insert `TableSelection`. Broadcast `TABLE_SELECTION_ADDED` with payload `{ guestId, guestName, selectionId, productId, variationId, quantity, note, createdAt }`.
+    5. Return the created selection.
+  - `DELETE /api/public/tables/[code]/selections/[id]`:
+    1. Cookie verify → resolve `guestId`.
+    2. Look up selection. Authorization: guest can only delete own; host can delete anyone's.
+    3. Delete. Broadcast `TABLE_SELECTION_REMOVED` with `{ guestId, selectionId }`.
+  - All broadcast triggers wrapped in `try/catch` with logging — never break the API on Pusher failure.
+- **Playwright test**:
+  - `tests/e2e/api/table-selections.spec.ts`:
+    - Add selection without cookie → 401
+    - Add selection with productId from another menu → 400 `PRODUCT_NOT_IN_MENU`
+    - Guest A cannot delete Guest B's selection → 403; host can → 200
+    - Functional Pusher: subscribe to `table-{code}` in test, assert event received within 2s of POST
+
+#### T19.4: Public — Host Create-Table Sheet + Host View Page
+- [ ] **Status**: TODO
+- **Complexity**: High
+- **Estimated**: 5 hours
+- **Dependencies**: T19.2, T19.3
+- **Description**:
+  - Add a floating CTA button on the public menu (`apps/web/app/m/[slug]/page.tsx` + `components/public/menu-body.tsx`) — only renders when `menu.sharedTableEnabled === true`. Position: bottom-right, above the existing language switcher. Copy: "Create Shared Table" / "მაგიდის შექმნა".
+  - New component `components/public/create-table-sheet.tsx`: shadcn `<Sheet>` with form (name, 4-digit PIN with numeric keyboard `inputMode="numeric"` + `pattern="\\d{4}"`, guest-cap `<Slider>` 2-20 default 6). Submit → `POST /api/public/menus/[slug]/tables` → router.push to `/m/[slug]/t/[code]/host`.
+  - New page `app/m/[slug]/t/[code]/host/page.tsx`:
+    - Server component: read cookie, verify host role, redirect to join page if cookie missing/wrong role.
+    - Renders `components/public/table-host-view.tsx` (client) with initial server-fetched state.
+  - New component `components/public/table-host-view.tsx`:
+    - Top section: table code + inline QR (data-URL via existing `qrcode` lib pointing at `{APP_URL}/m/{slug}/t/{code}`) + "Copy link" button + "Show PIN" reveal toggle (PIN displayed plaintext to host only, in client memory — never re-fetched from server) + "Close table" button (with confirmation dialog) + "Extend +2h" button (disabled if already extended or `expiresAt - now > 30min`).
+    - Below: per-guest cards stacked vertically. Each card: guest avatar (initial), guest name, count badge, list of selections (product image 48px, name, variation, qty, note). "Remove" affordance on each row (host can delete any).
+    - Empty state: "Share the QR or PIN — your friends' picks will appear here."
+    - Live countdown of `expiresAt` in header. Toast at T-30min: "30 minutes left — extend?".
+- **Playwright test**:
+  - `tests/e2e/public/table-host.spec.ts`:
+    - Visual: `public-menu-create-table-sheet.png` (mobile 375×812 + desktop 1280×800)
+    - Visual: `public-menu-host-view-with-2-guests.png`
+    - Functional: open create sheet, fill form, submit → URL becomes `/m/{slug}/t/{code}/host` and QR canvas renders; click "Copy link" → clipboard contains expected URL; "Close table" requires confirmation; "Extend" disables after first use.
+
+#### T19.5: Public — Guest Join Flow + Guest Menu with Personal Tray
+- [ ] **Status**: TODO
+- **Complexity**: High
+- **Estimated**: 5 hours
+- **Dependencies**: T19.2, T19.3, T19.4
+- **Description**:
+  - New page `app/m/[slug]/t/[code]/page.tsx`:
+    - Server component reads cookie. If cookie binds this code as guest → redirect to guest menu page directly. If as host → redirect to `/host`. Otherwise renders join form.
+  - New component `components/public/join-table-form.tsx`: name input + 4-digit PIN + Submit. Error states: `WRONG_PIN`, `TABLE_FULL`, `TABLE_CLOSED`, `TABLE_EXPIRED`, rate-limited (429 with countdown).
+  - On successful join → server sets cookie → client navigates to the guest menu route (same `/m/[slug]/t/[code]` page renders the menu since cookie is now present).
+  - **Reusing the existing public menu UI**: extract a `<MenuBody table={tableContext}>` mode in `components/public/menu-body.tsx`. When in table mode, every "Add" CTA on a `ProductCard` calls `POST /selections` instead of (today's) no-op/local-cart pattern.
+  - New component `components/public/table-guest-tray.tsx`: floating bottom-right pill ("My picks · 3"). Tap opens a `<Drawer>` listing this guest's selections with remove buttons + "Total estimate" (sum of product prices × qty — display only, no checkout).
+  - Cookie persistence: a hard refresh or browser close-and-reopen within 6h must keep the guest in. Test in spec.
+  - "Leave table" footer action in the drawer (clears cookie via `POST /api/public/tables/[code]/leave` — soft-delete `TableGuest` row OR keep row + flag `leftAt`; choose soft-delete to keep host's view tidy. Document choice in code comment if non-obvious.)
+- **Playwright test**:
+  - `tests/e2e/public/table-guest.spec.ts`:
+    - Visual: `public-menu-join-form.png`, `public-menu-guest-with-tray-open.png`
+    - Functional: full journey — host creates → guest joins with PIN → guest adds 2 items → drawer shows them → refresh page → still in table, items still there → leave → cookie cleared, redirected to join screen.
+    - PIN error shows specific copy ("Wrong PIN — 4 attempts left"). Capacity error shows "Table is full".
+
+#### T19.6: Public — Real-Time Sync on Host View (Pusher)
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 3 hours
+- **Dependencies**: T19.4, T19.5
+- **Description**:
+  - In `components/public/table-host-view.tsx`, subscribe to `table-{code}` channel via `lib/pusher/client.ts` on mount.
+  - Event handlers update local state (no full refetch):
+    - `TABLE_GUEST_JOINED`: append guest card with empty list, toast "ნინო joined"
+    - `TABLE_SELECTION_ADDED`: push into the matching guest's selection list, brief highlight animation (CSS class `animate-once-flash` ~1s)
+    - `TABLE_SELECTION_REMOVED`: filter out
+    - `TABLE_CLOSED`: redirect to `/m/[slug]` with toast "Table closed"
+    - `TABLE_EXTENDED`: bump countdown, toast "+2h added"
+  - Reconnection: on Pusher reconnect, refetch GET to reconcile any missed events (pusher-js exposes `connection.bind('connected')`).
+  - Guest tray (T19.5) **does not** subscribe — guests don't need real-time sync (they only see their own picks, which they themselves make).
+- **Playwright test**:
+  - `tests/e2e/public/table-realtime.spec.ts` (uses real Pusher with test credentials, OR the existing test fixture if one exists):
+    - Open two browser contexts (host + guest). Guest adds an item. Within 3s, host's view shows the item without manual refresh.
+    - Close from host context → guest context navigates away within 3s.
+
+#### T19.7: Admin — Per-Menu Toggle in Menu Settings Tab (PRO + Lock for FREE/STARTER)
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2.5 hours
+- **Dependencies**: T19.1, T15.13
+- **Description**:
+  - Add new "Shared Table" section to the Menu Settings tab (`components/admin/menu-settings-tab.tsx` or wherever T15.13/14 wired the URL/Visibility/Schedule sections — locate exact file at implementation time).
+  - **PRO unlocked**: a `<Switch>` bound to `menu.sharedTableEnabled`. Help copy: "Let groups create shared tables on this menu's public page. Guests scan a table-specific QR and pick items together."
+  - **FREE/STARTER locked**: render `components/admin/shared-table-locked.tsx` mirroring the `T14.5` Allergens-locked pattern — lock icon, "Shared Table is a PRO feature," "Upgrade to PRO" CTA. The switch is not rendered at all on FREE/STARTER.
+  - Server-side guard: in `PATCH /api/menus/[id]` validation, reject `sharedTableEnabled: true` if owner plan !== PRO with 403 `code: 'PLAN_REQUIRED'`. (Defense in depth — UI already prevents it.)
+  - When admin disables the toggle with active tables: do **not** auto-close them. Existing tables continue to expiration; only NEW table creation is blocked. Document this in section help copy: "Disabling won't end active sessions — they expire on their own."
+- **Playwright test**:
+  - `tests/e2e/admin/menu-settings-shared-table.spec.ts`:
+    - Visual: `admin-menu-settings-shared-table-pro.png`, `admin-menu-settings-shared-table-locked-starter.png`
+    - Functional: PRO user toggles ON → setting persists in DB; STARTER user does not see the switch, sees the upgrade card; STARTER user attempts direct PATCH with `sharedTableEnabled:true` → 403.
+
+#### T19.8: Cron Cleanup + Hard Expiration
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2 hours
+- **Dependencies**: T19.2
+- **Description**:
+  - Add `/api/cron/tables-cleanup/route.ts`:
+    - Verify `Authorization: Bearer ${process.env.CRON_SECRET}` (Vercel Cron sends this header).
+    - Pass 1: `UPDATE table_sessions SET status='EXPIRED' WHERE status='OPEN' AND expires_at < NOW()`. Broadcast `TABLE_CLOSED` to each affected channel (best-effort, batched).
+    - Pass 2: `DELETE FROM table_sessions WHERE status IN ('CLOSED','EXPIRED') AND updated_at < NOW() - INTERVAL '24 hours'`. Cascade deletes guests and selections.
+    - Return JSON `{ expired: n, deleted: m }` for cron logs.
+  - Add `vercel.json` cron entry: `{ "path": "/api/cron/tables-cleanup", "schedule": "*/30 * * * *" }`.
+  - Add `CRON_SECRET` to `.env.example` and document in `TECHNICAL_SPEC.md` env vars section.
+  - Inline auto-close in `GET /api/public/tables/[code]` (already specified in T19.2) is the safety net — cron is the bulk cleanup.
+- **Playwright test**:
+  - `tests/e2e/api/table-cleanup.spec.ts`:
+    - Seed a table with `expiresAt = now - 1min`, `status: OPEN`. Hit cleanup endpoint with valid secret. Assert table is now `EXPIRED`.
+    - Hit endpoint without auth header → 401.
+    - Seed a table with `status: CLOSED`, `updatedAt = now - 25h`. Cleanup → row gone.
+
+#### T19.9: i18n Strings (ka/en/ru)
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 1 hour
+- **Dependencies**: T19.4, T19.5, T19.7
+- **Description**:
+  - Add a new namespace `apps/web/messages/{ka,en,ru}/table.json` with keys grouped under:
+    - `cta.{createTable, joinTable}`
+    - `create.{title, nameLabel, namePlaceholder, pinLabel, pinHelper, capLabel, capHelper, submit, cancel}`
+    - `join.{title, namePlaceholder, pinPlaceholder, submit, errors.{wrongPin, tableFull, tableClosed, tableExpired, rateLimited}}`
+    - `host.{tableCode, sharePin, copyLink, copied, closeTable, closeConfirm, extend, extendDone, expiresIn, expiringSoon, emptyState}`
+    - `guest.{myPicks, tray.{title, total, removeItem, leaveTable, leaveConfirm, empty}}`
+    - `system.{tableClosed, guestJoined, itemAdded, itemRemoved}`
+  - Admin Menu Settings copy in `admin.json`: `menuSettings.sharedTable.{title, description, enabledLabel, disableNote, locked.{title, description, upgradeCta}}`.
+  - Georgian (KA) is the source of truth — translate to en/ru after KA review.
+- **Playwright test**:
+  - No new dedicated test. The existing locale-switching coverage in T19.4/T19.5 specs runs each visual at default locale only; add a single `[locale: 'en']` smoke run to T19.5 to catch missing keys.
+
+#### T19.10: End-to-End Coverage + Manual QA Checklist
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 3 hours
+- **Dependencies**: T19.1–T19.9 (all)
+- **Description**:
+  - `tests/e2e/public/table-full-flow.spec.ts` — single happy-path scenario covering everything end-to-end:
+    1. PRO user toggles `sharedTableEnabled` on a published menu (admin context).
+    2. Open public menu in a fresh context — "Create Shared Table" button visible.
+    3. Host creates table (name "Beka", PIN "1234", cap 4).
+    4. QR canvas rendered; copy link.
+    5. Open guest context #1 — paste link → join as "Nino" with PIN — see menu.
+    6. Open guest context #2 — join as "Sandro".
+    7. Each guest adds 2 items (different products).
+    8. Host context: assert both guests visible, all 4 items split correctly by guest.
+    9. Host removes one of Nino's items → both Nino's tray and host view update.
+    10. Host clicks Close → both guest contexts navigate to base menu.
+  - `tests/MANUAL_QA.md` checklist additions:
+    - Two real phones: host scans menu QR on phone A → creates table → phone B scans the on-screen table QR → joins with PIN → visual verification of real-time sync over public network (not localhost).
+    - Refresh / kill-and-relaunch browser on guest mid-session → still in table.
+    - Background the tab for 5 minutes → still receives Pusher events on foreground.
+- **Playwright test**:
+  - The full-flow spec above is the test for this task.
+
+---
+
 ## 📊 Progress Tracking
 
 ### Overall Progress
-- **Total Tasks**: 110
+- **Total Tasks**: 120
 - **Completed**: 81
 - **In Progress**: 2
 - **Blocked**: 0
-- **Progress**: 74%
+- **Progress**: 68%
 
 ```
-Progress: 🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜ 74%
+Progress: 🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜ 68%
 ```
 
 ### Phase Breakdown
@@ -2022,6 +2277,7 @@ Progress: 🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜ 74%
 - **Phase 16 - Account Settings**: 2/8 (25%)
 - **Phase 17 - Mobile Responsive + Polish**: 0/8 (0%)
 - **Phase 18 - AR / 3D Models for Products**: 0/8 (0%)
+- **Phase 19 - Shared Table Sessions**: 0/10 (0%)
 
 ### Current Focus
 🎯 **Status**: T15.15 done ✅ — Menu Settings Tab · Advanced (Clone/Archive/Delete) shipped. **Phase 15 is now 11/15 (73%)**. Overall 81/102 = 79%. WIP now 1 (T15.15 in progress → done). Summary of what shipped in T14.6: inline Zod errors on `nameKa`/`price`/`categoryId` were already wired by T14.2 (red border + ring-danger-soft + Info icon + helper), so T14.6's delta is focused on the two states that weren't covered yet — save-in-flight (footer Save button: `data-saving="true"` + Loader2 spinner + "Saving…" via existing `isLoading` prop) and save-failure (new banner at the top of the scrollable drawer body via `<Banner tone="error" dismissible title="Couldn't save product" description={serverMessage} />`). Three surgical changes: (1) `apps/web/components/admin/product-dialog.tsx` added `saveError: string | null` state + `Banner` import + try/catch around `onSubmit(data)` so the drawer only closes on success (fixes a data-loss bug where the drawer closed even on failed saves), plus reset `saveError` alongside `activeTab` in the on-`open` useEffect so every re-open starts clean; (2) `apps/web/components/admin/products-list.tsx` `handleCreate` / `handleUpdate` now re-throw errors (removed redundant `toast.error` + removed explicit `setIsCreateOpen(false)` / `setProductToEdit(null)` since the dialog's own `onOpenChange(false)` routes to the same setters on success); (3) `apps/web/components/admin/product-form.tsx` unchanged — the T14.2 inline errors already satisfy the "red border + helper" requirement. Banner copy uses new EN/KA/RU keys `admin.products.drawer.saveErrorTitle` ("Couldn't save product" / "პროდუქტი ვერ შეინახა" / "Не удалось сохранить продукт") + `saveErrorDefault` fallback. Testids: `product-drawer-save-error` (banner container), preserved `product-drawer-save` with `data-saving` for the in-flight state, preserved `product-basics-price-error` + name-input `ring-danger-soft` class for Zod inline errors. Playwright spec `tests/e2e/admin/product-drawer-error-saving.spec.ts` ships 10 enumerated tests (5 desktop + 5 mobile-skipped) — 2 visual baselines (`product-drawer-error-desktop.png` taken after a mocked 500 response `{ success:false, error:{ message:'Database write timed out — please retry.' } }`, `product-drawer-saving-desktop.png` taken with the PATCH route delayed 1500ms so the Save button shows spinner + "Saving…" mid-flight) + 3 functional: (a) empty-name submit → `ring-danger-soft` on name input, drawer stays open, NO save-error banner (Zod short-circuits before any API call); (b) valid edit submit → observe `data-saving="true"` in-flight → PATCH returns 200 → sonner "Product updated successfully" toast surfaces → drawer closes; (c) mocked 500 → banner appears with title "Couldn't save product" + server message "Database write timed out" → drawer stays open → `data-saving="false"` → form values preserved (nameKa round-trip asserted). Validation gates: `tsc --noEmit` clean on touched files (pre-existing TS2688 type-library noise filtered); `next lint` clean on all 3 touched files (only pre-existing unrelated warnings elsewhere); Vitest 248/274 passing (same pre-existing 26 product-card + 2 menus-API mock failures from T11.6/T11.7, unrelated); all 3 admin.json files parse valid via `python3 -c 'json.load(...)'`; Playwright list mode enumerated 10 tests correctly. Visual baselines need first-run `pnpm test:e2e:update` against the Dockerised test DB — local port 3000 held by another dev-server session, same pattern as T11–T15 work. Previously: T15.13 done ✅ — Menu Settings Tab · URL + Visibility shipped. Phase 15 now 7/15 (47%). **T15.14 (Schedule + SEO) + T15.15 (Clone/Archive/Delete) newly unlocked** — both depend on T15.13 ✅. Summary of what shipped in T15.13: (1) New `apps/web/components/admin/menu-url-visibility-section.tsx` — 600px-max card-internal section mirroring artboard `settings-menu-tab` 1:1. Menu URL row = host-prefix + monospace slug Input (lowercased + space→hyphen on input) + Copy-URL button, amber `Banner`-style warning banner ("Changing the URL will break any printed QR codes…") that flips to `role="alert"` while the slug is dirty. Visibility section = 3 custom RadioCards (Published · Password protected · Private draft) each with 18px radio dot + lucide Icon + Title + Body. Picking "Password protected" reveals a password input inside the selected card with show/hide toggle + "A password is already set. Leave blank to keep it." hint when `menu.hasPassword`. Save / Discard actions in a border-top footer, wired to `useUpdateMenu.mutateAsync` with dirty-tracking (`slugDirty`, `visibilityDirty`, `passwordDirty`); `SLUG_EXISTS` 409 surfaces as inline slug error instead of toast. Testids: `settings-url-visibility` (with `data-visibility` + `data-slug-dirty` + `data-visibility-dirty`), `settings-url-chip`, `settings-url-prefix`, `settings-url-slug`, `settings-url-copy`, `settings-url-error`, `settings-url-warning`, `settings-visibility-{published|password_protected|private_draft}` (with `data-selected`), `settings-vis-password-input`/`-error`/`-hint`, `settings-url-visibility-save`/`-discard`/`-actions`. (2) New `apps/web/components/public/menu-password-gate.tsx` — customer-facing gate with Lock icon, menu name, password input with Eye/EyeOff toggle, submit button with spinner, inline error on 403. Posts to `POST /api/menus/public/[slug]/verify-password`; on success calls `router.refresh()` which re-renders the page with the new cookie. (3) New `apps/web/app/api/menus/public/[slug]/verify-password/route.ts` — bcrypt-compares posted password against `menu.passwordHash`, on success sets HttpOnly SameSite=Lax (Secure in prod) cookie `menu-pass-{menuId}` containing an HMAC-SHA256-signed token `${menuId}.${exp}.${hex-sig}` signed by `NEXTAUTH_SECRET`; 24h TTL; `timingSafeEqual` verification in `verifyMenuPassToken`; rejects missing/unpublished menus with the same 403 shape as wrong-password to avoid enumeration. (4) New `apps/web/lib/menu-visibility.ts` — `deriveMenuVisibility(menu)` (status+hash → PUBLISHED/PASSWORD_PROTECTED/PRIVATE_DRAFT), `sanitizeMenuResponse(menu)` (strips `passwordHash`, adds `hasPassword: boolean`), and the cookie helpers. (5) Schema: `packages/database/prisma/schema.prisma` `Menu` gains `passwordHash String?`, pushed to Neon via `pnpm db:push --accept-data-loss` (additive, no data loss), Prisma Client regenerated. (6) API wiring: `PUT /api/menus/[id]` now accepts `visibility` + optional `password` in the body — Zod schema at `lib/validations/menu.ts` adds `menuVisibilityValues` enum + two optional fields; handler maps `PUBLISHED` → `status=PUBLISHED, passwordHash=null`, `PASSWORD_PROTECTED` → `status=PUBLISHED, passwordHash=bcrypt(password, 10)` (400 if neither new password nor existing hash), `PRIVATE_DRAFT` → `status=DRAFT, passwordHash=null`; `publishedAt` is refreshed whenever status crosses from DRAFT→PUBLISHED; `invalidateMenuCache()` fires whenever visibility or slug changes. Response path threads the menu through `sanitizeMenuResponse` so the admin client + Pusher payload never see the hash; `GET /api/menus/[id]`, `GET /api/menus`, and `POST /api/menus` got the same treatment. `types/menu.ts` `Menu` gains `hasPassword?: boolean`. (7) Public menu `app/m/[slug]/page.tsx` now selects `passwordHash` and — when `!isPreview && rawMenu.passwordHash` — checks the signed cookie; on miss, renders `<MenuPasswordGate>` instead of the menu. Before serialising to the client tree the hash is destructured out so it never reaches the browser. Redis cache TTL (5m) + invalidation-on-visibility-change keep the gate fresh. (8) Editor settings tab rework: `app/admin/menus/[id]/page.tsx` wraps the new URL+Visibility section in its own Card above the legacy `MenuSettingsForm` Card, removing the leftover "Public URL"/`publicHref` footer block; the admin route is now the single surface for changing URL, visibility, and everything else Branding/Fonts/Layout-related. (9) EN/KA/RU `admin.editor.settings.{url.{label, helper, slugAriaLabel, slugPlaceholder, copyAriaLabel, copyToast, copyError, warning, errors.{required,tooShort,tooLong,invalidChars,taken}}, visibility.{label, helper, ariaLabel, published.{title,body}, password.{title,body,inputLabelSet,inputLabelChange,placeholderSet,placeholderChange,showAriaLabel,hideAriaLabel,hint,errors.{required,tooShort}}, draft.{title,body}}, actions.{save,saving,discard,saved,saveFailed}}` keys added across all 3 locale files. (10) Playwright spec `tests/e2e/admin/editor-settings.spec.ts` (serial, desktop-only, 10 enumerated = 5 desktop + 5 mobile-skipped) — 1 visual baseline `editor-settings-url-visibility-desktop.png` + 4 functional: (a) slug edit + Save fires PUT /api/menus/{id}, DB slug updates, old slug 404s and new slug returns 200 on `/m/{slug}`; (b) picking "Private draft" + Save writes `status=DRAFT` + `passwordHash=null` to DB + `/m/{slug}` returns 404; (c) picking "Password protected" + entering `linville-2026` + Save bcrypt-hashes + keeps `status=PUBLISHED` + response body has `hasPassword: true` and NO `passwordHash`, then clearing cookies and hitting `/m/{slug}` renders `menu-password-gate`; wrong password returns 403; correct password returns 200 and sets cookie matching `^{menuId}\.\d+\.[a-f0-9]{64}$`; reloading `/m/{slug}` with the cookie bypasses the gate; (d) Copy URL button writes `${origin}/m/{slug}` to `navigator.clipboard`. Validation gates: `tsc --noEmit` clean on all touched files (pre-existing TS2688 type-library noise filtered); `next lint` clean on all new files (only pre-existing `code-block.tsx` + unrelated unused-var warnings across other files remain); Vitest 248/274 pass (same pre-existing 26 product-card mock failures unrelated); all 3 admin.json files parse valid. Visual baseline needs first-run `pnpm test:e2e:update` against the Dockerised test DB — local port 3000 held by another dev-server session, same pattern as T11–T15 work.
