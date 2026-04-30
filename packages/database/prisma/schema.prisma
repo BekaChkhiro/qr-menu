@@ -118,6 +118,12 @@ enum ActivityType {
   QR_SCANNED
 }
 
+enum TableStatus {
+  OPEN
+  CLOSED
+  EXPIRED
+}
+
 // ============================================================================
 // USER MODEL
 // ============================================================================
@@ -353,12 +359,16 @@ model Menu {
   // null = open (Published) or irrelevant (status=DRAFT = Private draft).
   passwordHash      String?
 
+  // Shared Table Sessions (Phase 19, PRO)
+  sharedTableEnabled Boolean @default(false)
+
   // Relations
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   categories   Category[]
   promotions   Promotion[]
   views        MenuView[]
   activityLogs ActivityLog[]
+  tables       TableSession[]
 
   // Timestamps
   createdAt   DateTime     @default(now())
@@ -476,8 +486,9 @@ model Product {
   sortOrder   Int                 @default(0)
 
   // Relations
-  category    Category            @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  variations  ProductVariation[]
+  category         Category           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  variations       ProductVariation[]
+  tableSelections  TableSelection[]
 
   // Timestamps
   createdAt   DateTime            @default(now())
@@ -511,7 +522,8 @@ model ProductVariation {
   sortOrder   Int      @default(0)
 
   // Relations
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product          Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tableSelections  TableSelection[]
 
   // Timestamps
   createdAt   DateTime @default(now())
@@ -632,4 +644,72 @@ model ActivityLog {
   @@index([userId, createdAt])
   @@index([menuId, createdAt])
   @@map("activity_logs")
+}
+
+// ============================================================================
+// SHARED TABLE SESSIONS (Phase 19, PRO)
+// ============================================================================
+
+model TableSession {
+  id          String       @id @default(cuid())
+  menuId      String
+  code        String       @unique  // 8-char nanoid for QR URL
+  pinHash     String                 // bcrypt-hashed 4-digit PIN
+  hostName    String
+  maxGuests   Int                    // 2-20
+  status      TableStatus  @default(OPEN)
+  expiresAt   DateTime
+  extendedAt  DateTime?              // set when host triggers the one-time extension
+
+  // Relations
+  menu        Menu             @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  guests      TableGuest[]
+  selections  TableSelection[]
+
+  // Timestamps
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([menuId])
+  @@index([status, expiresAt])
+  @@map("table_sessions")
+}
+
+model TableGuest {
+  id          String       @id @default(cuid())
+  tableId     String
+  name        String                 // max 32 chars (validated app-side)
+  isHost      Boolean      @default(false)
+  joinedAt    DateTime     @default(now())
+  lastSeenAt  DateTime     @default(now())
+
+  // Relations
+  table       TableSession     @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  selections  TableSelection[]
+
+  @@index([tableId])
+  @@map("table_guests")
+}
+
+model TableSelection {
+  id          String   @id @default(cuid())
+  tableId     String
+  guestId     String
+  productId   String
+  variationId String?
+  quantity    Int      @default(1)
+  note        String?               // max 200 chars (validated app-side)
+
+  // Relations
+  table     TableSession      @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  guest     TableGuest        @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  product   Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variation ProductVariation? @relation(fields: [variationId], references: [id], onDelete: SetNull)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@index([tableId])
+  @@index([guestId])
+  @@map("table_selections")
 }

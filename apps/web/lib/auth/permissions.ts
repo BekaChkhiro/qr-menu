@@ -29,6 +29,7 @@ export const PLAN_FEATURES = {
     analytics: false,
     qrWithLogo: false,
     arViewer: false,
+    sharedTable: false,
   },
   STARTER: {
     basicQR: true,
@@ -40,6 +41,7 @@ export const PLAN_FEATURES = {
     analytics: false,
     qrWithLogo: false,
     arViewer: false,
+    sharedTable: false,
   },
   PRO: {
     basicQR: true,
@@ -51,6 +53,7 @@ export const PLAN_FEATURES = {
     analytics: true,
     qrWithLogo: true,
     arViewer: true,
+    sharedTable: true,
   },
 } as const;
 

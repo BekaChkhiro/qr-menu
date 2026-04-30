@@ -105,3 +105,13 @@ export {
   type BrowserBreakdown,
   type MenuAnalytics,
 } from './analytics';
+
+// Shared Table Sessions validations (Phase 19, PRO)
+export {
+  createTableSchema,
+  joinTableSchema,
+  addSelectionSchema,
+  type CreateTableInput,
+  type JoinTableInput,
+  type AddSelectionInput,
+} from './table';

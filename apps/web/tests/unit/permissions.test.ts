@@ -25,3 +25,23 @@ describe('hasFeature — arViewer', () => {
     expect(PLAN_FEATURES.PRO.arViewer).toBe(true);
   });
 });
+
+describe('hasFeature — sharedTable (Phase 19, PRO)', () => {
+  it('is false for FREE', () => {
+    expect(hasFeature('FREE', 'sharedTable')).toBe(false);
+  });
+
+  it('is false for STARTER', () => {
+    expect(hasFeature('STARTER', 'sharedTable')).toBe(false);
+  });
+
+  it('is true for PRO', () => {
+    expect(hasFeature('PRO', 'sharedTable')).toBe(true);
+  });
+
+  it('is declared on every plan tier', () => {
+    expect(PLAN_FEATURES.FREE.sharedTable).toBe(false);
+    expect(PLAN_FEATURES.STARTER.sharedTable).toBe(false);
+    expect(PLAN_FEATURES.PRO.sharedTable).toBe(true);
+  });
+});
