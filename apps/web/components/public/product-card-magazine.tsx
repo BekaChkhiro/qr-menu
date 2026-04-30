@@ -9,6 +9,8 @@ import type { PublicDisplaySettings, PublicProduct } from './product-card';
 import { PriceTag, OldPriceTag } from './price-tag';
 import { DietaryBadge } from './dietary-badge';
 import { ArViewerDialog } from './ar-viewer-dialog';
+import { ProductAddButton } from './product-add-button';
+import { useTableMode } from './table-mode-provider';
 import {
   allergenLabels,
   allergenShort,
@@ -40,6 +42,7 @@ export function ProductCardMagazine({ product, locale, settings }: Props) {
   const [caloriesRevealed, setCaloriesRevealed] = useState(false);
   const [arOpen, setArOpen] = useState(false);
 
+  const tableMode = useTableMode();
   const arAvailable = !!product.arEnabled && !!product.arModelUrl;
 
   const name = getProductName(product, locale);
@@ -290,6 +293,17 @@ export function ProductCardMagazine({ product, locale, settings }: Props) {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Add to table CTA — only present when this menu is rendered in table mode */}
+        {tableMode && (
+          <div className="pt-1">
+            <ProductAddButton
+              product={product}
+              locale={locale}
+              currencySymbol={settings.currencySymbol}
+            />
           </div>
         )}
 

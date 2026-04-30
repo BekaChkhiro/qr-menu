@@ -31,6 +31,7 @@ function rateLimitResponse(reset: number) {
     ERROR_CODES.RATE_LIMITED,
     'Too many attempts. Please wait before trying again.',
     429,
+    { retryAfterSeconds: retryAfter },
   );
   res.headers.set('Retry-After', String(retryAfter));
   return res;
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         ERROR_CODES.WRONG_PIN,
         'Incorrect PIN',
         401,
+        { attemptsLeft: after.remaining },
       );
     }
 

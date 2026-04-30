@@ -9,6 +9,8 @@ import type { PublicDisplaySettings, PublicProduct } from './product-card';
 import { PriceTag, OldPriceTag } from './price-tag';
 import { DietaryBadge } from './dietary-badge';
 import { ArViewerDialog } from './ar-viewer-dialog';
+import { ProductAddButton } from './product-add-button';
+import { useTableMode } from './table-mode-provider';
 import {
   allergenLabels,
   allergenShort,
@@ -46,6 +48,7 @@ export function ProductCardCompact({ product, locale, settings }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [arOpen, setArOpen] = useState(false);
 
+  const tableMode = useTableMode();
   const arAvailable = !!product.arEnabled && !!product.arModelUrl;
 
   const name = getProductName(product, locale);
@@ -77,6 +80,21 @@ export function ProductCardCompact({ product, locale, settings }: Props) {
       className="relative border-b border-border/40 last:border-b-0"
       aria-label={name}
     >
+      {/* Add to table CTA — absolute so taps don't bubble to the expand toggle */}
+      {tableMode && (
+        <div
+          className="absolute right-2 top-1/2 z-10 -translate-y-1/2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ProductAddButton
+            product={product}
+            locale={locale}
+            currencySymbol={settings.currencySymbol}
+            size="compact"
+          />
+        </div>
+      )}
+
       {/* Left-edge color stripe for top ribbon (absolute, subtle) */}
       {topRibbon && (
         <span
@@ -111,7 +129,8 @@ export function ProductCardCompact({ product, locale, settings }: Props) {
         onClick={() => setExpanded((v) => !v)}
         disabled={!hasMore}
         className={cn(
-          'flex min-h-[60px] w-full items-center gap-3 py-3 pl-3 pr-2 text-left transition-colors',
+          'flex min-h-[60px] w-full items-center gap-3 py-3 pl-3 text-left transition-colors',
+          tableMode ? 'pr-14' : 'pr-2',
           hasMore && 'hover:bg-muted/30 cursor-pointer',
           !hasMore && 'cursor-default'
         )}
