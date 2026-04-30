@@ -510,6 +510,75 @@ describe('Menu API', () => {
 
       expect(response.status).toBe(200);
     });
+
+    // T19.7 — Plan gate for sharedTableEnabled
+    it('rejects sharedTableEnabled:true with 403 PLAN_REQUIRED for STARTER owner', async () => {
+      const starter = createMockUser({ plan: 'STARTER' as const });
+      mockAuth.mockResolvedValue(createMockSession(starter));
+      const existingMenu = {
+        ...createMockMenu({ userId: starter.id }),
+        user: { plan: 'STARTER' as const },
+      };
+      mockPrisma.menu.findUnique.mockResolvedValue(existingMenu);
+
+      const request = createMockRequest('/api/menus/menu-1', {
+        method: 'PUT',
+        body: { sharedTableEnabled: true },
+      });
+      const context = createRouteContext({ id: 'menu-1' });
+      const response = await updateMenu(request, context);
+      const data = await parseJsonResponse<{ success: false; error: { code: string } }>(response);
+
+      expect(response.status).toBe(403);
+      expect(data.success).toBe(false);
+      expect(data.error.code).toBe('PLAN_REQUIRED');
+      expect(mockPrisma.menu.update).not.toHaveBeenCalled();
+    });
+
+    it('allows sharedTableEnabled:true for PRO owner', async () => {
+      const pro = createMockUser({ plan: 'PRO' as const });
+      mockAuth.mockResolvedValue(createMockSession(pro));
+      const existingMenu = {
+        ...createMockMenu({ userId: pro.id }),
+        user: { plan: 'PRO' as const },
+      };
+      mockPrisma.menu.findUnique.mockResolvedValue(existingMenu);
+      mockPrisma.menu.update.mockResolvedValue({ ...existingMenu, sharedTableEnabled: true });
+
+      const request = createMockRequest('/api/menus/menu-1', {
+        method: 'PUT',
+        body: { sharedTableEnabled: true },
+      });
+      const context = createRouteContext({ id: 'menu-1' });
+      const response = await updateMenu(request, context);
+
+      expect(response.status).toBe(200);
+      expect(mockPrisma.menu.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ sharedTableEnabled: true }),
+        })
+      );
+    });
+
+    it('allows sharedTableEnabled:false for any plan (disabling never gated)', async () => {
+      const starter = createMockUser({ plan: 'STARTER' as const });
+      mockAuth.mockResolvedValue(createMockSession(starter));
+      const existingMenu = {
+        ...createMockMenu({ userId: starter.id }),
+        user: { plan: 'STARTER' as const },
+      };
+      mockPrisma.menu.findUnique.mockResolvedValue(existingMenu);
+      mockPrisma.menu.update.mockResolvedValue({ ...existingMenu, sharedTableEnabled: false });
+
+      const request = createMockRequest('/api/menus/menu-1', {
+        method: 'PUT',
+        body: { sharedTableEnabled: false },
+      });
+      const context = createRouteContext({ id: 'menu-1' });
+      const response = await updateMenu(request, context);
+
+      expect(response.status).toBe(200);
+    });
   });
 
   // ==========================================================================

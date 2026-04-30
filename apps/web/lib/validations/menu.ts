@@ -135,6 +135,11 @@ export const updateMenuSchema = z.object({
   metaDescription: z.string().max(300).nullable().optional(),
   shareImageUrl: z.string().url('Invalid image URL').nullable().optional(),
 
+  // Shared Table Sessions (T19, PRO).
+  // Server enforces a plan check: setting `true` requires plan === 'PRO'
+  // (returns 403 PLAN_REQUIRED otherwise). Setting `false` is always allowed.
+  sharedTableEnabled: z.boolean().optional(),
+
   // Direct status update — used by the Settings → Advanced "Archive" action.
   // `visibility` (below) takes precedence: when both are present the server
   // derives status from visibility and the explicit status value is overwritten.

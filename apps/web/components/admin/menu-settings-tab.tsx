@@ -10,6 +10,9 @@ import { ScheduleSection } from '@/components/admin/schedule-section';
 import { SeoSection } from '@/components/admin/seo-section';
 import { SharePreviewCard } from '@/components/admin/share-preview-card';
 import { MenuAdvancedSection } from '@/components/admin/menu-advanced-section';
+import { SharedTableSection } from '@/components/admin/shared-table-section';
+import { SharedTableLocked } from '@/components/admin/shared-table-locked';
+import { useUserPlan } from '@/hooks/use-user-plan';
 import type { MenuWithDetails } from '@/types/menu';
 
 interface MenuSettingsTabProps {
@@ -45,6 +48,8 @@ function Section({
 
 export function MenuSettingsTab({ menu }: MenuSettingsTabProps) {
   const t = useTranslations('admin.editor.settings');
+  const { hasFeature } = useUserPlan();
+  const sharedTableUnlocked = hasFeature('sharedTable');
 
   // Lifted SEO state so SharePreviewCard can reflect draft values
   const [draftMetaTitle, setDraftMetaTitle] = useState(menu.metaTitle || '');
@@ -75,6 +80,18 @@ export function MenuSettingsTab({ menu }: MenuSettingsTabProps) {
         {/* Schedule */}
         <Section label={t('schedule.label')} helper={t('schedule.helper')}>
           <ScheduleSection menu={menu} />
+        </Section>
+
+        {/* Shared Table (T19.7) — PRO unlocked / FREE+STARTER locked */}
+        <Section
+          label={t('sharedTable.label')}
+          helper={t('sharedTable.helper')}
+        >
+          {sharedTableUnlocked ? (
+            <SharedTableSection menu={menu} />
+          ) : (
+            <SharedTableLocked />
+          )}
         </Section>
 
         {/* SEO */}

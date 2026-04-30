@@ -98,6 +98,9 @@ export interface Menu {
   // a boolean `hasPassword` so the settings form can render the right state.
   hasPassword?: boolean;
 
+  // Shared Table Sessions (T19, PRO)
+  sharedTableEnabled: boolean;
+
   createdAt: string;
   updatedAt: string;
   _count: {

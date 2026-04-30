@@ -411,6 +411,22 @@
           "body": "Only you and your team can preview. Customers see \"Menu not available.\""
         }
       },
+      "sharedTable": {
+        "label": "Shared Table",
+        "helper": "Let groups create shared tables on this menu's public page. Guests scan a table-specific QR and pick items together.",
+        "title": "Enable shared tables",
+        "body": "Hosts create a 4-hour table from the public menu and invite guests to join with a PIN. Disabling won't end active sessions — they expire on their own.",
+        "switchAriaLabel": "Enable shared tables for this menu",
+        "disableHint": "Disabling won't end active sessions — they expire on their own.",
+        "toastEnabled": "Shared tables enabled",
+        "toastDisabled": "Shared tables disabled",
+        "toastError": "Could not update shared tables setting"
+      },
+      "sharedTableLocked": {
+        "title": "Shared Table is a PRO feature",
+        "body": "Let groups order together — host opens a 4-hour table and guests scan a personal QR to pick items. Available on PRO.",
+        "cta": "Upgrade to PRO"
+      },
       "schedule": {
         "label": "Schedule",
         "helper": "Optional — automatically publish or unpublish on a date. Useful for seasonal menus.",

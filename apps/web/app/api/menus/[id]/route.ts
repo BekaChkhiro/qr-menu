@@ -105,7 +105,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Check ownership
     const existingMenu = await prisma.menu.findUnique({
       where: { id },
-      select: { userId: true, slug: true, passwordHash: true, status: true },
+      select: {
+        userId: true,
+        slug: true,
+        passwordHash: true,
+        status: true,
+        user: { select: { plan: true } },
+      },
     });
 
     if (!existingMenu) {
@@ -126,6 +132,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const body = await request.json();
     const data = updateMenuSchema.parse(body);
+
+    // T19.7 — gate enabling shared tables behind PRO. Disabling is always allowed.
+    if (data.sharedTableEnabled === true && existingMenu.user.plan !== 'PRO') {
+      return createErrorResponse(
+        ERROR_CODES.PLAN_REQUIRED,
+        'Shared tables are a PRO feature. Upgrade to enable.',
+        403
+      );
+    }
 
     // If slug is being changed, check if new slug is available
     if (data.slug && data.slug !== existingMenu.slug) {
