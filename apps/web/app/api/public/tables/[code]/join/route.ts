@@ -19,6 +19,7 @@ import {
   tablePinLimiter,
   getClientIp,
 } from '@/lib/rate-limit';
+import { CHANNELS, EVENTS, triggerEvent } from '@/lib/pusher/server';
 
 interface RouteParams {
   params: Promise<{ code: string }>;
@@ -130,8 +131,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         name: body.name,
         isHost: false,
       },
-      select: { id: true },
+      select: { id: true, name: true, isHost: true, joinedAt: true },
     });
+
+    try {
+      await triggerEvent(CHANNELS.table(code), EVENTS.TABLE_GUEST_JOINED, {
+        guestId: guest.id,
+        name: guest.name,
+        isHost: guest.isHost,
+        joinedAt: guest.joinedAt.toISOString(),
+      });
+    } catch (err) {
+      console.error('Pusher table:guest_joined broadcast failed:', err);
+    }
 
     const token = signTableToken({
       tableId: table.id,
