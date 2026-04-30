@@ -1,7 +1,8 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { auth } from '@/lib/auth/auth';
+import { prisma } from '@/lib/db';
 import { getPublicMenu, getPreviewMenu, type SerializedPublicMenu } from '@/lib/public-menu';
 import { getLocaleFromCookie, isValidLocale, LOCALE_COOKIE_NAME, type Locale } from '@/i18n/config';
 import { MenuHeader } from '@/components/public/menu-header';
@@ -17,6 +18,7 @@ import {
   menuPassCookieName,
   verifyMenuPassToken,
 } from '@/lib/menu-visibility';
+import { TABLE_COOKIE_NAME, verifyTableToken } from '@/lib/auth/table-token';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -82,6 +84,32 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
           menuName={rawMenu.name}
         />
       );
+    }
+  }
+
+  // If the visitor already has an active table cookie for THIS menu, send them
+  // to the table view instead of re-prompting them to create a new one.
+  // Only applies when the table is OPEN; CLOSED/EXPIRED falls through to the
+  // regular menu (and the stale cookie will be cleared the next time they
+  // interact with a table API).
+  if (!isPreview && rawMenu.sharedTableEnabled) {
+    const tableTokenRaw = cookieStore.get(TABLE_COOKIE_NAME)?.value;
+    const tableToken = verifyTableToken(tableTokenRaw);
+    if (tableToken) {
+      const boundTable = await prisma.tableSession.findUnique({
+        where: { id: tableToken.tableId },
+        select: { code: true, status: true, menuId: true },
+      });
+      if (
+        boundTable &&
+        boundTable.menuId === rawMenu.id &&
+        boundTable.status === 'OPEN'
+      ) {
+        const target = tableToken.isHost
+          ? `/m/${slug}/t/${boundTable.code}/host`
+          : `/m/${slug}/t/${boundTable.code}`;
+        redirect(target);
+      }
     }
   }
 
