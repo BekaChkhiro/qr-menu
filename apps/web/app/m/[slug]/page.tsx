@@ -13,6 +13,7 @@ import { FeaturedCarousel } from '@/components/public/featured-carousel';
 import { MenuFooter } from '@/components/public/menu-footer';
 import { ViewTracker } from '@/components/public/view-tracker';
 import { MenuPasswordGate } from '@/components/public/menu-password-gate';
+import { CreateTableLauncher } from '@/components/public/create-table-launcher';
 import {
   menuPassCookieName,
   verifyMenuPassToken,
@@ -56,6 +57,7 @@ const menuSelect = {
   status: true,
   publishedAt: true,
   passwordHash: true,
+  sharedTableEnabled: true,
   categories: {
     orderBy: { sortOrder: 'asc' as const },
     select: {
@@ -345,6 +347,10 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
           c.products.some((p) => p.allergens.length > 0)
         )}
       />
+
+      {!isPreview && menu.sharedTableEnabled && (
+        <CreateTableLauncher slug={menu.slug} locale={locale} />
+      )}
     </div>
   );
 }
@@ -381,6 +387,7 @@ interface RawMenuSerialized {
   locationLng: number | string | null;
   status: string;
   publishedAt: string | null;
+  sharedTableEnabled: boolean;
   categories: SerializedCategory[];
   promotions: SerializedPromotion[];
 }
