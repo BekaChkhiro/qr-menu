@@ -2183,7 +2183,7 @@ digital-menu/
     - Functional: PRO user toggles ON → setting persists in DB; STARTER user does not see the switch, sees the upgrade card; STARTER user attempts direct PATCH with `sharedTableEnabled:true` → 403.
 
 #### T19.8: Cron Cleanup + Hard Expiration
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 2 hours
 - **Dependencies**: T19.2

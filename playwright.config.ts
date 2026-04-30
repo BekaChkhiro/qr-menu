@@ -11,6 +11,13 @@ loadDotenv({ path: path.resolve(__dirname, 'apps/web/.env.local') });
 // for the spawned dev server.
 process.env.ENABLE_TEST_AUTH = '1';
 
+// Deterministic CRON_SECRET for tests so the cron-cleanup spec can call the
+// endpoint with a known bearer. Reuses the user's value if they set one
+// locally, otherwise picks a fixed test default and forwards it to the dev
+// server below so both sides agree.
+const TEST_CRON_SECRET = process.env.CRON_SECRET ?? 'test-cron-secret';
+process.env.CRON_SECRET = TEST_CRON_SECRET;
+
 // Visual-diff tolerance. Default 0.05 (5%). Override via PLAYWRIGHT_MAX_DIFF_RATIO
 // for noisy local runs or stricter CI sweeps.
 const maxDiffPixelRatio = Number(process.env.PLAYWRIGHT_MAX_DIFF_RATIO ?? 0.05);
@@ -66,7 +73,7 @@ export default defineConfig({
     : {
         command: 'pnpm dev',
         url: baseURL,
-        env: { ENABLE_TEST_AUTH: '1' },
+        env: { ENABLE_TEST_AUTH: '1', CRON_SECRET: TEST_CRON_SECRET },
         reuseExistingServer: !isCI,
         timeout: 120_000,
         stdout: 'pipe',

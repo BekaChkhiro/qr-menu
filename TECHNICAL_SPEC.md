@@ -2229,6 +2229,10 @@ NEXT_PUBLIC_SENTRY_DSN=...
 # Analytics
 NEXT_PUBLIC_GA_MEASUREMENT_ID=G-...
 
+# Cron (Vercel Cron sends it as `Authorization: Bearer ${CRON_SECRET}`)
+# Used by /api/cron/tables-cleanup (T19.8) — runs every 30 min.
+CRON_SECRET=...
+
 # App
 NEXT_PUBLIC_APP_URL=https://digitalmenu.ge
 ```
