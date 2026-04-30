@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import type { Locale } from '@/i18n/config';
+import { getPusherClient, isPusherClientAvailable } from '@/lib/pusher/client';
 
 // ---------------------------------------------------------------------------
 // Props (mirror of TableHostInitial in the page server file).
@@ -122,6 +123,12 @@ const COPY: Record<
     removeFailed: string;
     almostExpired: string;
     realtimeNote: string;
+    realtimeOffline: string;
+    realtimeReconnected: string;
+    guestJoinedToast: (name: string) => string;
+    selectionAddedToast: (name: string) => string;
+    extendedToast: string;
+    closedRedirectToast: string;
     leaveBackToMenu: string;
   }
 > = {
@@ -158,7 +165,13 @@ const COPY: Record<
     closeFailed: 'დახურვა ვერ მოხერხდა',
     removeFailed: 'წაშლა ვერ მოხერხდა',
     almostExpired: '30 წუთი დარჩა — გაახანგრძლივო?',
-    realtimeNote: 'ცოცხალი განახლება უნდა ჩაიტვირთოს — გვერდი ყოველთვის ახლდება.',
+    realtimeNote: 'ცოცხალი განახლება ჩართულია',
+    realtimeOffline: 'კავშირი დაკარგა — შემდეგი ცვლილება გამოჩნდება გადახედვისას.',
+    realtimeReconnected: 'კავშირი აღდგენილია',
+    guestJoinedToast: (name: string) => `${name} შემოუერთდა`,
+    selectionAddedToast: (name: string) => `${name}-მა აირჩია ახალი ნივთი`,
+    extendedToast: '+2 საათი დაემატა მაგიდას',
+    closedRedirectToast: 'მაგიდა დაიხურა',
     leaveBackToMenu: 'მენიუზე დაბრუნება',
   },
   en: {
@@ -195,8 +208,13 @@ const COPY: Record<
     closeFailed: "Couldn't close the table",
     removeFailed: "Couldn't remove that selection",
     almostExpired: '30 minutes left — extend?',
-    realtimeNote:
-      'Realtime sync ships next phase — refresh to see new picks for now.',
+    realtimeNote: 'Live updates are on',
+    realtimeOffline: 'Connection lost — changes will reconcile when you reconnect.',
+    realtimeReconnected: 'Reconnected',
+    guestJoinedToast: (name: string) => `${name} joined`,
+    selectionAddedToast: (name: string) => `${name} added a pick`,
+    extendedToast: '+2 hours added',
+    closedRedirectToast: 'Table closed',
     leaveBackToMenu: 'Back to menu',
   },
   ru: {
@@ -234,8 +252,14 @@ const COPY: Record<
     closeFailed: 'Не удалось закрыть',
     removeFailed: 'Не удалось удалить',
     almostExpired: 'Осталось 30 минут — продлить?',
-    realtimeNote:
-      'Реальное время добавим в следующей фазе — обновите страницу.',
+    realtimeNote: 'Обновления в реальном времени включены',
+    realtimeOffline:
+      'Соединение потеряно — изменения подтянутся при восстановлении.',
+    realtimeReconnected: 'Соединение восстановлено',
+    guestJoinedToast: (name: string) => `${name} присоединился`,
+    selectionAddedToast: (name: string) => `${name} добавил позицию`,
+    extendedToast: 'Добавлено 2 часа',
+    closedRedirectToast: 'Стол закрыт',
     leaveBackToMenu: 'Назад в меню',
   },
 };
@@ -292,7 +316,9 @@ export function TableHostView({ initial, locale }: Props) {
   const [extendedAtIso, setExtendedAtIso] = useState<string | null>(
     initial.extendedAt,
   );
+  const [guests, setGuests] = useState(initial.guests);
   const [selections, setSelections] = useState(initial.selections);
+  const [flashIds, setFlashIds] = useState<Set<string>>(() => new Set());
   const [now, setNow] = useState(() => Date.now());
   const [pinReveal, setPinReveal] = useState(false);
   const [pinValue, setPinValue] = useState<string | null>(null);
@@ -302,8 +328,15 @@ export function TableHostView({ initial, locale }: Props) {
   const [extending, setExtending] = useState(false);
   const [closing, setClosing] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState<
+    'idle' | 'connected' | 'disconnected'
+  >('idle');
 
   const almostToastedRef = useRef(false);
+  const reconcileSeenRef = useRef(false);
+  const realtimeStatusRef = useRef<'idle' | 'connected' | 'disconnected'>(
+    'idle',
+  );
 
   // ── Read PIN from sessionStorage (host-only, set by CreateTableSheet) ─────
   useEffect(() => {
@@ -364,6 +397,193 @@ export function TableHostView({ initial, locale }: Props) {
       toast.warning(copy.almostExpired);
     }
   }, [status, expiresAtMs, now, extendedAtIso, copy.almostExpired]);
+
+  // ── Realtime: Pusher subscription on table-{code} ────────────────────────
+  // Guests don't subscribe (per T19.6 spec) — only the host page does.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (status !== 'OPEN') return;
+    if (!isPusherClientAvailable()) return;
+
+    const client = getPusherClient();
+    if (!client) return;
+
+    const channel = client.subscribe(`table-${initial.code}`);
+
+    function flashSelection(id: string) {
+      setFlashIds((prev) => {
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+      window.setTimeout(() => {
+        setFlashIds((prev) => {
+          if (!prev.has(id)) return prev;
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }, 1100);
+    }
+
+    const onGuestJoined = (data: unknown) => {
+      const payload = data as {
+        guestId: string;
+        name: string;
+        isHost: boolean;
+        joinedAt: string;
+      };
+      setGuests((prev) => {
+        if (prev.some((g) => g.id === payload.guestId)) return prev;
+        return [
+          ...prev,
+          {
+            id: payload.guestId,
+            name: payload.name,
+            isHost: payload.isHost,
+            joinedAt: payload.joinedAt,
+          },
+        ];
+      });
+      toast.success(copy.guestJoinedToast(payload.name));
+    };
+
+    const onSelectionAdded = (data: unknown) => {
+      const payload = data as {
+        guestId: string;
+        guestName?: string;
+        selectionId: string;
+        productId: string;
+        variationId: string | null;
+        quantity: number;
+        note: string | null;
+        createdAt: string;
+      };
+      setSelections((prev) => {
+        if (prev.some((s) => s.id === payload.selectionId)) return prev;
+        return [
+          ...prev,
+          {
+            id: payload.selectionId,
+            guestId: payload.guestId,
+            productId: payload.productId,
+            variationId: payload.variationId,
+            quantity: payload.quantity,
+            note: payload.note,
+            createdAt: payload.createdAt,
+          },
+        ];
+      });
+      flashSelection(payload.selectionId);
+      if (payload.guestName) {
+        toast.message(copy.selectionAddedToast(payload.guestName));
+      }
+    };
+
+    const onSelectionRemoved = (data: unknown) => {
+      const payload = data as { selectionId: string };
+      setSelections((prev) => prev.filter((s) => s.id !== payload.selectionId));
+    };
+
+    const onClosed = () => {
+      setStatus('CLOSED');
+      try {
+        window.sessionStorage.removeItem(
+          `${PIN_STORAGE_PREFIX}${initial.code}`,
+        );
+      } catch {
+        // ignore
+      }
+      toast.message(copy.closedRedirectToast);
+      router.push(`/m/${initial.slug}`);
+    };
+
+    const onExtended = (data: unknown) => {
+      const payload = data as { expiresAt: string; extendedAt: string };
+      if (payload.expiresAt) setExpiresAtIso(payload.expiresAt);
+      if (payload.extendedAt) setExtendedAtIso(payload.extendedAt);
+      almostToastedRef.current = false;
+      toast.success(copy.extendedToast);
+    };
+
+    channel.bind('table:guest_joined', onGuestJoined);
+    channel.bind('table:selection_added', onSelectionAdded);
+    channel.bind('table:selection_removed', onSelectionRemoved);
+    channel.bind('table:closed', onClosed);
+    channel.bind('table:extended', onExtended);
+
+    // Reconcile on (re)connect: refetch authoritative state and replace local.
+    // First "connected" after mount is a no-op for state but flips the badge.
+    async function reconcile() {
+      try {
+        const res = await fetch(`/api/public/tables/${initial.code}`, {
+          cache: 'no-store',
+        });
+        if (!res.ok) return;
+        const body = await res.json();
+        const data = body?.data as
+          | undefined
+          | {
+              status: 'OPEN' | 'CLOSED' | 'EXPIRED';
+              expiresAt: string;
+              extendedAt: string | null;
+              guests: TableHostInitial['guests'];
+              selections: TableHostInitial['selections'];
+            };
+        if (!data) return;
+        setStatus(data.status);
+        setExpiresAtIso(data.expiresAt);
+        setExtendedAtIso(data.extendedAt);
+        setGuests(data.guests);
+        setSelections(data.selections);
+        if (data.status === 'CLOSED') {
+          router.push(`/m/${initial.slug}`);
+        }
+      } catch {
+        // best-effort reconcile — next event will retry implicitly
+      }
+    }
+
+    const onConnected = () => {
+      const wasDisconnected = realtimeStatusRef.current === 'disconnected';
+      realtimeStatusRef.current = 'connected';
+      setRealtimeStatus('connected');
+      if (wasDisconnected || reconcileSeenRef.current) {
+        reconcile();
+        if (wasDisconnected) toast.success(copy.realtimeReconnected);
+      }
+      reconcileSeenRef.current = true;
+    };
+
+    const onDisconnected = () => {
+      realtimeStatusRef.current = 'disconnected';
+      setRealtimeStatus('disconnected');
+    };
+
+    client.connection.bind('connected', onConnected);
+    client.connection.bind('disconnected', onDisconnected);
+    client.connection.bind('unavailable', onDisconnected);
+
+    // pusher-js sets connection.state synchronously; if already connected, the
+    // 'connected' event won't fire again — seed state from current value.
+    if (client.connection.state === 'connected') {
+      realtimeStatusRef.current = 'connected';
+      setRealtimeStatus('connected');
+      reconcileSeenRef.current = true;
+    }
+
+    return () => {
+      channel.unbind('table:guest_joined', onGuestJoined);
+      channel.unbind('table:selection_added', onSelectionAdded);
+      channel.unbind('table:selection_removed', onSelectionRemoved);
+      channel.unbind('table:closed', onClosed);
+      channel.unbind('table:extended', onExtended);
+      client.connection.unbind('connected', onConnected);
+      client.connection.unbind('disconnected', onDisconnected);
+      client.connection.unbind('unavailable', onDisconnected);
+      client.unsubscribe(`table-${initial.code}`);
+    };
+  }, [initial.code, initial.slug, status, router, copy]);
 
   // ── Derived state ────────────────────────────────────────────────────────
 
@@ -549,7 +769,7 @@ export function TableHostView({ initial, locale }: Props) {
 
                 <span className="inline-flex items-center gap-1">
                   <Users size={13} strokeWidth={1.5} aria-hidden="true" />
-                  {initial.guests.length}/{initial.maxGuests}
+                  {guests.length}/{initial.maxGuests}
                 </span>
               </div>
             </div>
@@ -670,7 +890,7 @@ export function TableHostView({ initial, locale }: Props) {
       <main className="px-4 pt-5 sm:px-6">
         <div className="mx-auto max-w-2xl">
           <h2 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-text-muted">
-            {copy.guestsHeading(initial.guests.length, initial.maxGuests)}
+            {copy.guestsHeading(guests.length, initial.maxGuests)}
           </h2>
 
           {totalSelectionCount === 0 && (
@@ -680,7 +900,7 @@ export function TableHostView({ initial, locale }: Props) {
           )}
 
           <ul className="flex flex-col gap-3" data-testid="public-table-host-guests">
-            {initial.guests.map((guest) => {
+            {guests.map((guest) => {
               const guestSelections = selectionsByGuest.get(guest.id) ?? [];
               return (
                 <li
@@ -732,7 +952,12 @@ export function TableHostView({ initial, locale }: Props) {
                         return (
                           <li
                             key={sel.id}
-                            className="flex items-center gap-3 rounded-[10px] border border-border bg-bg px-3 py-2"
+                            data-testid="public-table-host-selection-row"
+                            data-selection-id={sel.id}
+                            className={cn(
+                              'flex items-center gap-3 rounded-[10px] border border-border bg-bg px-3 py-2',
+                              flashIds.has(sel.id) && 'animate-once-flash',
+                            )}
                           >
                             <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[8px] bg-chip">
                               {product?.imageUrl ? (
@@ -781,8 +1006,19 @@ export function TableHostView({ initial, locale }: Props) {
             })}
           </ul>
 
-          <p className="mt-6 text-center text-[11.5px] text-text-muted">
-            {copy.realtimeNote}
+          <p
+            className={cn(
+              'mt-6 text-center text-[11.5px]',
+              realtimeStatus === 'disconnected'
+                ? 'text-warning'
+                : 'text-text-muted',
+            )}
+            data-testid="public-table-host-realtime-status"
+            data-realtime-state={realtimeStatus}
+          >
+            {realtimeStatus === 'disconnected'
+              ? copy.realtimeOffline
+              : copy.realtimeNote}
           </p>
         </div>
       </main>

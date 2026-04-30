@@ -370,6 +370,27 @@ html.lenis, html.lenis body {
     transform: scale(0.98);
     transition: transform 0.1s ease;
   }
+
+  /* One-shot flash highlight for newly-arrived realtime items (T19.6).
+     Keep both inset+0 and -1px ring so it works on both bordered cards and
+     borderless rows. */
+  @keyframes once-flash {
+    0% {
+      box-shadow: 0 0 0 0 hsl(var(--accent) / 0);
+      background-color: hsl(var(--accent-soft) / 0.8);
+    }
+    50% {
+      box-shadow: 0 0 0 4px hsl(var(--accent) / 0.18);
+    }
+    100% {
+      box-shadow: 0 0 0 0 hsl(var(--accent) / 0);
+      background-color: transparent;
+    }
+  }
+
+  .animate-once-flash {
+    animation: once-flash 1s ease-out 1;
+  }
 }
 
 /* Reduced motion support for accessibility */
@@ -387,7 +408,8 @@ html.lenis, html.lenis body {
   .animate-slide-in-left,
   .animate-pulse-urgent,
   .animate-shimmer,
-  .animate-phone-glow {
+  .animate-phone-glow,
+  .animate-once-flash {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
