@@ -65,7 +65,8 @@ export function BillingPlanGrid({ currentPlan }: BillingPlanGridProps) {
   const t = useTranslations('admin.settings.billing');
 
   const handleStubAction = () => {
-    toast(t('upgradeToast'), {
+    toast.info({
+      title: t('upgradeToast'),
       duration: 4000,
     });
   };
