@@ -1,4 +1,4 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/db';
@@ -114,19 +114,15 @@ export default async function TableEntryPage({ params }: PageProps) {
 
   // Cookie binds *some* table — figure out whether it binds *this* one.
   if (token && token.tableId === table.id) {
-    if (token.isHost) {
-      redirect(`/m/${slug}/t/${code}/host`);
-    }
-
-    // Cookie binds this table as a guest — confirm the guest row still exists
-    // (it might have been hard-deleted via /leave or by the host) before
-    // rendering the menu in table mode.
+    // Hosts and guests both render the table-mode menu here so the host can
+    // also pick items. Hosts can switch to /host via the tray's
+    // "Host dashboard" button.
     const guest = await prisma.tableGuest.findUnique({
       where: { id: token.guestId },
       select: { id: true, name: true, isHost: true },
     });
 
-    if (guest && !guest.isHost) {
+    if (guest) {
       // Touch lastSeenAt — best-effort, mirrors the API GET behavior.
       await prisma.tableGuest
         .update({
@@ -153,6 +149,7 @@ export default async function TableEntryPage({ params }: PageProps) {
         code,
         guestId: guest.id,
         guestName: guest.name,
+        isHost: guest.isHost,
         tableId: table.id,
         status: effectiveStatus,
         locale,
@@ -178,6 +175,7 @@ interface RenderArgs {
   code: string;
   guestId: string;
   guestName: string;
+  isHost: boolean;
   tableId: string;
   status: 'OPEN' | 'CLOSED' | 'EXPIRED';
   locale: Locale;
@@ -279,6 +277,7 @@ async function renderGuestMenu(args: RenderArgs) {
       slug={args.slug}
       guestId={args.guestId}
       guestName={args.guestName}
+      isHost={args.isHost}
       status={args.status}
       initialSelections={initialSelections}
       locale={args.locale}

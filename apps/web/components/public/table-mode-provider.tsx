@@ -33,6 +33,7 @@ export interface TableModeContextValue {
   slug: string;
   guestId: string;
   guestName: string;
+  isHost: boolean;
   status: 'OPEN' | 'CLOSED' | 'EXPIRED';
   selections: TableSelection[];
   adding: boolean;
@@ -63,6 +64,7 @@ interface ProviderProps {
   slug: string;
   guestId: string;
   guestName: string;
+  isHost: boolean;
   status: 'OPEN' | 'CLOSED' | 'EXPIRED';
   initialSelections: TableSelection[];
   locale: Locale;
@@ -81,6 +83,7 @@ export function TableModeProvider({
   slug,
   guestId,
   guestName,
+  isHost,
   status,
   initialSelections,
   locale,
@@ -210,6 +213,7 @@ export function TableModeProvider({
       slug,
       guestId,
       guestName,
+      isHost,
       status,
       selections,
       adding,
@@ -225,6 +229,7 @@ export function TableModeProvider({
       slug,
       guestId,
       guestName,
+      isHost,
       status,
       selections,
       adding,

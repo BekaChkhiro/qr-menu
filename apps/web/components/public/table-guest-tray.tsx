@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
-import { Loader2, LogOut, ShoppingBag, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Crown, Loader2, LogOut, ShoppingBag, Trash2 } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -65,6 +66,7 @@ const COPY: Record<
     leaveConfirmCancel: string;
     closedHeading: string;
     expiredHeading: string;
+    hostDashboard: string;
   }
 > = {
   ka: {
@@ -84,6 +86,7 @@ const COPY: Record<
     leaveConfirmCancel: 'გაუქმება',
     closedHeading: 'მაგიდა დახურულია',
     expiredHeading: 'მაგიდას ვადა გაუვიდა',
+    hostDashboard: 'მასპინძლის პანელი',
   },
   en: {
     pillEmpty: 'My picks',
@@ -102,6 +105,7 @@ const COPY: Record<
     leaveConfirmCancel: 'Cancel',
     closedHeading: 'Table closed',
     expiredHeading: 'Table expired',
+    hostDashboard: 'Host dashboard',
   },
   ru: {
     pillEmpty: 'Мой выбор',
@@ -121,6 +125,7 @@ const COPY: Record<
     leaveConfirmCancel: 'Отмена',
     closedHeading: 'Стол закрыт',
     expiredHeading: 'Срок стола истёк',
+    hostDashboard: 'Панель хоста',
   },
 };
 
@@ -140,6 +145,7 @@ function pickName<T extends { nameKa: string; nameEn: string | null; nameRu: str
 
 export function TableGuestTray({ products, currencySymbol, locale }: Props) {
   const tableMode = useTableMode();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
 
@@ -331,25 +337,39 @@ export function TableGuestTray({ products, currencySymbol, locale }: Props) {
               </>
             )}
 
-            <button
-              type="button"
-              onClick={() => setConfirmLeaveOpen(true)}
-              disabled={tableMode.leaving}
-              data-testid="public-table-guest-tray-leave"
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-[10px] border border-border bg-card text-[13px] font-medium text-text-default transition-colors hover:bg-chip disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {tableMode.leaving ? (
-                <Loader2
-                  size={14}
-                  strokeWidth={2}
-                  className="animate-spin"
-                  aria-hidden="true"
-                />
-              ) : (
-                <LogOut size={14} strokeWidth={1.75} aria-hidden="true" />
-              )}
-              {tableMode.leaving ? copy.leaving : copy.leave}
-            </button>
+            {tableMode.isHost ? (
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(`/m/${tableMode.slug}/t/${tableMode.code}/host`)
+                }
+                data-testid="public-table-guest-tray-host-dashboard"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-[10px] border border-border bg-card text-[13px] font-medium text-text-default transition-colors hover:bg-chip"
+              >
+                <Crown size={14} strokeWidth={1.75} aria-hidden="true" />
+                {copy.hostDashboard}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmLeaveOpen(true)}
+                disabled={tableMode.leaving}
+                data-testid="public-table-guest-tray-leave"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-[10px] border border-border bg-card text-[13px] font-medium text-text-default transition-colors hover:bg-chip disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {tableMode.leaving ? (
+                  <Loader2
+                    size={14}
+                    strokeWidth={2}
+                    className="animate-spin"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <LogOut size={14} strokeWidth={1.75} aria-hidden="true" />
+                )}
+                {tableMode.leaving ? copy.leaving : copy.leave}
+              </button>
+            )}
           </div>
         </SheetContent>
       </Sheet>

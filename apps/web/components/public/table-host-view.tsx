@@ -776,7 +776,9 @@ export function TableHostView({ initial, locale }: Props) {
 
             <button
               type="button"
-              onClick={() => router.push(`/m/${initial.slug}`)}
+              onClick={() =>
+                router.push(`/m/${initial.slug}/t/${initial.code}`)
+              }
               aria-label={copy.leaveBackToMenu}
               className="inline-flex h-8 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-chip hover:text-text-default"
             >
