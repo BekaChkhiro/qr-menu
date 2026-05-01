@@ -28,7 +28,7 @@ import {
   Save,
   Check,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -189,7 +189,7 @@ export function MenuSettingsForm({ menu }: MenuSettingsFormProps) {
         wcDirection: data.wcDirection || null,
         wcImageUrl: data.wcImageUrl || null,
       });
-      toast.success('Settings saved', { icon: <Check className="h-4 w-4" /> });
+      toast.success('Settings saved');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save settings');
     }

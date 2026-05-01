@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { ExternalLink, Share2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/toast';
 import { useTranslations } from 'next-intl';
 
 import { PhonePreview } from '@/components/admin/phone-preview';

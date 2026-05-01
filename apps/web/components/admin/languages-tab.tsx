@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/toast';
 import { Check, Filter, Lock, Sparkles, X } from 'lucide-react';
 
 import { Switch } from '@/components/ui/switch';

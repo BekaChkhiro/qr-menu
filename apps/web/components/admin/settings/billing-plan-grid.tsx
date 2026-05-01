@@ -2,7 +2,7 @@
 
 import type { Plan } from '@prisma/client';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/toast';
 import { Check } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';

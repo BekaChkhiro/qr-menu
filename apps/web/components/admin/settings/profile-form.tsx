@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/toast';
 import { Camera, CheckCircle2, Loader2, Upload } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';

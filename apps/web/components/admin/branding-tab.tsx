@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/toast';
 import { Loader2, Lock, Type } from 'lucide-react';
 
 import { Slider } from '@/components/ui/slider';

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/toast';
 import { Check, Copy, Globe, Image as ImageIcon, Loader2, Lock } from 'lucide-react';
 
 import { Switch } from '@/components/ui/switch';

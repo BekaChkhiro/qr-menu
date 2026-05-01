@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/toast';
 import { Loader2, Upload, X, Link as LinkIcon, Instagram } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';

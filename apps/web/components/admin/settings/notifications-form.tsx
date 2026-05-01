@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/toast';
 import { Loader2, Mail, Smartphone } from 'lucide-react';
 
 import { Input } from '@/components/ui/input';

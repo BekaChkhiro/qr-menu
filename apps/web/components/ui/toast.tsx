@@ -141,14 +141,19 @@ function show(tone: ToastTone, opts: ShowToastOptions): string | number {
   )
 }
 
+function normalize(input: ShowToastOptions | string): ShowToastOptions {
+  return typeof input === "string" ? { title: input } : input
+}
+
 /**
  * Typed toast helpers. Each returns the toast id so callers can dismiss
- * programmatically.
+ * programmatically. Accepts either a string title or a full options object,
+ * matching sonner's API so plain `toast.success("done")` calls work too.
  */
 export const toast = {
-  success: (opts: ShowToastOptions) => show("success", opts),
-  info: (opts: ShowToastOptions) => show("info", opts),
-  warning: (opts: ShowToastOptions) => show("warning", opts),
-  error: (opts: ShowToastOptions) => show("error", opts),
+  success: (opts: ShowToastOptions | string) => show("success", normalize(opts)),
+  info: (opts: ShowToastOptions | string) => show("info", normalize(opts)),
+  warning: (opts: ShowToastOptions | string) => show("warning", normalize(opts)),
+  error: (opts: ShowToastOptions | string) => show("error", normalize(opts)),
   dismiss: (id?: string | number) => sonnerToast.dismiss(id),
 }

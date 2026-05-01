@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/toast';
 import type { Locale } from '@/i18n/config';
 
 export interface TableSelection {

@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/toast';
 import { Box } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useUpdateProduct } from '@/hooks/use-products';
