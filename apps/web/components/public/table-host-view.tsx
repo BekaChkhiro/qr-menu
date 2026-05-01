@@ -476,7 +476,7 @@ export function TableHostView({ initial, locale }: Props) {
       });
       flashSelection(payload.selectionId);
       if (payload.guestName) {
-        toast.message(copy.selectionAddedToast(payload.guestName));
+        toast.info(copy.selectionAddedToast(payload.guestName));
       }
     };
 
@@ -494,7 +494,7 @@ export function TableHostView({ initial, locale }: Props) {
       } catch {
         // ignore
       }
-      toast.message(copy.closedRedirectToast);
+      toast.info(copy.closedRedirectToast);
       router.push(`/m/${initial.slug}`);
     };
 
