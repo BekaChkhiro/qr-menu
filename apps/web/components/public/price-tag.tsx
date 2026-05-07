@@ -59,6 +59,7 @@ export function OldPriceTag({
 }) {
   return (
     <span
+      data-testid="public-old-price"
       className={cn(
         'inline-flex items-baseline gap-0.5 whitespace-nowrap text-muted-foreground line-through',
         className

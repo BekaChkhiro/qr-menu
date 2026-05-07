@@ -19,6 +19,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { EditorHeader } from '@/components/admin/editor-header';
 import { EditorTabBar, type EditorTab } from '@/components/ui/editor-tab-bar';
 import { CategoriesList } from '@/components/admin/categories-list';
+import { ContentDisplayCard } from '@/components/admin/content-display-card';
 import { BrandingTab } from '@/components/admin/branding-tab';
 import { LanguagesTab } from '@/components/admin/languages-tab';
 import { EditorPromotionsTab } from '@/components/admin/editor-promotions-tab';
@@ -280,11 +281,14 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
           aria-labelledby={`tab-${activeTab}`}
         >
           {activeTab === 'content' && (
-            <CategoriesList
-              menuId={id}
-              showAllergens={hasFeature('allergens')}
-              totalMenuProducts={totalMenuProducts}
-            />
+            <>
+              <ContentDisplayCard menu={menu} />
+              <CategoriesList
+                menuId={id}
+                showAllergens={hasFeature('allergens')}
+                totalMenuProducts={totalMenuProducts}
+              />
+            </>
           )}
 
           {activeTab === 'branding' && (

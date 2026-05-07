@@ -505,6 +505,8 @@ function AllergenBadge({ allergen, mode, locale }: AllergenBadgeProps) {
   if (mode === 'ICON') {
     return (
       <span
+        data-testid="public-allergen-badge"
+        data-mode="ICON"
         className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-amber-50 px-1 text-[9.5px] font-bold text-amber-800 ring-1 ring-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:ring-amber-900"
         title={label}
         aria-label={label}
@@ -517,8 +519,11 @@ function AllergenBadge({ allergen, mode, locale }: AllergenBadgeProps) {
   if (mode === 'WARNING') {
     return (
       <span
+        data-testid="public-allergen-badge"
+        data-mode="WARNING"
         className="inline-flex items-center gap-0.5 rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 ring-1 ring-red-200 dark:bg-red-950/50 dark:text-red-300 dark:ring-red-900"
         title={label}
+        aria-label={label}
       >
         <AlertTriangle className="h-2.5 w-2.5" />
         {short}
@@ -527,7 +532,11 @@ function AllergenBadge({ allergen, mode, locale }: AllergenBadgeProps) {
   }
 
   return (
-    <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800 ring-1 ring-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:ring-amber-900">
+    <span
+      data-testid="public-allergen-badge"
+      data-mode="TEXT"
+      className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800 ring-1 ring-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:ring-amber-900"
+    >
       {label}
     </span>
   );

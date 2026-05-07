@@ -6,7 +6,7 @@
       "enabledLabel": "Shared table is enabled",
       "disableNote": "Disabling won't end active sessions — they keep running until they expire.",
       "locked": {
-        "title": "Shared tables is a PRO feature",
+        "title": "Shared tables are a PRO feature",
         "description": "Let groups order together — the host opens a 4-hour table and guests scan a private QR. Available on PRO.",
         "upgradeCta": "Upgrade to PRO"
       }
@@ -807,6 +807,34 @@
         "title": "Multilingual is a PRO feature",
         "body": "Georgian (KA) is always on. Upgrade to PRO to enable English and Russian, plus auto-translate missing fields with DeepL.",
         "cta": "Upgrade to PRO"
+      }
+    },
+    "content": {
+      "display": {
+        "title": "Display",
+        "description": "How allergens, calories and discounts appear on the public menu.",
+        "allergenDisplay": {
+          "label": "Allergen display",
+          "text": "Text label",
+          "icon": "Icon only",
+          "warning": "Warning (A!)"
+        },
+        "caloriesDisplay": {
+          "label": "Calories display",
+          "direct": "Direct",
+          "flipReveal": "Flip to reveal",
+          "hidden": "Hidden"
+        },
+        "showNutrition": {
+          "label": "Nutrition details",
+          "description": "Protein · Fats · Carbs · Fiber"
+        },
+        "showDiscount": {
+          "label": "Discount prices crossed out",
+          "description": "Show the original price struck through next to the new one."
+        },
+        "saving": "Saving…",
+        "saveError": "Failed to save display settings"
       }
     },
     "branding": {
