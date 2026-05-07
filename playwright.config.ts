@@ -27,6 +27,21 @@ const maxDiffPixelRatio = Number(process.env.PLAYWRIGHT_MAX_DIFF_RATIO ?? 0.05);
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000';
 
 const isCI = !!process.env.CI;
+const webServerEnv = Object.fromEntries(
+  Object.entries({
+    DATABASE_URL: process.env.DATABASE_URL,
+    ENABLE_TEST_AUTH: '1',
+    CRON_SECRET: TEST_CRON_SECRET,
+    PUSHER_APP_ID: process.env.PUSHER_APP_ID,
+    PUSHER_KEY: process.env.PUSHER_KEY,
+    PUSHER_SECRET: process.env.PUSHER_SECRET,
+    PUSHER_CLUSTER: process.env.PUSHER_CLUSTER,
+    NEXT_PUBLIC_PUSHER_KEY:
+      process.env.NEXT_PUBLIC_PUSHER_KEY ?? process.env.PUSHER_KEY,
+    NEXT_PUBLIC_PUSHER_CLUSTER:
+      process.env.NEXT_PUBLIC_PUSHER_CLUSTER ?? process.env.PUSHER_CLUSTER,
+  }).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+);
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -73,7 +88,7 @@ export default defineConfig({
     : {
         command: 'pnpm dev',
         url: baseURL,
-        env: { ENABLE_TEST_AUTH: '1', CRON_SECRET: TEST_CRON_SECRET },
+        env: webServerEnv,
         reuseExistingServer: !isCI,
         timeout: 120_000,
         stdout: 'pipe',

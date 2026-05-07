@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -399,15 +399,55 @@ export function TableHostView({ initial, locale }: Props) {
     }
   }, [status, expiresAtMs, now, extendedAtIso, copy.almostExpired]);
 
+  // Best-effort state reconcile used after socket reconnects and as a fallback
+  // when local Pusher connectivity is unavailable or interrupted.
+  const reconcileTableState = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/public/tables/${initial.code}`, {
+        cache: 'no-store',
+      });
+      if (!res.ok) return;
+      const body = await res.json();
+      const data = body?.data as
+        | undefined
+        | {
+            status: 'OPEN' | 'CLOSED' | 'EXPIRED';
+            expiresAt: string;
+            extendedAt: string | null;
+            guests: TableHostInitial['guests'];
+            selections: TableHostInitial['selections'];
+          };
+      if (!data) return;
+      setStatus(data.status);
+      setExpiresAtIso(data.expiresAt);
+      setExtendedAtIso(data.extendedAt);
+      setGuests(data.guests);
+      setSelections(data.selections);
+      if (data.status === 'CLOSED') {
+        router.push(`/m/${initial.slug}`);
+      }
+    } catch {
+      // best-effort reconcile — polling/reconnect will retry
+    }
+  }, [initial.code, initial.slug, router]);
+
   // ── Realtime: Pusher subscription on table-{code} ────────────────────────
   // Guests don't subscribe (per T19.6 spec) — only the host page does.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (status !== 'OPEN') return;
-    if (!isPusherClientAvailable()) return;
+    if (!isPusherClientAvailable()) {
+      realtimeStatusRef.current = 'disconnected';
+      setRealtimeStatus('disconnected');
+      return;
+    }
 
     const client = getPusherClient();
-    if (!client) return;
+    if (!client) {
+      realtimeStatusRef.current = 'disconnected';
+      setRealtimeStatus('disconnected');
+      return;
+    }
 
     const channel = client.subscribe(`table-${initial.code}`);
     tableChannelReadyRef.current = false;
@@ -514,44 +554,12 @@ export function TableHostView({ initial, locale }: Props) {
     channel.bind('table:closed', onClosed);
     channel.bind('table:extended', onExtended);
 
-    // Reconcile on (re)connect: refetch authoritative state and replace local.
-    // First "connected" after mount is a no-op for state but flips the badge.
-    async function reconcile() {
-      try {
-        const res = await fetch(`/api/public/tables/${initial.code}`, {
-          cache: 'no-store',
-        });
-        if (!res.ok) return;
-        const body = await res.json();
-        const data = body?.data as
-          | undefined
-          | {
-              status: 'OPEN' | 'CLOSED' | 'EXPIRED';
-              expiresAt: string;
-              extendedAt: string | null;
-              guests: TableHostInitial['guests'];
-              selections: TableHostInitial['selections'];
-            };
-        if (!data) return;
-        setStatus(data.status);
-        setExpiresAtIso(data.expiresAt);
-        setExtendedAtIso(data.extendedAt);
-        setGuests(data.guests);
-        setSelections(data.selections);
-        if (data.status === 'CLOSED') {
-          router.push(`/m/${initial.slug}`);
-        }
-      } catch {
-        // best-effort reconcile — next event will retry implicitly
-      }
-    }
-
     const markRealtimeConnected = () => {
       const wasDisconnected = realtimeStatusRef.current === 'disconnected';
       realtimeStatusRef.current = 'connected';
       setRealtimeStatus('connected');
       if (wasDisconnected || reconcileSeenRef.current) {
-        reconcile();
+        reconcileTableState();
         if (wasDisconnected) toast.success(copy.realtimeReconnected);
       }
       reconcileSeenRef.current = true;
@@ -573,7 +581,7 @@ export function TableHostView({ initial, locale }: Props) {
       if (tableChannelReadyRef.current) {
         markRealtimeConnected();
       } else if (wasDisconnected) {
-        reconcile();
+        reconcileTableState();
         toast.success(copy.realtimeReconnected);
       }
     };
@@ -604,7 +612,24 @@ export function TableHostView({ initial, locale }: Props) {
       client.unsubscribe(`table-${initial.code}`);
       tableChannelReadyRef.current = false;
     };
-  }, [initial.code, initial.slug, status, router, copy]);
+  }, [
+    initial.code,
+    initial.slug,
+    status,
+    router,
+    copy,
+    reconcileTableState,
+  ]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (status !== 'OPEN') return;
+    if (realtimeStatus === 'connected') return;
+
+    reconcileTableState();
+    const iv = window.setInterval(reconcileTableState, 2000);
+    return () => window.clearInterval(iv);
+  }, [status, realtimeStatus, reconcileTableState]);
 
   // ── Derived state ────────────────────────────────────────────────────────
 
