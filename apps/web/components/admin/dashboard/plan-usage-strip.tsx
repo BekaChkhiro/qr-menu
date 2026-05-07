@@ -77,7 +77,7 @@ function UsageCard({
       data-testid={testId}
       data-tone={tone}
       data-unlimited={unlimited ? 'true' : undefined}
-      className="flex-1 min-w-[150px] rounded-card border border-border bg-card px-4 py-3.5"
+      className="rounded-card border border-border bg-card px-4 py-3.5 sm:flex-1 sm:min-w-[150px]"
     >
       <div className="flex items-baseline justify-between">
         <span className="text-[12.5px] font-medium text-text-muted">{label}</span>
@@ -192,7 +192,7 @@ export async function PlanUsageStrip({ plan, counts }: PlanUsageStripProps) {
       aria-label={t('sectionLabel', { plan: planName })}
       className="space-y-2.5"
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-row sm:gap-4">
         {metrics.map((m) => {
           const percent = m.unlimited ? 0 : (m.used / m.limit) * 100;
           const tone = toneForPercent(percent, m.unlimited);

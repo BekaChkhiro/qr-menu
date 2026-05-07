@@ -180,7 +180,7 @@ export function YourMenusCard({ menus }: YourMenusCardProps) {
         className="overflow-hidden rounded-[12px] border border-border bg-card"
       >
         {/* ── Header ── */}
-        <div className="flex flex-wrap items-center gap-3 border-b border-[hsl(var(--border-soft))] px-5 py-[14px]">
+        <div className="flex flex-col gap-3 border-b border-[hsl(var(--border-soft))] px-5 py-[14px] md:flex-row md:flex-wrap md:items-center">
           <h2 className="m-0 text-[15px] font-semibold tracking-[-0.01em] text-text-default">
             {t('title')}
           </h2>
@@ -188,7 +188,7 @@ export function YourMenusCard({ menus }: YourMenusCardProps) {
           <div
             role="radiogroup"
             aria-label={t('title')}
-            className="flex gap-1.5"
+            className="flex flex-wrap gap-1.5"
           >
             <FilterPill
               label={t('filter.all')}
@@ -213,7 +213,7 @@ export function YourMenusCard({ menus }: YourMenusCardProps) {
             />
           </div>
 
-          <label className="ml-auto flex w-[220px] items-center gap-2 rounded-[7px] border border-border bg-[#FCFBF8] px-2.5 py-[5px]">
+          <label className="flex w-full items-center gap-2 rounded-[7px] border border-border bg-[#FCFBF8] px-2.5 py-[5px] md:ml-auto md:w-[220px]">
             <Search
               size={13}
               strokeWidth={1.5}
@@ -232,10 +232,10 @@ export function YourMenusCard({ menus }: YourMenusCardProps) {
           </label>
         </div>
 
-        {/* ── Column headers ── */}
+        {/* ── Column headers (md+ only — mobile uses simplified list rows) ── */}
         <div
           role="row"
-          className="grid items-center gap-[14px] border-b border-[hsl(var(--border-soft))] bg-[#FCFBF8] px-5 py-[9px] text-[10.5px] font-semibold uppercase tracking-[0.5px] text-text-subtle"
+          className="hidden items-center gap-[14px] border-b border-[hsl(var(--border-soft))] bg-[#FCFBF8] px-5 py-[9px] text-[10.5px] font-semibold uppercase tracking-[0.5px] text-text-subtle md:grid"
           style={{
             gridTemplateColumns: '40px 1fr 110px 150px 120px 32px',
           }}
@@ -267,21 +267,20 @@ export function YourMenusCard({ menus }: YourMenusCardProps) {
                 data-menu-id={menu.id}
                 data-menu-status={menu.status}
                 className={cn(
-                  'grid items-center gap-[14px] px-5 py-3',
+                  'flex items-center gap-3 px-5 py-3',
+                  'md:grid md:items-center md:gap-[14px]',
+                  'md:[grid-template-columns:40px_1fr_110px_150px_120px_32px]',
                   i !== filtered.length - 1 &&
                     'border-b border-[hsl(var(--border-soft))]',
                 )}
-                style={{
-                  gridTemplateColumns: '40px 1fr 110px 150px 120px 32px',
-                }}
               >
                 <MenuThumbnail id={menu.id} name={menu.name} />
 
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1 md:flex-none">
                   <Link
                     href={`/admin/menus/${menu.id}`}
                     data-testid="dashboard-menus-row-link"
-                    className="truncate text-[13.5px] font-medium tracking-[-0.01em] text-text-default hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+                    className="block truncate text-[13.5px] font-medium tracking-[-0.01em] text-text-default hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
                   >
                     {menu.name}
                   </Link>
@@ -294,12 +293,38 @@ export function YourMenusCard({ menus }: YourMenusCardProps) {
                     />
                     <span className="truncate">/m/{menu.slug}</span>
                   </div>
+                  {/* Mobile-only meta row: status + views + last edited stacked under slug. */}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-text-muted md:hidden">
+                    <StatusPill status={statusToPill(menu.status)} />
+                    <span
+                      className="tabular-nums"
+                      aria-label={t('viewsAria', {
+                        today: menu.viewsToday,
+                        week: menu.viewsWeek,
+                      })}
+                    >
+                      <span className="font-medium text-text-default">
+                        {menu.viewsToday.toLocaleString()}
+                      </span>
+                      {' · '}
+                      {menu.viewsWeek.toLocaleString()}
+                    </span>
+                    <span className="truncate">
+                      {formatDistanceToNow(new Date(menu.updatedAt), {
+                        addSuffix: true,
+                        locale: dateLocale,
+                      })}
+                    </span>
+                  </div>
                 </div>
 
-                <StatusPill status={statusToPill(menu.status)} />
+                {/* Desktop-only columns. */}
+                <div className="hidden md:block">
+                  <StatusPill status={statusToPill(menu.status)} />
+                </div>
 
                 <div
-                  className="text-[13px] tabular-nums text-text-default"
+                  className="hidden text-[13px] tabular-nums text-text-default md:block"
                   aria-label={t('viewsAria', {
                     today: menu.viewsToday,
                     week: menu.viewsWeek,
@@ -314,7 +339,7 @@ export function YourMenusCard({ menus }: YourMenusCardProps) {
                   </span>
                 </div>
 
-                <div className="truncate text-[12.5px] text-text-muted">
+                <div className="hidden truncate text-[12.5px] text-text-muted md:block">
                   {formatDistanceToNow(new Date(menu.updatedAt), {
                     addSuffix: true,
                     locale: dateLocale,

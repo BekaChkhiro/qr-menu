@@ -320,8 +320,8 @@ export function DashboardAnalyticsCard({ plan, publishedMenuCount }: DashboardAn
       data-locked={locked || undefined}
       className="relative overflow-hidden rounded-card border border-border bg-card px-5 pb-5 pt-[18px]"
     >
-      <header className="mb-3.5 flex items-start justify-between gap-4">
-        <div>
+      <header className="mb-3.5 flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap sm:gap-4">
+        <div className="min-w-0">
           <div className="mb-[3px] text-[12.5px] font-medium text-text-muted">
             {t('title', { period: t(`period.${period}`) })}
           </div>
@@ -331,7 +331,7 @@ export function DashboardAnalyticsCard({ plan, publishedMenuCount }: DashboardAn
             </div>
           ) : (
             <div
-              className="flex items-baseline gap-2.5"
+              className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1"
               data-testid="analytics-total-views"
             >
               <span className="text-[32px] font-semibold leading-none tracking-[-0.8px] text-text-default tabular-nums">

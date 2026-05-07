@@ -1763,7 +1763,7 @@ digital-menu/
   - Functional: tab tap navigates, active state reflects current route
 
 #### T17.2: Dashboard Responsive
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Low
 - **Estimated**: 1.5 hours
 - **Dependencies**: T17.1
@@ -1777,7 +1777,7 @@ digital-menu/
   - Functional: all widgets readable without horizontal scroll
 
 #### T17.3: Menu Editor Mobile
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 2 hours
 - **Dependencies**: T13.1, T17.1
