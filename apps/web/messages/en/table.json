@@ -5,50 +5,137 @@
   },
   "create": {
     "title": "Create a shared table",
-    "nameLabel": "Table name",
-    "namePlaceholder": "e.g. Nino's birthday",
+    "description": "Create a host table — friends scan a table-specific QR or enter your PIN to join.",
+    "nameLabel": "Your name",
+    "namePlaceholder": "e.g. Nino",
     "pinLabel": "4-digit PIN",
-    "pinHelper": "Share this PIN only with your guests — they'll need it to join.",
-    "capLabel": "Guest limit",
-    "capHelper": "Maximum guests who can join this table. You can change it later.",
-    "submit": "Create",
-    "cancel": "Cancel"
+    "pinHelper": "Share this PIN with the friends who will join",
+    "capLabel": "Guest cap — {count}",
+    "capHelper": "Maximum guests who can join this table.",
+    "submit": "Create table",
+    "submitting": "Creating...",
+    "cancel": "Cancel",
+    "validation": {
+      "nameRequired": "Please enter your name",
+      "nameTooLong": "Name must be 32 characters or fewer",
+      "pinFormat": "PIN must be exactly 4 digits",
+      "serverError": "Something went wrong. Please try again."
+    }
   },
   "join": {
     "title": "Join the table",
+    "subtitle": "Menu: {menuName}",
+    "nameLabel": "Your name",
     "namePlaceholder": "Your name",
+    "pinLabel": "4-digit PIN",
     "pinPlaceholder": "4-digit PIN",
     "submit": "Join",
+    "submitting": "Joining...",
+    "backToMenu": "Back to menu",
     "errors": {
+      "nameRequired": "Please enter your name",
+      "nameTooLong": "Name must be 32 characters or fewer",
+      "pinFormat": "PIN must be exactly 4 digits",
       "wrongPin": "Wrong PIN. Try again.",
+      "wrongPinAttempts": "Wrong PIN — {count} attempts left",
       "tableFull": "Table is full. Ask the host to raise the limit.",
       "tableClosed": "This table is closed. You can't join.",
       "tableExpired": "This table has expired.",
-      "rateLimited": "Too many attempts. Try again in a moment."
+      "tableNotFound": "Table not found",
+      "rateLimited": "Too many attempts. Try again in {seconds}s.",
+      "networkError": "Something went wrong. Please try again."
     }
   },
   "host": {
+    "title": "Shared table",
+    "subtitle": "Menu:",
+    "statusOpen": "Active",
+    "statusClosed": "Closed",
+    "statusExpired": "Expired",
+    "countdownPrefix": "Time left",
+    "countdownExpired": "Expired",
     "tableCode": "Table code",
     "sharePin": "Share PIN: {pin}",
+    "showPin": "Show PIN",
+    "hidePin": "Hide PIN",
+    "pinUnavailable": "Reopen from the original create-table tab to see the PIN",
     "copyLink": "Copy link",
     "copied": "Copied",
+    "copyFailed": "Couldn't copy link",
     "closeTable": "Close table",
     "closeConfirm": "Close this table? New guests won't be able to join, but anyone already at the table stays.",
+    "closeConfirmTitle": "Close this table?",
+    "closeConfirmCta": "Yes, close it",
+    "closeConfirmCancel": "Cancel",
     "extend": "Extend time",
+    "extendCta": "+2 hours",
     "extendDone": "Table time extended",
+    "extendUsed": "Already extended",
+    "extendNotYet": "Extend within last 30 minutes",
     "expiresIn": "Expires in {time}",
     "expiringSoon": "Expiring soon — {time}",
-    "emptyState": "No guests yet. Share the link or PIN so they can start picking dishes."
+    "emptyState": "No guests yet. Share the link or PIN so they can start picking dishes.",
+    "guestsHeading": "Guests {count}/{max}",
+    "hostBadge": "Host",
+    "selectionEmpty": "No picks yet from this guest",
+    "extendFailed": "Couldn't extend the table",
+    "closeSuccess": "Table closed",
+    "closeFailed": "Couldn't close the table",
+    "removeFailed": "Couldn't remove that selection",
+    "almostExpired": "30 minutes left — extend?",
+    "realtimeNote": "Live updates are on",
+    "realtimeOffline": "Connection lost — changes will reconcile when you reconnect.",
+    "realtimeReconnected": "Reconnected",
+    "guestJoinedToast": "{name} joined",
+    "selectionAddedToast": "{name} added a pick",
+    "extendedToast": "+2 hours added",
+    "closedRedirectToast": "Table closed",
+    "leaveBackToMenu": "Back to menu"
   },
   "guest": {
     "myPicks": "My picks",
+    "myPicksCount": "My picks · {count}",
+    "closedHeading": "Table closed",
+    "expiredHeading": "Table expired",
+    "hostDashboard": "Host dashboard",
     "tray": {
       "title": "My picks",
+      "description": "The items you added to this table.",
       "total": "Total: {amount}",
+      "totalLabel": "Total estimate",
+      "estimateNote": "Prices are informational — payment happens with the server.",
       "removeItem": "Remove",
       "leaveTable": "Leave table",
+      "leaving": "Leaving...",
       "leaveConfirm": "Leave this table? Your picks will be cleared.",
+      "leaveConfirmTitle": "Leave this table?",
+      "leaveConfirmCta": "Yes, leave",
+      "leaveConfirmCancel": "Cancel",
       "empty": "No picks yet. Add something from the menu."
+    }
+  },
+  "productAdd": {
+    "add": "Add",
+    "adding": "Adding...",
+    "pickVariation": "Pick a variation",
+    "pickDescription": "Choose which variation to add to your picks.",
+    "closed": "Table closed"
+  },
+  "toasts": {
+    "added": "Added to your picks",
+    "addFailed": "Couldn't add that item",
+    "addClosed": "Table is no longer accepting picks",
+    "removeFailed": "Couldn't remove that pick",
+    "leaveFailed": "Couldn't leave the table"
+  },
+  "status": {
+    "closed": {
+      "title": "Table is closed",
+      "description": "This table is no longer accepting picks."
+    },
+    "expired": {
+      "title": "Table expired",
+      "description": "The table session has ended."
     }
   },
   "system": {

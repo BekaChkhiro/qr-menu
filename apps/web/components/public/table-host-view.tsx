@@ -337,6 +337,7 @@ export function TableHostView({ initial, locale }: Props) {
   const realtimeStatusRef = useRef<'idle' | 'connected' | 'disconnected'>(
     'idle',
   );
+  const tableChannelReadyRef = useRef(false);
 
   // ── Read PIN from sessionStorage (host-only, set by CreateTableSheet) ─────
   useEffect(() => {
@@ -409,6 +410,7 @@ export function TableHostView({ initial, locale }: Props) {
     if (!client) return;
 
     const channel = client.subscribe(`table-${initial.code}`);
+    tableChannelReadyRef.current = false;
 
     function flashSelection(id: string) {
       setFlashIds((prev) => {
@@ -544,7 +546,7 @@ export function TableHostView({ initial, locale }: Props) {
       }
     }
 
-    const onConnected = () => {
+    const markRealtimeConnected = () => {
       const wasDisconnected = realtimeStatusRef.current === 'disconnected';
       realtimeStatusRef.current = 'connected';
       setRealtimeStatus('connected');
@@ -555,22 +557,38 @@ export function TableHostView({ initial, locale }: Props) {
       reconcileSeenRef.current = true;
     };
 
-    const onDisconnected = () => {
+    const onSubscriptionSucceeded = () => {
+      tableChannelReadyRef.current = true;
+      markRealtimeConnected();
+    };
+
+    const onSubscriptionError = () => {
+      tableChannelReadyRef.current = false;
       realtimeStatusRef.current = 'disconnected';
       setRealtimeStatus('disconnected');
     };
 
+    const onConnected = () => {
+      const wasDisconnected = realtimeStatusRef.current === 'disconnected';
+      if (tableChannelReadyRef.current) {
+        markRealtimeConnected();
+      } else if (wasDisconnected) {
+        reconcile();
+        toast.success(copy.realtimeReconnected);
+      }
+    };
+
+    const onDisconnected = () => {
+      tableChannelReadyRef.current = false;
+      realtimeStatusRef.current = 'disconnected';
+      setRealtimeStatus('disconnected');
+    };
+
+    channel.bind('pusher:subscription_succeeded', onSubscriptionSucceeded);
+    channel.bind('pusher:subscription_error', onSubscriptionError);
     client.connection.bind('connected', onConnected);
     client.connection.bind('disconnected', onDisconnected);
     client.connection.bind('unavailable', onDisconnected);
-
-    // pusher-js sets connection.state synchronously; if already connected, the
-    // 'connected' event won't fire again — seed state from current value.
-    if (client.connection.state === 'connected') {
-      realtimeStatusRef.current = 'connected';
-      setRealtimeStatus('connected');
-      reconcileSeenRef.current = true;
-    }
 
     return () => {
       channel.unbind('table:guest_joined', onGuestJoined);
@@ -578,10 +596,13 @@ export function TableHostView({ initial, locale }: Props) {
       channel.unbind('table:selection_removed', onSelectionRemoved);
       channel.unbind('table:closed', onClosed);
       channel.unbind('table:extended', onExtended);
+      channel.unbind('pusher:subscription_succeeded', onSubscriptionSucceeded);
+      channel.unbind('pusher:subscription_error', onSubscriptionError);
       client.connection.unbind('connected', onConnected);
       client.connection.unbind('disconnected', onDisconnected);
       client.connection.unbind('unavailable', onDisconnected);
       client.unsubscribe(`table-${initial.code}`);
+      tableChannelReadyRef.current = false;
     };
   }, [initial.code, initial.slug, status, router, copy]);
 
