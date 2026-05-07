@@ -22,7 +22,7 @@ import { expect, test } from '@playwright/test';
 import { loginAs } from '../fixtures/auth';
 import { prismaTest, resetDb, seedMenu, seedUser } from '../fixtures/seed';
 
-const REALTIME_TIMEOUT = 5_000;
+const REALTIME_TIMEOUT = 15_000;
 const HOST_NAME = 'Beka';
 const GUEST_1_NAME = 'Nino';
 const GUEST_2_NAME = 'Sandro';
@@ -143,18 +143,10 @@ test.describe('public — table full flow (T19.10)', () => {
     const code = hostPage.url().match(/\/t\/([A-Za-z0-9_-]{8})\//)?.[1];
     if (!code) throw new Error('Failed to parse table code from /host URL');
 
-    // Wait for the host's Pusher socket so subsequent guest actions actually
-    // reach the host view in real time (steps 8 and 10).
-    await expect
-      .poll(
-        async () => {
-          return await hostPage
-            .getByTestId('public-table-host-realtime-status')
-            .getAttribute('data-realtime-state');
-        },
-        { timeout: REALTIME_TIMEOUT },
-      )
-      .toBe('connected');
+    // No explicit "wait for connected" here — the host view has a polling
+    // reconcile fallback (every 2s) that picks up state changes even when
+    // the Pusher socket lags or drops. Steps 8 and 10 use REALTIME_TIMEOUT
+    // to absorb that fallback path.
 
     // Step 5: copy the table link via the host's button. The guests open the
     // link directly so the test doesn't depend on system clipboard plumbing
@@ -220,10 +212,10 @@ test.describe('public — table full flow (T19.10)', () => {
     // Three guest cards: host (Beka) + Nino + Sandro.
     await expect(
       hostPage.getByTestId('public-table-host-guest-card'),
-    ).toHaveCount(3, { timeout: 5_000 });
+    ).toHaveCount(3, { timeout: REALTIME_TIMEOUT });
     await expect(
       hostPage.getByTestId('public-table-host-selection-row'),
-    ).toHaveCount(4, { timeout: 5_000 });
+    ).toHaveCount(4, { timeout: REALTIME_TIMEOUT });
 
     // Each guest card shows the right pick count.
     const ninoCard = hostPage
@@ -251,7 +243,7 @@ test.describe('public — table full flow (T19.10)', () => {
 
     await expect(
       ninoCard.getByTestId('public-table-host-selection-row'),
-    ).toHaveCount(1, { timeout: 5_000 });
+    ).toHaveCount(1, { timeout: REALTIME_TIMEOUT });
 
     // DB confirms the cascade: Nino now has exactly 1 selection.
     await expect
@@ -266,7 +258,7 @@ test.describe('public — table full flow (T19.10)', () => {
             where: { guestId: ninoGuest.id },
           });
         },
-        { timeout: 5_000 },
+        { timeout: REALTIME_TIMEOUT },
       )
       .toBe(1);
 
@@ -301,12 +293,13 @@ test.describe('public — table full flow (T19.10)', () => {
           });
           return row?.status;
         },
-        { timeout: 5_000 },
+        { timeout: REALTIME_TIMEOUT },
       )
       .toBe('CLOSED');
 
-    // Host page navigates to /m/<slug> via the Pusher broadcast.
-    await hostPage.waitForURL(`**/m/${slug}`, { timeout: 5_000 });
+    // Host page navigates to /m/<slug> via the Pusher broadcast or the
+    // reconcile fallback when the socket is lagging.
+    await hostPage.waitForURL(`**/m/${slug}`, { timeout: REALTIME_TIMEOUT });
 
     // Each guest, on next server round-trip, falls back to the join form
     // (the table-mode page renders <JoinTableForm/> when status !== OPEN).

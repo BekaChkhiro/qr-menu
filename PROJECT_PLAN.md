@@ -2221,7 +2221,7 @@ digital-menu/
   - No new dedicated test. The existing locale-switching coverage in T19.4/T19.5 specs runs each visual at default locale only; add a single `[locale: 'en']` smoke run to T19.5 to catch missing keys.
 
 #### T19.10: End-to-End Coverage + Manual QA Checklist
-- [ ] **Status**: TODO
+- [x] **Status**: DONE
 - **Complexity**: Medium
 - **Estimated**: 3 hours
 - **Dependencies**: T19.1–T19.9 (all)
