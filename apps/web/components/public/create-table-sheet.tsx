@@ -109,7 +109,18 @@ export function CreateTableSheet({
     if (open) {
       setError(null);
       // Focus the name input shortly after the sheet animates in.
-      const t = setTimeout(() => nameInputRef.current?.focus(), 60);
+      const t = setTimeout(() => {
+        const active = document.activeElement;
+        const isEditing =
+          active instanceof HTMLInputElement ||
+          active instanceof HTMLTextAreaElement ||
+          active instanceof HTMLSelectElement ||
+          (active instanceof HTMLElement && active.isContentEditable);
+
+        if (!isEditing) {
+          nameInputRef.current?.focus();
+        }
+      }, 60);
       return () => clearTimeout(t);
     } else {
       setSubmitting(false);

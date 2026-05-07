@@ -2,14 +2,14 @@
 // Run:     pnpm test:e2e tests/e2e/public/table-guest.spec.ts
 // Update:  pnpm test:e2e:update tests/e2e/public/table-guest.spec.ts
 
-import { expect, test, type BrowserContext } from '@playwright/test';
+import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { prismaTest, resetDb, seedMenu, seedUser } from '../fixtures/seed';
 
-async function seedSharedTableMenu(slug: string) {
+async function seedSharedTableMenu(slug: string, projectName = 'shared') {
   const user = await seedUser({
     plan: 'PRO',
     name: 'Nino Kapanadze',
-    email: 'nino@cafelinville.ge',
+    email: `nino-${projectName}-${slug}@cafelinville.ge`,
   });
   const menu = await seedMenu({
     userId: user.id,
@@ -24,6 +24,27 @@ async function seedSharedTableMenu(slug: string) {
     data: { sharedTableEnabled: true, enabledLanguages: ['KA', 'EN'] },
   });
   return { user, menu };
+}
+
+async function joinTable(page: Page, name: string, pin: string) {
+  const nameInput = page.getByTestId('public-join-name');
+  const pinInput = page.getByTestId('public-join-pin');
+  const submit = page.getByTestId('public-join-submit');
+
+  await expect(nameInput).toBeEditable();
+  await expect(pinInput).toBeEditable();
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await nameInput.fill(name);
+    await expect(nameInput).toHaveValue(name);
+    await pinInput.fill(pin);
+    await expect(pinInput).toHaveValue(pin);
+    if (await submit.isEnabled()) break;
+    await page.waitForTimeout(100);
+  }
+
+  await expect(submit).toBeEnabled();
+  await submit.click();
 }
 
 async function createTableAsHost(
@@ -44,7 +65,14 @@ async function createTableAsHost(
 test.describe('public — guest join + tray (T19.5)', () => {
   test.describe.configure({ mode: 'serial' });
 
-  test.beforeEach(async ({ context }) => {
+  test.beforeEach(async ({ context }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'mobile',
+      'T19.5 public guest flow is covered by the mobile project to avoid shared DB reset contention.',
+    );
+    await context.setExtraHTTPHeaders({
+      'x-forwarded-for': `203.0.113.${testInfo.workerIndex + 1}-${testInfo.retry}-${Date.now()}`,
+    });
     await resetDb();
     await context.clearCookies();
     await context.addCookies([
@@ -61,7 +89,7 @@ test.describe('public — guest join + tray (T19.5)', () => {
     );
 
     const slug = `tbl-guest-join-visual-${Date.now()}`;
-    await seedSharedTableMenu(slug);
+    await seedSharedTableMenu(slug, testInfo.project.name);
 
     // Host creates the table in a separate context so this page hits the join
     // form (no host cookie in this context).
@@ -88,7 +116,7 @@ test.describe('public — guest join + tray (T19.5)', () => {
     );
 
     const slug = `tbl-guest-tray-visual-${Date.now()}`;
-    const { menu } = await seedSharedTableMenu(slug);
+    const { menu } = await seedSharedTableMenu(slug, testInfo.project.name);
 
     const hostCtx = await browser.newContext();
     const code = await createTableAsHost(hostCtx, slug);
@@ -96,9 +124,7 @@ test.describe('public — guest join + tray (T19.5)', () => {
 
     // Guest joins through the form so the cookie sticks to this context.
     await page.goto(`/m/${slug}/t/${code}`);
-    await page.getByTestId('public-join-name').fill('Anna');
-    await page.getByTestId('public-join-pin').fill('1234');
-    await page.getByTestId('public-join-submit').click();
+    await joinTable(page, 'Anna', '1234');
 
     await expect(page.getByTestId('public-table-guest-menu')).toBeVisible();
 
@@ -141,7 +167,7 @@ test.describe('public — guest join + tray (T19.5)', () => {
     browser,
   }) => {
     const slug = `tbl-guest-journey-${Date.now()}`;
-    const { menu } = await seedSharedTableMenu(slug);
+    const { menu } = await seedSharedTableMenu(slug, test.info().project.name);
 
     const hostCtx = await browser.newContext();
     const code = await createTableAsHost(hostCtx, slug);
@@ -151,9 +177,7 @@ test.describe('public — guest join + tray (T19.5)', () => {
     await page.goto(`/m/${slug}/t/${code}`);
     await expect(page.getByTestId('public-join-table')).toBeVisible();
 
-    await page.getByTestId('public-join-name').fill('Anna');
-    await page.getByTestId('public-join-pin').fill('1234');
-    await page.getByTestId('public-join-submit').click();
+    await joinTable(page, 'Anna', '1234');
 
     // After join, the page re-renders into the table-mode menu.
     await expect(page.getByTestId('public-table-guest-menu')).toBeVisible();
@@ -224,16 +248,14 @@ test.describe('public — guest join + tray (T19.5)', () => {
     browser,
   }) => {
     const slug = `tbl-guest-wrongpin-${Date.now()}`;
-    await seedSharedTableMenu(slug);
+    await seedSharedTableMenu(slug, test.info().project.name);
 
     const hostCtx = await browser.newContext();
     const code = await createTableAsHost(hostCtx, slug, '4242');
     await hostCtx.close();
 
     await page.goto(`/m/${slug}/t/${code}`);
-    await page.getByTestId('public-join-name').fill('Anna');
-    await page.getByTestId('public-join-pin').fill('0000');
-    await page.getByTestId('public-join-submit').click();
+    await joinTable(page, 'Anna', '0000');
 
     const error = page.getByTestId('public-join-error');
     await expect(error).toBeVisible();
@@ -246,7 +268,7 @@ test.describe('public — guest join + tray (T19.5)', () => {
     browser,
   }) => {
     const slug = `tbl-guest-full-${Date.now()}`;
-    await seedSharedTableMenu(slug);
+    await seedSharedTableMenu(slug, test.info().project.name);
 
     const hostCtx = await browser.newContext();
     // maxGuests=2 → after host (1) + one extra guest (2), the next join hits
@@ -263,9 +285,7 @@ test.describe('public — guest join + tray (T19.5)', () => {
     });
 
     await page.goto(`/m/${slug}/t/${code}`);
-    await page.getByTestId('public-join-name').fill('Anna');
-    await page.getByTestId('public-join-pin').fill('1234');
-    await page.getByTestId('public-join-submit').click();
+    await joinTable(page, 'Anna', '1234');
 
     const error = page.getByTestId('public-join-error');
     await expect(error).toBeVisible();

@@ -476,6 +476,28 @@
         "saved": "SEO settings saved",
         "saveFailed": "Could not save SEO settings"
       },
+      "locationContact": {
+        "label": "Location & contact",
+        "helper": "Address, phone, Wi-Fi, and restroom details — shown in the public menu header.",
+        "addressLabel": "Address",
+        "addressPlaceholder": "12 Rustaveli Avenue, Tbilisi",
+        "phoneLabel": "Phone",
+        "phonePlaceholder": "+995 555 12 34 56",
+        "wifiSsidLabel": "Wi-Fi network",
+        "wifiSsidPlaceholder": "CafeGuest",
+        "wifiPasswordLabel": "Wi-Fi password",
+        "wifiPasswordPlaceholder": "Leave blank if open",
+        "wcDirectionLabel": "Restroom directions",
+        "wcDirectionHint": "Shown when guests tap the restroom button in the menu header.",
+        "wcDirectionPlaceholder": "Turn left, end of the corridor",
+        "wcImageLabel": "Restroom photo (optional)",
+        "wcImageHint": "Wide image works best — recommended 1200 × 600.",
+        "save": "Save changes",
+        "saving": "Saving…",
+        "discard": "Discard",
+        "saved": "Location & contact saved",
+        "saveFailed": "Could not save location & contact"
+      },
       "advanced": {
         "label": "Advanced",
         "helper": "Clone, archive, or permanently delete this menu.",
@@ -810,6 +832,39 @@
       },
       "radius": {
         "label": "Corner radius"
+      },
+      "layout": {
+        "title": "Layout & Style",
+        "template": {
+          "label": "Template",
+          "description": "Product card structure — preview in the phone frame",
+          "classic": { "label": "Classic", "desc": "Horizontal cards" },
+          "magazine": { "label": "Magazine", "desc": "Large hero images" },
+          "compact": { "label": "Compact", "desc": "Dense list" }
+        },
+        "menuLayout": {
+          "label": "Layout",
+          "linear": "Linear",
+          "categoriesFirst": "Categories First"
+        },
+        "cardStyle": {
+          "label": "Card style",
+          "bordered": "Bordered",
+          "elevated": "Elevated · shadow",
+          "flat": "Flat",
+          "minimal": "Minimal"
+        },
+        "touchEffect": {
+          "label": "Touch effect",
+          "scale": "Scale",
+          "glow": "Glow",
+          "gradient": "Gradient",
+          "none": "None"
+        },
+        "splitByType": {
+          "label": "Foods / Drinks split",
+          "description": "Show two tabs in the public menu header"
+        }
       },
       "saving": "Saving…",
       "saveError": "Failed to save branding",

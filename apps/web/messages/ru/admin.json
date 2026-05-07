@@ -476,6 +476,28 @@
         "saved": "SEO-настройки сохранены",
         "saveFailed": "Не удалось сохранить SEO-настройки"
       },
+      "locationContact": {
+        "label": "Адрес и контакты",
+        "helper": "Адрес, телефон, Wi-Fi и инструкция к туалету — отображаются в шапке публичного меню.",
+        "addressLabel": "Адрес",
+        "addressPlaceholder": "Проспект Руставели, 12, Тбилиси",
+        "phoneLabel": "Телефон",
+        "phonePlaceholder": "+995 555 12 34 56",
+        "wifiSsidLabel": "Сеть Wi-Fi",
+        "wifiSsidPlaceholder": "CafeGuest",
+        "wifiPasswordLabel": "Пароль Wi-Fi",
+        "wifiPasswordPlaceholder": "Оставьте пустым, если сеть открытая",
+        "wcDirectionLabel": "Как пройти в туалет",
+        "wcDirectionHint": "Показывается, когда гость нажимает кнопку туалета в шапке меню.",
+        "wcDirectionPlaceholder": "Налево, в конце коридора",
+        "wcImageLabel": "Фото туалета (необязательно)",
+        "wcImageHint": "Лучше всего подойдёт горизонтальное фото — рекомендуется 1200 × 600.",
+        "save": "Сохранить изменения",
+        "saving": "Сохранение…",
+        "discard": "Отменить",
+        "saved": "Адрес и контакты сохранены",
+        "saveFailed": "Не удалось сохранить адрес и контакты"
+      },
       "advanced": {
         "label": "Дополнительно",
         "helper": "Клонировать, заархивировать или навсегда удалить это меню.",
@@ -810,6 +832,39 @@
       },
       "radius": {
         "label": "Радиус углов"
+      },
+      "layout": {
+        "title": "Раскладка и стиль",
+        "template": {
+          "label": "Шаблон",
+          "description": "Структура карточки товара — посмотрите в превью телефона",
+          "classic": { "label": "Classic", "desc": "Горизонтальные карточки" },
+          "magazine": { "label": "Magazine", "desc": "Большие hero-фото" },
+          "compact": { "label": "Compact", "desc": "Плотный список" }
+        },
+        "menuLayout": {
+          "label": "Раскладка",
+          "linear": "Линейная",
+          "categoriesFirst": "Категории сначала"
+        },
+        "cardStyle": {
+          "label": "Стиль карточки",
+          "bordered": "С границей",
+          "elevated": "С тенью",
+          "flat": "Плоский",
+          "minimal": "Минималистичный"
+        },
+        "touchEffect": {
+          "label": "Эффект касания",
+          "scale": "Масштаб",
+          "glow": "Свечение",
+          "gradient": "Градиент",
+          "none": "Нет"
+        },
+        "splitByType": {
+          "label": "Foods / Drinks разделение",
+          "description": "Две вкладки в шапке публичного меню"
+        }
       },
       "saving": "Сохранение…",
       "saveError": "Не удалось сохранить настройки брендинга",

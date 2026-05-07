@@ -476,6 +476,28 @@
         "saved": "SEO პარამეტრები შენახულია",
         "saveFailed": "SEO პარამეტრების შენახვა ვერ მოხერხდა"
       },
+      "locationContact": {
+        "label": "მისამართი და კონტაქტი",
+        "helper": "მისამართი, ტელეფონი, Wi-Fi და ტუალეტის მითითებები — ჩანს საჯარო მენიუს ჰედერში.",
+        "addressLabel": "მისამართი",
+        "addressPlaceholder": "რუსთაველის გამზირი 12, თბილისი",
+        "phoneLabel": "ტელეფონი",
+        "phonePlaceholder": "+995 555 12 34 56",
+        "wifiSsidLabel": "Wi-Fi ქსელი",
+        "wifiSsidPlaceholder": "CafeGuest",
+        "wifiPasswordLabel": "Wi-Fi პაროლი",
+        "wifiPasswordPlaceholder": "დატოვე ცარიელი თუ ღიაა",
+        "wcDirectionLabel": "ტუალეტის ინსტრუქცია",
+        "wcDirectionHint": "გამოჩნდება, როცა სტუმარი ჰედერში ტუალეტის ღილაკს დააჭერს.",
+        "wcDirectionPlaceholder": "გაიარე მარცხნივ, კორიდორის ბოლოს",
+        "wcImageLabel": "ტუალეტის ფოტო (არასავალდებულო)",
+        "wcImageHint": "უკეთესია ჰორიზონტალური ფოტო — რეკომენდებულია 1200 × 600.",
+        "save": "ცვლილებების შენახვა",
+        "saving": "ინახება…",
+        "discard": "გაუქმება",
+        "saved": "მისამართი და კონტაქტი შენახულია",
+        "saveFailed": "მისამართის და კონტაქტის შენახვა ვერ მოხერხდა"
+      },
       "advanced": {
         "label": "დამატებით",
         "helper": "მენიუს კლონირება, არქივში გადატანა ან სამუდამოდ წაშლა.",
@@ -810,6 +832,39 @@
       },
       "radius": {
         "label": "კუთხის რადიუსი"
+      },
+      "layout": {
+        "title": "Განლაგება და სტილი",
+        "template": {
+          "label": "შაბლონი",
+          "description": "პროდუქტის ბარათის სტრუქტურა — გადახედე phone preview-ში",
+          "classic": { "label": "Classic", "desc": "ჰორიზონტალური ბარათები" },
+          "magazine": { "label": "Magazine", "desc": "დიდი hero ფოტოები" },
+          "compact": { "label": "Compact", "desc": "მკვრივი სია" }
+        },
+        "menuLayout": {
+          "label": "განლაგება",
+          "linear": "ლინეარული",
+          "categoriesFirst": "კატეგორიები პირველი"
+        },
+        "cardStyle": {
+          "label": "ბარათის სტილი",
+          "bordered": "ჩარჩოიანი",
+          "elevated": "ჩრდილით",
+          "flat": "ბრტყელი",
+          "minimal": "მინიმალური"
+        },
+        "touchEffect": {
+          "label": "შეხების ეფექტი",
+          "scale": "გადიდება",
+          "glow": "ნათება",
+          "gradient": "გრადიენტი",
+          "none": "გარეშე"
+        },
+        "splitByType": {
+          "label": "Foods / Drinks გაყოფა",
+          "description": "ზედა ზოლში 2 ტაბი"
+        }
       },
       "saving": "შენახვა…",
       "saveError": "ბრენდინგის შენახვა ვერ მოხერხდა",

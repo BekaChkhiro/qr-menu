@@ -10,6 +10,7 @@ import { ScheduleSection } from '@/components/admin/schedule-section';
 import { SeoSection } from '@/components/admin/seo-section';
 import { SharePreviewCard } from '@/components/admin/share-preview-card';
 import { MenuAdvancedSection } from '@/components/admin/menu-advanced-section';
+import { MenuLocationContactSection } from '@/components/admin/menu-location-contact-section';
 import { SharedTableSection } from '@/components/admin/shared-table-section';
 import { SharedTableLocked } from '@/components/admin/shared-table-locked';
 import { useUserPlan } from '@/hooks/use-user-plan';
@@ -102,6 +103,14 @@ export function MenuSettingsTab({ menu }: MenuSettingsTabProps) {
             onMetaDescriptionChange={handleMetaDescriptionChange}
             onShareImageChange={handleShareImageChange}
           />
+        </Section>
+
+        {/* Location & contact (T20.4) */}
+        <Section
+          label={t('locationContact.label')}
+          helper={t('locationContact.helper')}
+        >
+          <MenuLocationContactSection menu={menu} />
         </Section>
 
         {/* Advanced: Clone / Archive / Delete */}

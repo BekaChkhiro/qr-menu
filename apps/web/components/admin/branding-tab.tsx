@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { toast } from '@/components/ui/toast';
-import { Loader2, Lock, Type } from 'lucide-react';
+import { Check, Loader2, Lock, Type } from 'lucide-react';
 
 import { Slider } from '@/components/ui/slider';
 import {
@@ -12,7 +12,9 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { ImageUpload } from '@/components/admin/image-upload';
 import { useUpdateMenu } from '@/hooks/use-menus';
 import { cn } from '@/lib/utils';
@@ -59,6 +61,18 @@ const DEFAULT_CURRENCY = '₾';
 const DEFAULT_RADIUS = 12;
 const DEFAULT_FONT = 'Inter';
 
+// T20.2 — Layout & Style enums (mirror Prisma + lib/validations/menu.ts).
+type MenuTemplate = 'CLASSIC' | 'MAGAZINE' | 'COMPACT';
+type MenuLayoutOpt = 'LINEAR' | 'CATEGORIES_FIRST';
+type ProductCardStyle = 'BORDERED' | 'ELEVATED' | 'FLAT' | 'MINIMAL';
+type ProductTouchEffect = 'SCALE' | 'GLOW' | 'GRADIENT' | 'NONE';
+
+const TEMPLATE_OPTIONS: ReadonlyArray<MenuTemplate> = [
+  'CLASSIC',
+  'MAGAZINE',
+  'COMPACT',
+];
+
 interface BrandingTabProps {
   menu: Menu | MenuWithDetails;
   /**
@@ -91,6 +105,21 @@ export function BrandingTab({ menu, hasCustomBranding }: BrandingTabProps) {
   const [currencySymbol, setCurrencySymbol] = useState(
     menu.currencySymbol || DEFAULT_CURRENCY,
   );
+  const [menuTemplate, setMenuTemplate] = useState<MenuTemplate>(
+    (menu.menuTemplate as MenuTemplate | undefined) ?? 'CLASSIC',
+  );
+  const [menuLayout, setMenuLayout] = useState<MenuLayoutOpt>(
+    (menu.menuLayout as MenuLayoutOpt | undefined) ?? 'LINEAR',
+  );
+  const [productCardStyle, setProductCardStyle] = useState<ProductCardStyle>(
+    (menu.productCardStyle as ProductCardStyle | undefined) ?? 'BORDERED',
+  );
+  const [productTouchEffect, setProductTouchEffect] = useState<ProductTouchEffect>(
+    (menu.productTouchEffect as ProductTouchEffect | undefined) ?? 'SCALE',
+  );
+  const [splitByType, setSplitByType] = useState<boolean>(
+    Boolean(menu.splitByType),
+  );
 
   // Keep local state in sync if the menu is refetched externally (pusher).
   const prevMenuIdRef = useRef(menu.id);
@@ -102,6 +131,15 @@ export function BrandingTab({ menu, hasCustomBranding }: BrandingTabProps) {
       setCornerRadius(menu.cornerRadius ?? DEFAULT_RADIUS);
       setFontFamily(menu.headingFont || DEFAULT_FONT);
       setCurrencySymbol(menu.currencySymbol || DEFAULT_CURRENCY);
+      setMenuTemplate((menu.menuTemplate as MenuTemplate | undefined) ?? 'CLASSIC');
+      setMenuLayout((menu.menuLayout as MenuLayoutOpt | undefined) ?? 'LINEAR');
+      setProductCardStyle(
+        (menu.productCardStyle as ProductCardStyle | undefined) ?? 'BORDERED',
+      );
+      setProductTouchEffect(
+        (menu.productTouchEffect as ProductTouchEffect | undefined) ?? 'SCALE',
+      );
+      setSplitByType(Boolean(menu.splitByType));
     }
   }, [
     menu.id,
@@ -110,6 +148,11 @@ export function BrandingTab({ menu, hasCustomBranding }: BrandingTabProps) {
     menu.cornerRadius,
     menu.headingFont,
     menu.currencySymbol,
+    menu.menuTemplate,
+    menu.menuLayout,
+    menu.productCardStyle,
+    menu.productTouchEffect,
+    menu.splitByType,
   ]);
 
   const save = async (patch: Parameters<typeof updateMenu.mutateAsync>[0]) => {
@@ -169,6 +212,36 @@ export function BrandingTab({ menu, hasCustomBranding }: BrandingTabProps) {
 
   const handleCoverChange = (url: string | null) => {
     void save({ coverImageUrl: url });
+  };
+
+  // T20.2 — Layout & Style commit handlers.
+  const handleTemplateChange = (next: MenuTemplate) => {
+    if (next === menuTemplate) return;
+    setMenuTemplate(next);
+    void save({ menuTemplate: next });
+  };
+
+  const handleMenuLayoutChange = (next: string) => {
+    const value = next as MenuLayoutOpt;
+    setMenuLayout(value);
+    void save({ menuLayout: value });
+  };
+
+  const handleCardStyleChange = (next: string) => {
+    const value = next as ProductCardStyle;
+    setProductCardStyle(value);
+    void save({ productCardStyle: value });
+  };
+
+  const handleTouchEffectChange = (next: string) => {
+    const value = next as ProductTouchEffect;
+    setProductTouchEffect(value);
+    void save({ productTouchEffect: value });
+  };
+
+  const handleSplitByTypeChange = (next: boolean) => {
+    setSplitByType(next);
+    void save({ splitByType: next });
   };
 
   const isLocked = !hasCustomBranding;
@@ -418,6 +491,168 @@ export function BrandingTab({ menu, hasCustomBranding }: BrandingTabProps) {
             </BrandingSection>
           </div>
         </BrandingCard>
+
+        {/* ── Layout & Style (T20.2) ────────────────────────────────── */}
+        <BrandingCard>
+          <div
+            data-testid="branding-layout-card"
+            className="flex flex-col gap-[18px]"
+          >
+            <div className="text-[13px] font-semibold text-text-default">
+              {t('layout.title')}
+            </div>
+
+            {/* Template picker */}
+            <BrandingSection label={t('layout.template.label')}>
+              <p className="-mt-1 mb-[10px] text-[11.5px] text-text-muted">
+                {t('layout.template.description')}
+              </p>
+              <div
+                role="radiogroup"
+                aria-label={t('layout.template.label')}
+                className="grid grid-cols-3 gap-2"
+              >
+                {TEMPLATE_OPTIONS.map((tpl) => {
+                  const active = menuTemplate === tpl;
+                  const labelKey = tpl.toLowerCase() as
+                    | 'classic'
+                    | 'magazine'
+                    | 'compact';
+                  return (
+                    <button
+                      key={tpl}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      data-testid={`branding-template-${tpl.toLowerCase()}`}
+                      onClick={() => handleTemplateChange(tpl)}
+                      className={cn(
+                        'group relative rounded-[10px] border p-[10px] text-left transition-all',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2',
+                        active
+                          ? 'border-text-default bg-card-soft ring-2 ring-text-default/15'
+                          : 'border-border bg-card hover:border-text-default/40',
+                      )}
+                    >
+                      {active && (
+                        <span className="absolute right-[6px] top-[6px] flex h-[18px] w-[18px] items-center justify-center rounded-full bg-text-default text-white">
+                          <Check size={11} strokeWidth={2.5} />
+                        </span>
+                      )}
+                      <div className="mb-[8px] h-[64px] overflow-hidden rounded-[6px] bg-bg ring-1 ring-border-soft">
+                        <TemplatePreview template={tpl} />
+                      </div>
+                      <div className="text-[12px] font-semibold text-text-default">
+                        {t(`layout.template.${labelKey}.label`)}
+                      </div>
+                      <div className="text-[10.5px] text-text-muted">
+                        {t(`layout.template.${labelKey}.desc`)}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </BrandingSection>
+
+            {/* 2×2 grid: Layout / Card style / Touch effect / Foods-Drinks split */}
+            <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-2">
+              <BrandingSection label={t('layout.menuLayout.label')}>
+                <Select
+                  value={menuLayout}
+                  onValueChange={handleMenuLayoutChange}
+                >
+                  <SelectTrigger
+                    data-testid="branding-menu-layout-select"
+                    className="rounded-[8px] border border-border bg-white px-3 py-[9px] text-[13px]"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LINEAR">
+                      {t('layout.menuLayout.linear')}
+                    </SelectItem>
+                    <SelectItem value="CATEGORIES_FIRST">
+                      {t('layout.menuLayout.categoriesFirst')}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </BrandingSection>
+
+              <BrandingSection label={t('layout.cardStyle.label')}>
+                <Select
+                  value={productCardStyle}
+                  onValueChange={handleCardStyleChange}
+                >
+                  <SelectTrigger
+                    data-testid="branding-card-style-select"
+                    className="rounded-[8px] border border-border bg-white px-3 py-[9px] text-[13px]"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BORDERED">
+                      {t('layout.cardStyle.bordered')}
+                    </SelectItem>
+                    <SelectItem value="ELEVATED">
+                      {t('layout.cardStyle.elevated')}
+                    </SelectItem>
+                    <SelectItem value="FLAT">
+                      {t('layout.cardStyle.flat')}
+                    </SelectItem>
+                    <SelectItem value="MINIMAL">
+                      {t('layout.cardStyle.minimal')}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </BrandingSection>
+
+              <BrandingSection label={t('layout.touchEffect.label')}>
+                <Select
+                  value={productTouchEffect}
+                  onValueChange={handleTouchEffectChange}
+                >
+                  <SelectTrigger
+                    data-testid="branding-touch-effect-select"
+                    className="rounded-[8px] border border-border bg-white px-3 py-[9px] text-[13px]"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SCALE">
+                      {t('layout.touchEffect.scale')}
+                    </SelectItem>
+                    <SelectItem value="GLOW">
+                      {t('layout.touchEffect.glow')}
+                    </SelectItem>
+                    <SelectItem value="GRADIENT">
+                      {t('layout.touchEffect.gradient')}
+                    </SelectItem>
+                    <SelectItem value="NONE">
+                      {t('layout.touchEffect.none')}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </BrandingSection>
+
+              <div className="flex items-center justify-between gap-3 rounded-[8px] border border-border bg-card-soft px-3 py-[10px]">
+                <div className="min-w-0">
+                  <div className="text-[12px] font-semibold text-text-default">
+                    {t('layout.splitByType.label')}
+                  </div>
+                  <div className="text-[10.5px] text-text-muted">
+                    {t('layout.splitByType.description')}
+                  </div>
+                </div>
+                <Switch
+                  data-testid="branding-split-by-type-switch"
+                  checked={splitByType}
+                  onCheckedChange={handleSplitByTypeChange}
+                  aria-label={t('layout.splitByType.label')}
+                />
+              </div>
+            </div>
+          </div>
+        </BrandingCard>
       </div>
 
       {isLocked && <BrandingLockedOverlay t={t} />}
@@ -512,6 +747,40 @@ function HexInput({
         spellCheck={false}
       />
     </label>
+  );
+}
+
+function TemplatePreview({ template }: { template: MenuTemplate }) {
+  // Mini previews ported from menu-settings-form.tsx (legacy form lines 213-298).
+  if (template === 'CLASSIC') {
+    return (
+      <div className="flex h-full items-center gap-[6px] p-[6px]">
+        <div className="h-6 w-6 shrink-0 rounded bg-text-muted/25" />
+        <div className="flex-1 space-y-[4px]">
+          <div className="h-[6px] w-2/3 rounded bg-text-muted/60" />
+          <div className="h-[4px] w-1/2 rounded bg-text-muted/30" />
+        </div>
+      </div>
+    );
+  }
+  if (template === 'MAGAZINE') {
+    return (
+      <div className="space-y-[4px] p-[4px]">
+        <div className="h-[20px] w-full rounded bg-text-muted/35" />
+        <div className="h-[6px] w-3/4 rounded bg-text-muted/60" />
+        <div className="h-[4px] w-1/3 rounded bg-text-muted/30" />
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-[4px] p-[6px]">
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="flex items-center justify-between gap-1">
+          <div className="h-[4px] w-1/2 rounded bg-text-muted/60" />
+          <div className="h-[6px] w-[6px] shrink-0 rounded bg-text-muted/30" />
+        </div>
+      ))}
+    </div>
   );
 }
 

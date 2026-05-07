@@ -120,7 +120,11 @@ export function JoinTableForm({ slug, code, menuName, locale }: JoinTableFormPro
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => nameInputRef.current?.focus(), 60);
+    const t = setTimeout(() => {
+      if (document.activeElement === document.body) {
+        nameInputRef.current?.focus();
+      }
+    }, 60);
     return () => clearTimeout(t);
   }, []);
 
