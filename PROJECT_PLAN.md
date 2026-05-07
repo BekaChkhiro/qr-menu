@@ -2254,6 +2254,7 @@ digital-menu/
 - Editor still has exactly **7 tabs**: Content · Branding · Languages · Analytics · Promotions · QR · Settings.
 - No new tab can be added — Layout/Display group fields fold into existing tabs as sub-cards.
 - Tests must hit the real API + DB and verify the public menu re-renders with the new value (no hard-coded mocks).
+- **DO NOT reset, truncate, or wipe the database during testing.** No `db:reset`, no `prisma migrate reset`, no `TRUNCATE`, no `resetDb()` helper, no e2e spec that calls a reset RPC. Specs must seed their own additive rows (and clean up only those rows in `afterAll`) against the existing dev/test database. The dev DB contains real demo data that must survive every test run.
 
 **Final field map** (after Phase 20):
 
@@ -2265,9 +2266,17 @@ digital-menu/
 | Analytics | (read-only) |
 | Promotions | promotions list |
 | QR | `qrStyle`, `qrForegroundColor`, `qrBackgroundColor`, `qrLogoUrl`, `qrTemplate` |
-| Settings | URL · Visibility · Schedule · SEO · Shared Table · Advanced **+ Location & Contact card**: `address`, `phone`, `wifiSsid`, `wifiPassword`, `wcDirection`, `wcImageUrl` |
+| Settings | URL · Visibility · Schedule · SEO · Shared Table · Advanced **+ Location & Contact card**: `address`, `phone`, `wifiSsid`, `wifiPassword`, `wcDirection`, `wcImageUrl`, `locationLat`, `locationLng` **+ description editor** (in URL & Visibility card or as separate Description card) |
 
-After Phase 20: legacy `MenuSettingsForm` is deleted, legacy `/admin/menus/[id]/edit` route is deleted, Schedule fires on a real Vercel cron.
+After Phase 20: legacy `MenuSettingsForm` is deleted, legacy `/admin/menus/[id]/edit` route is deleted, Schedule fires on a real Vercel cron, every backend menu field is editable somewhere in the editor (no schema-only orphans except `customLanguages` which stays as a documented future extension).
+
+**Audit — schema fields confirmed covered after Phase 20** (verified against `packages/database/prisma/schema.prisma` Menu model):
+
+✅ Already in editor: `name` (header rename), `slug`/`status`/`passwordHash` (Settings URL+Visibility), `publishedAt` (server-managed), all branding/typography fields (Branding tab + T20.1/T20.2/T20.5), `enabledLanguages` (Languages tab), all QR fields (QR tab), `scheduledPublishAt`/`scheduledUnpublishAt` (Settings + T20.7), all SEO fields (Settings SEO card), `sharedTableEnabled` (Settings Shared Table card).
+
+✅ Added by this Phase: `accentColor`, `currencySymbol` (T20.1) · `menuTemplate`, `menuLayout`, `productCardStyle`, `productTouchEffect`, `splitByType` (T20.2) · `allergenDisplay`, `caloriesDisplay`, `showNutrition`, `showDiscount` (T20.3) · `address`, `phone`, `wifiSsid`, `wifiPassword`, `wcDirection`, `wcImageUrl` (T20.4) · `description` (T20.9) · `locationLat`, `locationLng` (T20.10).
+
+❄️ Out of scope: `customLanguages` (Json column marked "future extension" in schema — no validator, no consumer).
 
 #### T20.1: Branding Tab — accentColor + currencySymbol
 - [ ] **Status**: TODO
@@ -2373,13 +2382,43 @@ After Phase 20: legacy `MenuSettingsForm` is deleted, legacy `/admin/menus/[id]/
 - [ ] **Status**: TODO
 - **Complexity**: Low
 - **Estimated**: 0.5 hours
-- **Dependencies**: T20.6
+- **Dependencies**: T20.6, T20.9
 - **Description**:
   - Delete the directory `apps/web/app/admin/menus/[id]/edit/` (page.tsx is the only file)
   - `MenuForm` (used by `/admin/menus/new`) stays — only the `/edit` consumer is removed
   - Search for any remaining `<Link href={`/admin/menus/${id}/edit`}>` references and remove (there should be none — already verified in research, only `.next` build artifacts mention the path)
+  - Hard dependency on T20.9: until description has an editor in the tabs, the `/edit` route is the only way to change it post-creation. Delete `/edit` AFTER T20.9 ships.
 - **Playwright test**: extends T20.6 spec
   - Functional: navigate to `/admin/menus/{id}/edit` → assert 404 page renders (Next.js auto-404 since route file is gone)
+
+#### T20.9: Settings Tab — Description Editor
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 0.5 hours
+- **Dependencies**: T15.13
+- **Description**:
+  - `menu.description` is a real `String? @db.Text` column consumed by the public `share-preview-card` (SEO meta-description fallback) and `menu-preview-content`. Today it can only be set at creation (`/admin/menus/new`) — there is no editor surface for it post-creation.
+  - Add a Description card to the Settings tab (placed right above SEO so the SEO meta-description "fallback" relationship is visually obvious). Single textarea, 500 char limit (matches `createMenuSchema` cap), Save / Discard buttons mirroring `MenuUrlVisibilitySection` UX.
+  - `useUpdateMenu.mutateAsync({ description })` on Save.
+- **Playwright test**: `tests/e2e/admin/settings-description.spec.ts`
+  - Visual: `settings-description-card.png`
+  - Functional: type a new description → Save → PATCH `/api/menus/:id` body contains `description` → response carries the new string. Reload `/m/{slug}` → `<meta name="description">` reflects the new value when no `metaDescription` is set; clear `description` to null and re-save → fallback chain returns to the i18n default.
+
+#### T20.10: Settings Tab — Location Coordinates Picker
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 1.5 hours
+- **Dependencies**: T20.4
+- **Description**:
+  - `locationLat` / `locationLng` are real `Decimal` columns the public `MenuInfoWidget` uses to build the Google Maps deep link (`menu-info-widget.tsx:207`). When set, the maps button opens `https://www.google.com/maps/search/?api=1&query={lat},{lng}` instead of the fuzzy address-string fallback. No UI exists to set them.
+  - Extend the Location & Contact card (T20.4) with a "Map coordinates" sub-section:
+    - Two number inputs (lat -90..90 step 0.000001, lng -180..180 step 0.000001) with the same Save dirty-state shared with the address row
+    - Helper link "Pick from Google Maps" — opens `https://www.google.com/maps/search/?api=1&query={address}` in a new tab so the operator can copy coordinates from the URL bar
+    - Empty values save as `null` (matches schema)
+  - Use `useUpdateMenu.mutateAsync({ locationLat, locationLng })`. Validate ranges before submit.
+- **Playwright test**: `tests/e2e/admin/settings-location-coordinates.spec.ts`
+  - Visual: `settings-location-coordinates.png`
+  - Functional: enter `41.7151` / `44.8271` (Tbilisi) + Save → PATCH succeeds → DB row matches → public `MenuInfoWidget` map button `href` matches `^https://www\.google\.com/maps/search/\?api=1&query=41\.7151,44\.8271$`. Clear both fields → Save → href falls back to the address-string variant.
 
 ---
 
