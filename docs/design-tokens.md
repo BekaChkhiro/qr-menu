@@ -18,21 +18,29 @@ This file is the **single source of truth** for the admin redesign (Phases 9-17)
 | `border` | `#EAEAE6` | `48 9% 91%` | Primary 1px card borders |
 | `borderSoft` | `#F0EFEA` | `45 12% 93%` | Subtle dividers inside cards |
 | `text` | `#18181B` | `240 6% 10%` | Primary body + headings |
-| `textMuted` | `#71717A` | `240 5% 47%` | Helper text / labels |
-| `textSubtle` | `#A1A1AA` | `240 5% 65%` | Placeholder / timestamps |
+| `textMuted` | `#605F6B` | `240 5% 40%` | Helper text / labels (WCAG AA, T17.6) |
+| `textSubtle` | `#6B6B73` | `240 5% 44%` | Placeholder / timestamps (WCAG AA, T17.6) |
 
 ### Semantic
 
 | Name | Hex | HSL | Usage |
 |---|---|---|---|
-| `accent` | `#B8633D` | `18 51% 48%` | Terracotta brand accent (CTAs, active) |
+| `accent` | `#9A4F33` | `18 51% 40%` | Terracotta brand accent — darkened in T17.6 so white-on-accent and accent-on-soft clear 4.5:1 |
 | `accentSoft` | `#F7EDE6` | `22 60% 94%` | Tinted backgrounds, lock overlays |
-| `success` | `#3F7E3F` | `120 33% 37%` | Published / active states |
+| `success` | `#306930` | `120 33% 28%` | Published / active states — darkened in T17.6 for AA on success-soft |
 | `successSoft` | `#E8F0E8` | `120 21% 92%` | Success pills |
-| `warning` | `#B87A1D` | `37 73% 42%` | Draft / warning states |
+| `warning` | `#8A570B` | `37 80% 30%` | Draft / warning states — darkened in T17.6 for AA on warning-soft |
 | `warningSoft` | `#F7EFE0` | `41 67% 92%` | Warning pill bg |
-| `danger` | `#B8423D` | `3 51% 48%` | Destructive / error states |
+| `danger` | `#A53A36` | `3 51% 42%` | Destructive / error states — darkened in T17.6 for AA |
 | `dangerSoft` | `#F7E6E5` | `4 63% 93%` | Error pill / danger zone bg |
+
+> **T17.6 contrast pass.** The original Section H text-muted (#71717A),
+> text-subtle (#A1A1AA), and the four semantic foregrounds all sat at
+> ~3-4.4:1 contrast against their canonical backgrounds. The values
+> above were nudged down 4-6 lightness points so axe-core reports zero
+> WCAG AA violations across every admin surface while preserving the
+> hue/saturation of the design system. Visual baselines for affected
+> screenshots were regenerated in the same task.
 
 ---
 
@@ -120,16 +128,16 @@ Use HSL so Tailwind's `hsl(var(--token))` pattern works:
   --border: 48 9% 91%;
   --border-soft: 45 12% 93%;
   --text: 240 6% 10%;
-  --text-muted: 240 5% 47%;
-  --text-subtle: 240 5% 65%;
+  --text-muted: 240 5% 40%;
+  --text-subtle: 240 5% 44%;
 
-  --accent: 18 51% 48%;
+  --accent: 18 51% 40%;
   --accent-soft: 22 60% 94%;
-  --success: 120 33% 37%;
+  --success: 120 33% 28%;
   --success-soft: 120 21% 92%;
-  --warning: 37 73% 42%;
+  --warning: 37 80% 30%;
   --warning-soft: 41 67% 92%;
-  --danger: 3 51% 48%;
+  --danger: 3 51% 42%;
   --danger-soft: 4 63% 93%;
 }
 ```

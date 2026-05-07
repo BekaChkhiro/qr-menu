@@ -1814,7 +1814,7 @@ digital-menu/
   - Functional: accordion expand reveals tab content, save bar always visible
 
 #### T17.6: Accessibility Audit (WCAG AA)
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 3 hours
 - **Dependencies**: All UI phases (10-17)

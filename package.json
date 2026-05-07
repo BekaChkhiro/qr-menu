@@ -25,6 +25,7 @@
     "db:studio": "turbo run db:studio"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@playwright/test": "^1.59.1",
     "prettier": "^3.4.2",
     "turbo": "^2.3.3"

@@ -233,21 +233,26 @@ export function YourMenusCard({ menus }: YourMenusCardProps) {
         </div>
 
         {/* ── Column headers (md+ only — mobile uses simplified list rows) ── */}
+        {/*
+          Visual labels only — the row markup below is a <ul>, not an ARIA
+          table, so role="row"/role="columnheader" here would fail axe's
+          aria-required-parent rule. Use text-text-muted (47% L) instead of
+          text-text-subtle (65% L) so it clears WCAG AA 4.5:1 on the warm
+          off-white sub-bar.
+        */}
         <div
-          role="row"
-          className="hidden items-center gap-[14px] border-b border-[hsl(var(--border-soft))] bg-[#FCFBF8] px-5 py-[9px] text-[10.5px] font-semibold uppercase tracking-[0.5px] text-text-subtle md:grid"
+          aria-hidden="true"
+          className="hidden items-center gap-[14px] border-b border-[hsl(var(--border-soft))] bg-[#FCFBF8] px-5 py-[9px] text-[10.5px] font-semibold uppercase tracking-[0.5px] text-text-muted md:grid"
           style={{
             gridTemplateColumns: '40px 1fr 110px 150px 120px 32px',
           }}
         >
-          <span aria-hidden="true" />
-          <span role="columnheader">{t('columns.menu')}</span>
-          <span role="columnheader">{t('columns.status')}</span>
-          <span role="columnheader">{t('columns.views')}</span>
-          <span role="columnheader">{t('columns.lastEdited')}</span>
-          <span className="sr-only" role="columnheader">
-            {t('columns.actions')}
-          </span>
+          <span />
+          <span>{t('columns.menu')}</span>
+          <span>{t('columns.status')}</span>
+          <span>{t('columns.views')}</span>
+          <span>{t('columns.lastEdited')}</span>
+          <span className="sr-only">{t('columns.actions')}</span>
         </div>
 
         {/* ── Rows ── */}

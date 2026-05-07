@@ -315,6 +315,7 @@ export function ProductForm({
                 <Select onValueChange={field.onChange} value={field.value}>
                   <SelectTrigger
                     data-testid="product-basics-category-select"
+                    aria-label={t('category')}
                     className="border border-border text-[13.5px]"
                   >
                     <SelectValue placeholder={t('selectCategory')} />
@@ -384,6 +385,7 @@ export function ProductForm({
               checked={hasDiscount}
               onCheckedChange={handleDiscountToggle}
               data-testid="product-basics-discount-toggle"
+              aria-label={t('discount.toggle')}
             />
             <div className="flex-1">
               <div className="text-[13px] font-[550] text-text-default">
@@ -513,6 +515,7 @@ export function ProductForm({
               checked={isAvailable}
               onCheckedChange={(v) => setValue('isAvailable', v)}
               data-testid="product-basics-availability-toggle"
+              aria-label={t('availabilityLabel')}
             />
             <div className="flex-1">
               <div className="text-[13px] font-[550] text-text-default">{t('inStock')}</div>

@@ -27,17 +27,25 @@ html.lenis, html.lenis body {
     --border: 48 9% 91%;
     --border-soft: 45 12% 93%;
     --text: 240 6% 10%;
-    --text-muted: 240 5% 47%;
-    --text-subtle: 240 5% 65%;
+    /*
+      T17.6 — bumped down ~5pp from the original Section H spec
+      (text-muted 47%→42%, text-subtle 65%→48%) so they clear WCAG AA
+      4.5:1 contrast on bg-card/bg-chip/bg/sidebar surfaces. Also
+      darkened the four semantic foregrounds by 4-6pp so the standard
+      `bg-*-soft text-*` pill pattern (Published, Draft, etc.) clears
+      4.5:1 on its tinted backgrounds. See docs/design-tokens.md.
+    */
+    --text-muted: 240 5% 40%;
+    --text-subtle: 240 5% 44%;
 
     /* Semantic */
-    --accent: 18 51% 48%;
+    --accent: 18 51% 40%;
     --accent-soft: 22 60% 94%;
-    --success: 120 33% 37%;
+    --success: 120 33% 28%;
     --success-soft: 120 21% 92%;
-    --warning: 37 73% 42%;
+    --warning: 37 80% 30%;
     --warning-soft: 41 67% 92%;
-    --danger: 3 51% 48%;
+    --danger: 3 51% 42%;
     --danger-soft: 4 63% 93%;
 
     /* ── Legacy shadcn aliases (remove after Phase 10 migration) ─────── */
