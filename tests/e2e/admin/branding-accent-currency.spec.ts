@@ -132,14 +132,20 @@ test.describe('branding tab · accent color + currency (T20.1)', () => {
     });
     expect(row?.accentColor?.toLowerCase()).toBe(expectedLower);
 
-    // Public menu reflects the change via the CSS var.
+    // Public menu reflects the change via the CSS var. The var lives on the
+    // wrapping <div> inside `/m/[slug]/page.tsx` (not on document.documentElement),
+    // so we must read it from that element directly.
     await page.goto(`/m/${menuSlug}`);
-    const accentVar = await page.evaluate(() =>
-      getComputedStyle(document.documentElement)
+    const accentVar = await page.evaluate(() => {
+      const wrapper = document.querySelector(
+        'div[style*="--accent-color"]',
+      ) as HTMLElement | null;
+      if (!wrapper) return '';
+      return wrapper.style
         .getPropertyValue('--accent-color')
         .trim()
-        .toLowerCase(),
-    );
+        .toLowerCase();
+    });
     expect(accentVar).toBe(expectedLower);
   });
 
