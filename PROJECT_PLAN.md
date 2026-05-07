@@ -2279,7 +2279,7 @@ After Phase 20: legacy `MenuSettingsForm` is deleted, legacy `/admin/menus/[id]/
 ❄️ Out of scope: `customLanguages` (Json column marked "future extension" in schema — no validator, no consumer).
 
 #### T20.1: Branding Tab — accentColor + currencySymbol
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Low
 - **Estimated**: 1 hour
 - **Dependencies**: T13.1
