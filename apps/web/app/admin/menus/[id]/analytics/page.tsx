@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import {
@@ -14,18 +15,6 @@ import {
   Tablet,
   Globe,
 } from 'lucide-react';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  Cell,
-} from 'recharts';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -44,6 +33,22 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMenuAnalytics, type AnalyticsFilters } from '@/hooks/use-analytics';
 import { useMenu } from '@/hooks/use-menus';
+
+const ViewsLineChart = dynamic(
+  () => import('@/components/admin/analytics/charts').then((m) => m.ViewsLineChart),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-full w-full" />,
+  }
+);
+
+const BrowserBarChart = dynamic(
+  () => import('@/components/admin/analytics/charts').then((m) => m.BrowserBarChart),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-full w-full" />,
+  }
+);
 
 interface AnalyticsPageProps {
   params: Promise<{ id: string }>;
@@ -252,39 +257,7 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
         <CardContent>
           {chartData.length > 0 ? (
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis
-                    dataKey="date"
-                    className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={{ stroke: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <YAxis
-                    className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={{ stroke: 'hsl(var(--muted-foreground))' }}
-                    allowDecimals={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="views"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <ViewsLineChart data={chartData} />
             </div>
           ) : (
             <div className="flex h-[300px] items-center justify-center text-muted-foreground">
@@ -356,51 +329,10 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
           <CardContent>
             {browserBreakdown.length > 0 ? (
               <div className="h-[250px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={browserBreakdown.slice(0, 5)}
-                    layout="vertical"
-                    margin={{ left: 80 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      horizontal={true}
-                      vertical={false}
-                      className="stroke-muted"
-                    />
-                    <XAxis
-                      type="number"
-                      className="text-xs"
-                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                      tickLine={{ stroke: 'hsl(var(--muted-foreground))' }}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="browser"
-                      className="text-xs"
-                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                      tickLine={{ stroke: 'hsl(var(--muted-foreground))' }}
-                      width={80}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                      }}
-                      labelStyle={{ color: 'hsl(var(--foreground))' }}
-                      formatter={(value) => [`${value}`, 'Views']}
-                    />
-                    <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                      {browserBreakdown.slice(0, 5).map((_, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={BROWSER_COLORS[index % BROWSER_COLORS.length]}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                <BrowserBarChart
+                  data={browserBreakdown.slice(0, 5)}
+                  colors={BROWSER_COLORS}
+                />
               </div>
             ) : (
               <div className="flex h-[200px] items-center justify-center text-muted-foreground">

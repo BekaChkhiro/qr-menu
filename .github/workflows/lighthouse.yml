@@ -1,0 +1,142 @@
+name: Lighthouse CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  lighthouse:
+    name: Performance Budget (LCP/FCP/CLS/TBT)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: digital_menu_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d digital_menu_test"
+          --health-interval=2s
+          --health-timeout=2s
+          --health-retries=20
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5433/digital_menu_test?schema=public
+      AUTH_SECRET: ci-test-secret-do-not-use-in-prod
+      NEXTAUTH_SECRET: ci-test-secret-do-not-use-in-prod
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      ENABLE_TEST_AUTH: '1'
+      CLOUDINARY_CLOUD_NAME: test
+      CLOUDINARY_API_KEY: test
+      CLOUDINARY_API_SECRET: test
+      NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: test
+      PUSHER_APP_ID: '1'
+      PUSHER_KEY: test
+      PUSHER_SECRET: test
+      PUSHER_CLUSTER: eu
+      NEXT_PUBLIC_PUSHER_KEY: test
+      NEXT_PUBLIC_PUSHER_CLUSTER: eu
+      UPSTASH_REDIS_REST_URL: https://example.upstash.io
+      UPSTASH_REDIS_REST_TOKEN: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply database schema
+        run: pnpm db:push
+
+      - name: Build Next.js app
+        run: pnpm build
+
+      - name: Start Next.js (production)
+        working-directory: apps/web
+        run: |
+          nohup pnpm start > next-server.log 2>&1 &
+          echo "NEXT_PID=$!" >> $GITHUB_ENV
+
+      - name: Wait for server to be ready
+        run: |
+          for i in {1..60}; do
+            if curl -sSf http://localhost:3000 > /dev/null; then
+              echo "Server is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Server failed to start within 120s"
+          cat apps/web/next-server.log
+          exit 1
+
+      - name: Run Lighthouse CI
+        working-directory: apps/web
+        run: npx -y @lhci/cli@0.14.0 autorun --config=./lighthouserc.json
+
+      - name: Stop Next.js
+        if: always()
+        run: |
+          if [ -n "${NEXT_PID:-}" ]; then
+            kill "$NEXT_PID" || true
+          fi
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: apps/web/.lighthouseci/
+          retention-days: 14
+
+      - name: Comment on PR with failure details
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              `### Lighthouse performance budget failed`,
+              ``,
+              `One or more pages exceeded the performance budgets:`,
+              `- LCP < 2500ms`,
+              `- FCP < 1800ms`,
+              `- CLS < 0.1`,
+              `- TBT < 300ms`,
+              ``,
+              `Download the \`lighthouse-report\` artifact from the [run page](${runUrl}) for per-URL details.`,
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
