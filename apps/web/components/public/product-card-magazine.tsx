@@ -69,6 +69,7 @@ export function ProductCardMagazine({ product, locale, settings }: Props) {
   return (
     <article
       id={`product-${product.id}`}
+      data-testid="public-product-card-magazine"
       className={cn(
         'group relative overflow-hidden rounded-2xl bg-card ring-1 ring-border/60',
         effectClass
