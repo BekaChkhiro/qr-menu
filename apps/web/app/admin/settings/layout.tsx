@@ -23,7 +23,7 @@ export default async function SettingsLayout({
     <SettingsFormProvider>
       <div
         data-testid="settings-shell"
-        className="flex flex-col md:-m-6 md:h-[calc(100%+3rem)] md:flex-row md:overflow-hidden"
+        className="-m-6 flex min-h-[calc(100%+3rem)] flex-col md:h-[calc(100%+3rem)] md:flex-row md:overflow-hidden"
       >
         <SettingsNavRail plan={plan} />
         <SettingsMobileAccordion plan={plan} />

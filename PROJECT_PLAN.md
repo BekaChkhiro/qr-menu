@@ -1802,7 +1802,7 @@ digital-menu/
   - Functional: drawer opens from bottom, swipe down closes
 
 #### T17.5: Settings Mobile (accordion)
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 1 hour
 - **Dependencies**: T16.1, T17.1

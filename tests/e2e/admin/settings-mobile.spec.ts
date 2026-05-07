@@ -49,6 +49,7 @@ test.describe('admin settings mobile (T17.5)', () => {
     await expect(page.getByTestId('settings-shell')).toBeVisible();
     await expect(page.getByTestId('settings-mobile-accordion')).toBeVisible();
     await expect(page.getByTestId('settings-tab-profile')).toBeVisible();
+    await expect(page.getByTestId('settings-profile-form')).toBeVisible();
     await expect(page.getByTestId('admin-mobile-tab-bar')).toBeVisible();
 
     await page.evaluate(() => document.fonts.ready);

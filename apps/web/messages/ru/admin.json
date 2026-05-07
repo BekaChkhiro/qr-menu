@@ -1337,6 +1337,7 @@
     "title": "Настройки",
     "nav": {
       "ariaLabel": "Навигация по настройкам",
+      "mobileTriggerLabel": "Открыть навигацию настроек, текущий раздел: {section}",
       "personal": "Личное",
       "business": "Бизнес",
       "profile": "Профиль",

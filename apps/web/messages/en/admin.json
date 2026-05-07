@@ -1337,6 +1337,7 @@
     "title": "Settings",
     "nav": {
       "ariaLabel": "Settings navigation",
+      "mobileTriggerLabel": "Open settings navigation, current section: {section}",
       "personal": "Personal",
       "business": "Business",
       "profile": "Profile",

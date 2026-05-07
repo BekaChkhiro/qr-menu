@@ -129,8 +129,11 @@ export function SettingsMobileAccordion({ plan }: { plan: Plan }) {
             type="button"
             data-testid="settings-mobile-accordion-trigger"
             aria-expanded={open}
+            aria-label={t('mobileTriggerLabel', {
+              section: activeItem ? t(activeItem.labelKey) : t('profile'),
+            })}
             className={cn(
-              'flex w-full items-center gap-3 border-b border-border bg-card px-4 py-3 text-left',
+              'flex w-full items-center gap-3 border-b border-border bg-sidebar px-4 py-3 text-left',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
             )}
           >
@@ -151,7 +154,7 @@ export function SettingsMobileAccordion({ plan }: { plan: Plan }) {
         </CollapsibleTrigger>
 
         <CollapsibleContent data-testid="settings-mobile-accordion-content">
-          <div className="border-b border-border bg-card">
+          <div className="border-b border-border bg-sidebar pb-2">
             <MobileGroupLabel>{t('personal')}</MobileGroupLabel>
             {PERSONAL_ITEMS.map((item) => (
               <MobileNavLink
@@ -260,10 +263,10 @@ function MobileNavLink({ item, active, label, plan, onNavigate }: MobileNavLinkP
       aria-current={active ? 'page' : undefined}
       onClick={onNavigate}
       className={cn(
-        'flex items-center gap-3 px-4 py-3 text-[13.5px] transition-colors',
+        'mx-3 flex items-center gap-3 rounded-sm border-l-2 py-3 pr-3 text-[13.5px] transition-colors',
         active
-          ? 'font-semibold text-text-default'
-          : 'font-medium text-text-muted hover:bg-chip hover:text-text-default',
+          ? 'border-accent bg-card pl-[10px] font-semibold text-text-default'
+          : 'border-transparent pl-3 font-medium text-text-muted hover:bg-chip hover:text-text-default',
       )}
     >
       <Icon
