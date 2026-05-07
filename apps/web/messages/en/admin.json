@@ -798,6 +798,12 @@
       "primaryColor": {
         "label": "Primary color"
       },
+      "accentColor": {
+        "label": "Accent color"
+      },
+      "currency": {
+        "label": "Currency"
+      },
       "font": {
         "label": "Font family",
         "custom": "Custom"

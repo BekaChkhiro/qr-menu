@@ -42,7 +42,20 @@ const FONT_PRESETS = [
   { value: 'BPG Arial', sub: 'Georgian sans' },
 ] as const;
 
+// T20.1 — currency options. Symbols are universal so the right-hand label
+// is the only thing that needs to render; codes ride along for context.
+const CURRENCY_OPTIONS = [
+  { value: '₾', code: 'GEL', label: 'ლარი' },
+  { value: '$', code: 'USD', label: 'US Dollar' },
+  { value: '€', code: 'EUR', label: 'Euro' },
+  { value: '£', code: 'GBP', label: 'Pound Sterling' },
+  { value: '₽', code: 'RUB', label: 'Russian Ruble' },
+  { value: '₺', code: 'TRY', label: 'Turkish Lira' },
+] as const;
+
 const DEFAULT_PRIMARY = '#B8633D';
+const DEFAULT_ACCENT = '#F59E0B';
+const DEFAULT_CURRENCY = '₾';
 const DEFAULT_RADIUS = 12;
 const DEFAULT_FONT = 'Inter';
 
@@ -66,11 +79,17 @@ export function BrandingTab({ menu, hasCustomBranding }: BrandingTabProps) {
   const [primaryColor, setPrimaryColor] = useState(
     menu.primaryColor || DEFAULT_PRIMARY,
   );
+  const [accentColor, setAccentColor] = useState(
+    menu.accentColor || DEFAULT_ACCENT,
+  );
   const [cornerRadius, setCornerRadius] = useState(
     menu.cornerRadius ?? DEFAULT_RADIUS,
   );
   const [fontFamily, setFontFamily] = useState(
     menu.headingFont || DEFAULT_FONT,
+  );
+  const [currencySymbol, setCurrencySymbol] = useState(
+    menu.currencySymbol || DEFAULT_CURRENCY,
   );
 
   // Keep local state in sync if the menu is refetched externally (pusher).
@@ -79,10 +98,19 @@ export function BrandingTab({ menu, hasCustomBranding }: BrandingTabProps) {
     if (prevMenuIdRef.current !== menu.id) {
       prevMenuIdRef.current = menu.id;
       setPrimaryColor(menu.primaryColor || DEFAULT_PRIMARY);
+      setAccentColor(menu.accentColor || DEFAULT_ACCENT);
       setCornerRadius(menu.cornerRadius ?? DEFAULT_RADIUS);
       setFontFamily(menu.headingFont || DEFAULT_FONT);
+      setCurrencySymbol(menu.currencySymbol || DEFAULT_CURRENCY);
     }
-  }, [menu.id, menu.primaryColor, menu.cornerRadius, menu.headingFont]);
+  }, [
+    menu.id,
+    menu.primaryColor,
+    menu.accentColor,
+    menu.cornerRadius,
+    menu.headingFont,
+    menu.currencySymbol,
+  ]);
 
   const save = async (patch: Parameters<typeof updateMenu.mutateAsync>[0]) => {
     if (!hasCustomBranding) return;
@@ -105,6 +133,23 @@ export function BrandingTab({ menu, hasCustomBranding }: BrandingTabProps) {
     if (!/^#[0-9A-Fa-f]{6}$/.test(normalized)) return;
     setPrimaryColor(normalized.toUpperCase());
     void save({ primaryColor: normalized });
+  };
+
+  const handleAccentSwatchClick = (color: string) => {
+    setAccentColor(color);
+    void save({ accentColor: color });
+  };
+
+  const handleAccentHexBlur = (value: string) => {
+    const normalized = value.startsWith('#') ? value : `#${value}`;
+    if (!/^#[0-9A-Fa-f]{6}$/.test(normalized)) return;
+    setAccentColor(normalized.toUpperCase());
+    void save({ accentColor: normalized });
+  };
+
+  const handleCurrencyChange = (next: string) => {
+    setCurrencySymbol(next);
+    void save({ currencySymbol: next });
   };
 
   const handleRadiusCommit = (next: number[]) => {
@@ -203,6 +248,46 @@ export function BrandingTab({ menu, hasCustomBranding }: BrandingTabProps) {
                 value={primaryColor}
                 onChange={setPrimaryColor}
                 onCommit={handleHexBlur}
+                testId="branding-hex-input"
+              />
+            </BrandingSection>
+
+            {/* ── Accent color (T20.1) ─────────────────────────────────── */}
+            <BrandingSection label={t('accentColor.label')}>
+              <div
+                className="mb-2 flex gap-[6px]"
+                role="radiogroup"
+                aria-label={t('accentColor.label')}
+              >
+                {COLOR_PALETTE.map((color) => {
+                  const isSelected =
+                    accentColor.toUpperCase() === color.toUpperCase();
+                  return (
+                    <button
+                      key={`accent-${color}`}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      aria-label={color}
+                      data-testid={`branding-accent-swatch-${color.slice(1).toLowerCase()}`}
+                      onClick={() => handleAccentSwatchClick(color)}
+                      className={cn(
+                        'h-[26px] w-[26px] rounded-[6px] transition-shadow',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2',
+                        isSelected
+                          ? 'border-2 border-text-default'
+                          : 'border border-border-soft',
+                      )}
+                      style={{ background: color }}
+                    />
+                  );
+                })}
+              </div>
+              <HexInput
+                value={accentColor}
+                onChange={setAccentColor}
+                onCommit={handleAccentHexBlur}
+                testId="branding-accent-hex-input"
               />
             </BrandingSection>
           </div>
@@ -282,6 +367,55 @@ export function BrandingTab({ menu, hasCustomBranding }: BrandingTabProps) {
                 <span>24</span>
               </div>
             </div>
+
+            {/* ── Currency (T20.1) ─────────────────────────────────────── */}
+            <BrandingSection label={t('currency.label')}>
+              <Select
+                value={currencySymbol}
+                onValueChange={handleCurrencyChange}
+              >
+                <SelectTrigger
+                  data-testid="branding-currency-select"
+                  className="h-auto rounded-[8px] border border-border bg-white px-3 py-[9px] text-left"
+                >
+                  <div className="flex flex-1 items-center gap-[10px]">
+                    <span
+                      data-testid="branding-currency-symbol"
+                      className="font-mono text-[15px] font-semibold text-text-default"
+                    >
+                      {currencySymbol}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="truncate text-[12px] text-text-muted">
+                        {CURRENCY_OPTIONS.find(
+                          (c) => c.value === currencySymbol,
+                        )?.code ?? ''}{' '}
+                        ·{' '}
+                        {CURRENCY_OPTIONS.find(
+                          (c) => c.value === currencySymbol,
+                        )?.label ?? ''}
+                      </div>
+                    </div>
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCY_OPTIONS.map((c) => (
+                    <SelectItem
+                      key={c.value}
+                      value={c.value}
+                      data-testid={`branding-currency-option-${c.code.toLowerCase()}`}
+                    >
+                      <span className="mr-2 font-mono text-[14px] font-semibold">
+                        {c.value}
+                      </span>
+                      <span className="text-[11px] text-text-muted">
+                        {c.code} · {c.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </BrandingSection>
           </div>
         </BrandingCard>
       </div>
@@ -334,10 +468,12 @@ function HexInput({
   value,
   onChange,
   onCommit,
+  testId = 'branding-hex-input',
 }: {
   value: string;
   onChange: (next: string) => void;
   onCommit: (next: string) => void;
+  testId?: string;
 }) {
   // Track the draft separately so we don't normalize on every keystroke.
   const [draft, setDraft] = useState(value.replace(/^#/, '').toUpperCase());
@@ -354,7 +490,7 @@ function HexInput({
       />
       <span className="text-[12px] text-text-muted">#</span>
       <input
-        data-testid="branding-hex-input"
+        data-testid={testId}
         type="text"
         value={draft}
         maxLength={6}

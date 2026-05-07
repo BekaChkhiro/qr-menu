@@ -798,6 +798,12 @@
       "primaryColor": {
         "label": "Основной цвет"
       },
+      "accentColor": {
+        "label": "Акцентный цвет"
+      },
+      "currency": {
+        "label": "Валюта"
+      },
       "font": {
         "label": "Шрифт",
         "custom": "Кастом"

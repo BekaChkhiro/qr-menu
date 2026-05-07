@@ -798,6 +798,12 @@
       "primaryColor": {
         "label": "ძირითადი ფერი"
       },
+      "accentColor": {
+        "label": "აქცენტის ფერი"
+      },
+      "currency": {
+        "label": "ვალუტა"
+      },
       "font": {
         "label": "შრიფტი",
         "custom": "მორგებული"
