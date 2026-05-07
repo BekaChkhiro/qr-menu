@@ -149,6 +149,33 @@ test.describe('menu editor mobile (T17.3)', () => {
     await expect(page.getByTestId('mobile-preview-sheet')).toHaveCount(0);
   });
 
+  test('functional: swipe up expands preview sheet to full screen', async ({
+    page,
+  }) => {
+    const { menu } = await seedEditorAndLogin(page);
+    await page.goto(`/admin/menus/${menu.id}?tab=content`);
+
+    await page.getByTestId('mobile-preview-trigger').click();
+
+    const sheetContent = page.getByTestId('mobile-preview-sheet-content');
+    await expect(sheetContent).toBeVisible();
+    await expect(sheetContent).toHaveAttribute('data-expanded', 'false');
+
+    const handle = page.getByTestId('mobile-preview-drag-handle');
+    await handle.dispatchEvent('pointerdown', {
+      clientY: 620,
+      pointerType: 'touch',
+      isPrimary: true,
+    });
+    await handle.dispatchEvent('pointerup', {
+      clientY: 520,
+      pointerType: 'touch',
+      isPrimary: true,
+    });
+
+    await expect(sheetContent).toHaveAttribute('data-expanded', 'true');
+  });
+
   test('functional: tab bar overflows and scrolls horizontally on mobile', async (
     { page },
   ) => {
@@ -193,8 +220,9 @@ test.describe('menu editor mobile (T17.3)', () => {
     const width = await categoriesList.evaluate((el: HTMLElement) =>
       el.getBoundingClientRect().width,
     );
-    // On iPhone 13 (390px viewport), the list should be wider than 360px
-    // because it now fills the column.
-    expect(width).toBeGreaterThan(360);
+    // On iPhone 13 (390px viewport), the admin shell keeps 24px side padding,
+    // so a full-width single column lands in the mid-300px range.
+    expect(width).toBeGreaterThan(320);
+    expect(width).toBeLessThanOrEqual(390);
   });
 });

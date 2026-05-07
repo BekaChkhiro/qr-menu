@@ -1,6 +1,15 @@
 'use client';
 
-import { use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent,
+  type TouchEvent,
+} from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -68,6 +77,10 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
   // mutations that only invalidate lists the admin isn't rendering directly).
   const [previewVersion, setPreviewVersion] = useState(0);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewExpanded, setPreviewExpanded] = useState(false);
+  const [previewTouchStartY, setPreviewTouchStartY] = useState<number | null>(
+    null,
+  );
   useMenuRealtime(id, {
     onEvent: useCallback(() => {
       setPreviewVersion((v) => v + 1);
@@ -133,6 +146,56 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
       toast.success(publicUrl);
     }
   }, [menu]);
+
+  const handlePreviewOpenChange = useCallback((open: boolean) => {
+    setPreviewOpen(open);
+    if (!open) {
+      setPreviewExpanded(false);
+      setPreviewTouchStartY(null);
+    }
+  }, []);
+
+  const handlePreviewTouchStart = useCallback(
+    (event: TouchEvent<HTMLDivElement>) => {
+      setPreviewTouchStartY(event.touches[0]?.clientY ?? null);
+    },
+    [],
+  );
+
+  const handlePreviewTouchEnd = useCallback(
+    (event: TouchEvent<HTMLDivElement>) => {
+      if (previewTouchStartY == null) return;
+
+      const diff = event.changedTouches[0].clientY - previewTouchStartY;
+      if (diff < -60) {
+        setPreviewExpanded(true);
+      }
+
+      setPreviewTouchStartY(null);
+    },
+    [previewTouchStartY],
+  );
+
+  const handlePreviewPointerDown = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      setPreviewTouchStartY(event.clientY);
+    },
+    [],
+  );
+
+  const handlePreviewPointerUp = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      if (previewTouchStartY == null) return;
+
+      const diff = event.clientY - previewTouchStartY;
+      if (diff < -60) {
+        setPreviewExpanded(true);
+      }
+
+      setPreviewTouchStartY(null);
+    },
+    [previewTouchStartY],
+  );
 
   // ── Tab metadata (labels, hrefs) ───────────────────────────────────────────
   const tabs: EditorTab[] = useMemo(
@@ -277,7 +340,7 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
       {/* Mobile: floating preview button + bottom sheet */}
       {showPreview && (
         <div className="fixed bottom-20 right-4 z-40 lg:hidden">
-          <Sheet open={previewOpen} onOpenChange={setPreviewOpen}>
+          <Sheet open={previewOpen} onOpenChange={handlePreviewOpenChange}>
             <SheetTrigger asChild>
               <Button
                 variant="primary"
@@ -291,10 +354,21 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
             </SheetTrigger>
             <SheetContent
               side="bottom"
-              className="h-[92vh] rounded-t-[16px] px-4 pb-6 pt-2 lg:hidden"
+              className="h-[92vh] rounded-t-[16px] px-4 pb-6 pt-2 transition-[height,border-radius] duration-200 data-[expanded=true]:h-[100dvh] data-[expanded=true]:rounded-t-none lg:hidden"
               hideClose
+              data-expanded={previewExpanded ? 'true' : 'false'}
+              data-testid="mobile-preview-sheet-content"
             >
-              <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
+              <div
+                className="mx-auto mb-4 flex h-6 w-full touch-none items-center justify-center"
+                onTouchStart={handlePreviewTouchStart}
+                onTouchEnd={handlePreviewTouchEnd}
+                onPointerDown={handlePreviewPointerDown}
+                onPointerUp={handlePreviewPointerUp}
+                data-testid="mobile-preview-drag-handle"
+              >
+                <span className="h-1 w-10 rounded-full bg-border" />
+              </div>
               <SheetTitle className="sr-only">
                 {tEditor('preview.mobilePreviewTitle')}
               </SheetTitle>
