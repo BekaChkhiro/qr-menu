@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { useMemo, useState, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { signOut } from 'next-auth/react';
 import {
   Bell,
@@ -16,7 +16,9 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { LanguageSwitcher } from '@/components/shared/language-switcher';
 import { Breadcrumbs, type BreadcrumbItem } from '@/components/ui/breadcrumbs';
+import type { Locale } from '@/i18n/config';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -137,6 +139,7 @@ export function AdminTopBar({
 }: AdminTopBarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const locale = useLocale() as Locale;
   const t = useTranslations('admin.topbar');
 
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -228,6 +231,13 @@ export function AdminTopBar({
             ⌘K
           </kbd>
         </button>
+
+        <LanguageSwitcher
+          currentLocale={locale}
+          variant="compact"
+          className="h-[30px] px-2 text-[12px]"
+          triggerTestId="topbar-language-switcher"
+        />
 
         <button
           type="button"

@@ -19,10 +19,7 @@ test.describe('product drawer — variations tab (T14.3)', () => {
   test.describe.configure({ mode: 'serial' });
 
   test.beforeEach(async ({ context }, testInfo) => {
-    test.skip(
-      testInfo.project.name !== 'desktop',
-      'Desktop-only; mobile variant lands in T17.4',
-    );
+    test.skip(testInfo.project.name !== 'desktop', 'Desktop-only; mobile variant lands in T17.4');
     await resetDb();
     await context.clearCookies();
     await context.addCookies([
@@ -32,7 +29,7 @@ test.describe('product drawer — variations tab (T14.3)', () => {
 
   async function seedScenario(
     page: Page,
-    opts: { variations?: boolean } = {},
+    opts: { variations?: boolean } = {}
   ): Promise<{ menuId: string; productId: string; basePrice: number }> {
     const email = 'nino@cafelinville.ge';
     const user = await seedUser({
@@ -97,18 +94,11 @@ test.describe('product drawer — variations tab (T14.3)', () => {
     const firstCategory = page.getByTestId('category-row').first();
     await firstCategory.getByTestId('category-row-toggle').click();
     await expect(firstCategory).toHaveAttribute('data-expanded', 'true');
-    await page
-      .getByTestId('product-row')
-      .first()
-      .getByTestId('product-kebab-trigger')
-      .click();
-    await page.getByTestId('product-kebab-edit').click();
+    await page.getByTestId('product-row').first().getByTestId('product-action-edit').click();
     await expect(page.getByTestId('product-drawer')).toBeVisible();
     // Switch to Variations tab.
     await page.getByTestId('product-drawer-tab-variations').click();
-    await expect(
-      page.getByTestId('product-drawer-variations'),
-    ).toBeVisible();
+    await expect(page.getByTestId('product-drawer-variations')).toBeVisible();
   }
 
   // ── Visual ────────────────────────────────────────────────────────────────
@@ -118,9 +108,7 @@ test.describe('product drawer — variations tab (T14.3)', () => {
     await openEditDrawerForFirstProduct(page);
 
     // Wait for the 3 rows to render.
-    await expect(page.getByTestId('product-drawer-variations-row')).toHaveCount(
-      3,
-    );
+    await expect(page.getByTestId('product-drawer-variations-row')).toHaveCount(3);
 
     await page.evaluate(() => document.fonts.ready);
     await page.addStyleTag({
@@ -131,7 +119,7 @@ test.describe('product drawer — variations tab (T14.3)', () => {
     const drawer = page.getByTestId('product-drawer');
     await expect(drawer).toHaveScreenshot(
       `product-drawer-variations-${testInfo.project.name}.png`,
-      { maxDiffPixelRatio: 0.05 },
+      { maxDiffPixelRatio: 0.05 }
     );
   });
 
@@ -144,9 +132,7 @@ test.describe('product drawer — variations tab (T14.3)', () => {
     await openEditDrawerForFirstProduct(page);
 
     // Empty state visible before any variations exist.
-    await expect(
-      page.getByTestId('product-drawer-variations-empty'),
-    ).toBeVisible();
+    await expect(page.getByTestId('product-drawer-variations-empty')).toBeVisible();
 
     // Trigger the add form.
     await page.getByTestId('product-drawer-variations-add').click();
@@ -155,15 +141,11 @@ test.describe('product drawer — variations tab (T14.3)', () => {
     await expect(addRow).toBeVisible();
 
     await page.getByTestId('product-drawer-variations-add-name').fill('Medium');
-    await page
-      .getByTestId('product-drawer-variations-add-modifier')
-      .fill('3');
+    await page.getByTestId('product-drawer-variations-add-modifier').fill('3');
 
     const [postResponse] = await Promise.all([
       page.waitForResponse(
-        (res) =>
-          /\/variations(?:\?|$)/.test(res.url()) &&
-          res.request().method() === 'POST',
+        (res) => /\/variations(?:\?|$)/.test(res.url()) && res.request().method() === 'POST'
       ),
       page.getByTestId('product-drawer-variations-add-save').click(),
     ]);
@@ -175,9 +157,7 @@ test.describe('product drawer — variations tab (T14.3)', () => {
     expect(Number(postBody.data.price)).toBeCloseTo(basePrice + 3, 2);
 
     // Row appears in the UI.
-    await expect(page.getByTestId('product-drawer-variations-row')).toHaveCount(
-      1,
-    );
+    await expect(page.getByTestId('product-drawer-variations-row')).toHaveCount(1);
 
     // DB confirms the write landed.
     const rows = await prismaTest.productVariation.findMany({
@@ -203,15 +183,11 @@ test.describe('product drawer — variations tab (T14.3)', () => {
 
     // Promote Large (row index 2) to default.
     const large = rows.nth(2);
-    const largeRadio = large.getByTestId(
-      'product-drawer-variations-default-radio',
-    );
+    const largeRadio = large.getByTestId('product-drawer-variations-default-radio');
 
     const [putResponse] = await Promise.all([
       page.waitForResponse(
-        (res) =>
-          res.url().includes(`/variations/`) &&
-          res.request().method() === 'PUT',
+        (res) => res.url().includes(`/variations/`) && res.request().method() === 'PUT'
       ),
       largeRadio.click(),
     ]);
@@ -248,12 +224,8 @@ test.describe('product drawer — variations tab (T14.3)', () => {
     });
     expect(initial.map((v) => v.nameKa)).toEqual(['Small', 'Medium', 'Large']);
 
-    const smallHandle = rows
-      .nth(0)
-      .getByTestId('product-drawer-variations-drag-handle');
-    const largeHandle = rows
-      .nth(2)
-      .getByTestId('product-drawer-variations-drag-handle');
+    const smallHandle = rows.nth(0).getByTestId('product-drawer-variations-drag-handle');
+    const largeHandle = rows.nth(2).getByTestId('product-drawer-variations-drag-handle');
 
     // Drag Small past Large using pointer steps (dnd-kit needs movement).
     const sBox = await smallHandle.boundingBox();
@@ -262,27 +234,14 @@ test.describe('product drawer — variations tab (T14.3)', () => {
 
     const [reorderResponse] = await Promise.all([
       page.waitForResponse(
-        (res) =>
-          res.url().includes('/variations/reorder') &&
-          res.request().method() === 'POST',
+        (res) => res.url().includes('/variations/reorder') && res.request().method() === 'POST'
       ),
       (async () => {
-        await page.mouse.move(
-          sBox.x + sBox.width / 2,
-          sBox.y + sBox.height / 2,
-        );
+        await page.mouse.move(sBox.x + sBox.width / 2, sBox.y + sBox.height / 2);
         await page.mouse.down();
         // Small nudge to trigger PointerSensor activation (distance: 8).
-        await page.mouse.move(
-          sBox.x + sBox.width / 2 + 10,
-          sBox.y + sBox.height / 2,
-          { steps: 4 },
-        );
-        await page.mouse.move(
-          lBox.x + lBox.width / 2,
-          lBox.y + lBox.height / 2 + 4,
-          { steps: 10 },
-        );
+        await page.mouse.move(sBox.x + sBox.width / 2 + 10, sBox.y + sBox.height / 2, { steps: 4 });
+        await page.mouse.move(lBox.x + lBox.width / 2, lBox.y + lBox.height / 2 + 4, { steps: 10 });
         await page.mouse.up();
       })(),
     ]);
@@ -297,9 +256,7 @@ test.describe('product drawer — variations tab (T14.3)', () => {
     expect(after.map((v) => v.nameKa)).toEqual(['Medium', 'Large', 'Small']);
   });
 
-  test('functional: helper text references the base price', async ({
-    page,
-  }) => {
+  test('functional: helper text references the base price', async ({ page }) => {
     const { basePrice } = await seedScenario(page);
     await openEditDrawerForFirstProduct(page);
 

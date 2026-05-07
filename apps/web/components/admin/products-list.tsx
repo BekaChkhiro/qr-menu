@@ -30,6 +30,7 @@ import {
   Pencil,
   Plus,
   Trash2,
+  type LucideIcon,
 } from 'lucide-react';
 import { toast } from '@/components/ui/toast';
 import {
@@ -43,12 +44,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  KebabMenu,
-  KebabMenuContent,
-  KebabMenuIconTrigger,
-  KebabMenuItem,
-  KebabMenuSeparator,
-} from '@/components/ui/kebab-menu';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProductDialog } from './product-dialog';
 import { UpgradePrompt } from './upgrade-prompt';
@@ -159,7 +159,7 @@ export function ProductsList({
   // drawer reflects in-flight updates (AR uploads, variations, etc.) without
   // forcing a page refresh.
   const liveProductToEdit = productToEdit
-    ? products?.find((p) => p.id === productToEdit.id) ?? productToEdit
+    ? (products?.find((p) => p.id === productToEdit.id) ?? productToEdit)
     : null;
   const createProduct = useCreateProduct(menuId);
   const updateProduct = useUpdateProduct(menuId, productToEdit?.id || '');
@@ -177,7 +177,7 @@ export function ProductsList({
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    }),
+    })
   );
 
   const otherCategories = categories.filter((c) => c.id !== categoryId);
@@ -274,11 +274,7 @@ export function ProductsList({
   return (
     <div className="space-y-2" data-testid="products-list" data-category-id={categoryId}>
       {hasProducts ? (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext
             items={products!.map((p) => p.id)}
             strategy={verticalListSortingStrategy}
@@ -325,10 +321,8 @@ export function ProductsList({
         data-can-add={canAddProduct ? 'true' : 'false'}
         className={cn(
           'inline-flex items-center gap-1.5 rounded-sm px-2 py-1.5 text-[12px] font-medium transition-colors',
-          canAddProduct
-            ? 'text-accent hover:bg-accent-soft'
-            : 'text-text-subtle hover:bg-chip',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1',
+          canAddProduct ? 'text-accent hover:bg-accent-soft' : 'text-text-subtle hover:bg-chip',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1'
         )}
       >
         {canAddProduct ? (
@@ -436,8 +430,9 @@ function SortableProductItem({
   const tA11y = useTranslations('common.accessibility');
   const tActions = useTranslations('actions');
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: product.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: product.id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -466,11 +461,7 @@ function SortableProductItem({
           aria-label={tA11y('dragHandle')}
           data-testid="product-drag-handle"
         >
-          <GripVertical
-            className="h-[12px] w-[12px]"
-            strokeWidth={1.5}
-            aria-hidden="true"
-          />
+          <GripVertical className="h-[12px] w-[12px]" strokeWidth={1.5} aria-hidden="true" />
         </button>
 
         <ProductThumb product={product} />
@@ -488,20 +479,13 @@ function SortableProductItem({
                 className="inline-flex shrink-0 items-center gap-0.5 rounded-sm bg-chip px-1 py-0.5 text-[9.5px] font-medium text-text-muted"
                 data-testid="product-hidden-badge"
               >
-                <EyeOff
-                  className="h-[9px] w-[9px]"
-                  aria-hidden="true"
-                  strokeWidth={1.5}
-                />
+                <EyeOff className="h-[9px] w-[9px]" aria-hidden="true" strokeWidth={1.5} />
                 {tStatus('hidden')}
               </span>
             )}
           </div>
           {product.descriptionKa ? (
-            <p
-              className="truncate text-[10.5px] text-text-muted"
-              data-testid="product-subtitle"
-            >
+            <p className="truncate text-[10.5px] text-text-muted" data-testid="product-subtitle">
               {product.descriptionKa}
             </p>
           ) : variationCount > 0 ? (
@@ -519,64 +503,120 @@ function SortableProductItem({
           <span className="ml-[1px] font-normal text-text-muted">₾</span>
         </span>
 
-        <KebabMenu>
-          <KebabMenuIconTrigger
-            label={t('actionsLabel', { name: product.nameKa })}
-            data-testid="product-kebab-trigger"
-            className="h-6 w-6"
+        <div
+          className="flex shrink-0 items-center gap-1"
+          aria-label={t('actionsLabel', { name: product.nameKa })}
+        >
+          <ProductActionButton
+            label={tActions('edit')}
+            icon={Pencil}
+            onClick={onEdit}
+            testId="product-action-edit"
           />
-          <KebabMenuContent>
-            <KebabMenuItem
-              icon={Pencil}
-              onSelect={onEdit}
-              data-testid="product-kebab-edit"
-            >
-              {tActions('edit')}
-            </KebabMenuItem>
-            <KebabMenuItem
-              icon={Copy}
-              onSelect={onDuplicate}
-              disabled={isDuplicating}
-              data-testid="product-kebab-duplicate"
-            >
-              {t('actions.duplicate')}
-            </KebabMenuItem>
-            {otherCategories.length > 0 && (
-              <>
-                <KebabMenuSeparator />
-                <div
-                  className="px-[10px] pb-[3px] pt-[4px] text-[10px] font-semibold uppercase tracking-wide text-text-subtle"
-                  aria-hidden="true"
+          <ProductActionButton
+            label={t('actions.duplicate')}
+            icon={Copy}
+            onClick={onDuplicate}
+            disabled={isDuplicating}
+            testId="product-action-duplicate"
+          />
+          {otherCategories.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  disabled={isMoving}
+                  aria-label={t('moveToLabel')}
+                  title={t('moveToLabel')}
+                  data-testid="product-action-move-trigger"
+                  className={[
+                    'flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-text-muted transition-colors',
+                    'hover:border-border-soft hover:bg-chip hover:text-text-default',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1',
+                    'disabled:pointer-events-none disabled:opacity-40',
+                  ].join(' ')}
                 >
+                  <FolderInput size={13} strokeWidth={1.5} aria-hidden="true" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                sideOffset={6}
+                className="w-[180px] rounded-card border-border bg-card p-1 shadow-md"
+              >
+                <div className="px-2 py-[6px] text-[10px] font-semibold uppercase tracking-wide text-text-subtle">
                   {t('moveToLabel')}
                 </div>
                 {otherCategories.slice(0, 8).map((cat) => (
-                  <KebabMenuItem
+                  <DropdownMenuItem
                     key={cat.id}
-                    icon={FolderInput}
                     onSelect={() => onMoveTo(cat.id)}
                     disabled={isMoving}
-                    data-testid="product-kebab-move-to"
+                    data-testid="product-action-move-to"
                     data-target-category-id={cat.id}
+                    className="cursor-pointer rounded-md px-2 py-[7px] text-[12.5px] focus:bg-chip"
                   >
-                    {cat.nameKa}
-                  </KebabMenuItem>
+                    <FolderInput
+                      size={13}
+                      strokeWidth={1.5}
+                      className="text-text-muted"
+                      aria-hidden="true"
+                    />
+                    <span className="truncate">{cat.nameKa}</span>
+                  </DropdownMenuItem>
                 ))}
-              </>
-            )}
-            <KebabMenuSeparator />
-            <KebabMenuItem
-              icon={Trash2}
-              tone="destructive"
-              onSelect={onDelete}
-              data-testid="product-kebab-delete"
-            >
-              {tActions('delete')}
-            </KebabMenuItem>
-          </KebabMenuContent>
-        </KebabMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          <ProductActionButton
+            label={tActions('delete')}
+            icon={Trash2}
+            onClick={onDelete}
+            tone="danger"
+            testId="product-action-delete"
+          />
+        </div>
       </div>
     </li>
+  );
+}
+
+interface ProductActionButtonProps {
+  label: string;
+  icon: LucideIcon;
+  onClick: () => void;
+  disabled?: boolean;
+  tone?: 'default' | 'danger';
+  testId: string;
+}
+
+function ProductActionButton({
+  label,
+  icon: Icon,
+  onClick,
+  disabled = false,
+  tone = 'default',
+  testId,
+}: ProductActionButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      data-testid={testId}
+      className={[
+        'flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1',
+        'disabled:pointer-events-none disabled:opacity-40',
+        tone === 'danger'
+          ? 'text-danger hover:border-danger/40 hover:bg-danger-soft'
+          : 'text-text-muted hover:border-border-soft hover:bg-chip hover:text-text-default',
+      ].join(' ')}
+    >
+      <Icon size={13} strokeWidth={1.5} aria-hidden="true" />
+    </button>
   );
 }
 
@@ -588,13 +628,7 @@ function ProductThumb({ product }: { product: Product }) {
         data-testid="product-thumb"
         data-thumb-kind="image"
       >
-        <Image
-          src={product.imageUrl}
-          alt=""
-          fill
-          sizes="28px"
-          className="object-cover"
-        />
+        <Image src={product.imageUrl} alt="" fill sizes="28px" className="object-cover" />
       </span>
     );
   }

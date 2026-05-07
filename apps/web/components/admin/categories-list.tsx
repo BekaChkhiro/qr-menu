@@ -46,18 +46,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import {
-  KebabMenu,
-  KebabMenuContent,
-  KebabMenuIconTrigger,
-  KebabMenuItem,
-  KebabMenuSeparator,
-} from '@/components/ui/kebab-menu';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { CategoryDialog } from './category-dialog';
 import { ProductsList } from './products-list';
 import { UpgradePrompt } from './upgrade-prompt';
@@ -117,7 +106,7 @@ export function CategoriesList({
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    }),
+    })
   );
 
   const filteredCategories = useMemo(() => {
@@ -127,7 +116,7 @@ export function CategoriesList({
     return categories.filter((c) =>
       [c.nameKa, c.nameEn, c.nameRu]
         .filter((n): n is string => Boolean(n))
-        .some((n) => n.toLowerCase().includes(q)),
+        .some((n) => n.toLowerCase().includes(q))
     );
   }, [categories, searchQuery]);
 
@@ -215,7 +204,7 @@ export function CategoriesList({
   if (error) {
     return (
       <div
-        className="flex w-full lg:w-[360px] lg:shrink-0 flex-col items-center justify-center self-start rounded-[12px] border border-danger-soft bg-danger-soft/30 p-6 text-center"
+        className="flex w-full flex-col items-center justify-center self-start rounded-[12px] border border-danger-soft bg-danger-soft/30 p-6 text-center"
         data-testid="categories-list-error"
       >
         <p className="text-[13px] text-danger">{error.message}</p>
@@ -231,7 +220,7 @@ export function CategoriesList({
 
   return (
     <div
-      className="flex w-full lg:w-[360px] lg:shrink-0 flex-col gap-3.5 self-start rounded-[12px] border border-border bg-sidebar p-4"
+      className="flex w-full flex-col gap-3.5 self-start rounded-[12px] border border-border bg-sidebar p-4"
       data-testid="categories-list"
     >
       {/* Search */}
@@ -260,9 +249,7 @@ export function CategoriesList({
           data-testid="categories-empty"
         >
           <FolderOpen className="h-8 w-8 text-text-subtle" aria-hidden="true" />
-          <h4 className="mt-3 text-[13px] font-semibold text-text-default">
-            {t('empty.title')}
-          </h4>
+          <h4 className="mt-3 text-[13px] font-semibold text-text-default">{t('empty.title')}</h4>
           <p className="mt-1 text-[12px] text-text-muted">{t('empty.description')}</p>
         </div>
       )}
@@ -278,11 +265,7 @@ export function CategoriesList({
       )}
 
       {hasCategories && !isFilteredEmpty && (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext
             items={filteredCategories.map((c) => c.id)}
             strategy={verticalListSortingStrategy}
@@ -444,9 +427,7 @@ function SortableCategoryItem({
         <div
           className={[
             'flex items-center gap-2 rounded-md px-2.5 py-[9px] transition-colors',
-            isExpanded
-              ? 'border border-border bg-card'
-              : 'border border-transparent hover:bg-chip',
+            isExpanded ? 'border border-border bg-card' : 'border border-transparent hover:bg-chip',
           ].join(' ')}
         >
           <button
@@ -495,39 +476,31 @@ function SortableCategoryItem({
             </button>
           </CollapsibleTrigger>
 
-          <KebabMenu>
-            <KebabMenuIconTrigger
-              label={t('actionsLabel', { name: displayName })}
-              data-testid="category-kebab-trigger"
-              className="h-7 w-7"
+          <div
+            className="flex shrink-0 items-center gap-1"
+            aria-label={t('actionsLabel', { name: displayName })}
+          >
+            <CategoryActionButton
+              label={tActions('edit')}
+              icon={Pencil}
+              onClick={onEdit}
+              testId="category-action-edit"
             />
-            <KebabMenuContent>
-              <KebabMenuItem
-                icon={Pencil}
-                onSelect={() => onEdit()}
-                data-testid="category-kebab-edit"
-              >
-                {tActions('edit')}
-              </KebabMenuItem>
-              <KebabMenuItem
-                icon={Copy}
-                onSelect={() => onDuplicate()}
-                disabled={isDuplicating}
-                data-testid="category-kebab-duplicate"
-              >
-                {t('actions.duplicate')}
-              </KebabMenuItem>
-              <KebabMenuSeparator />
-              <KebabMenuItem
-                icon={Trash2}
-                tone="destructive"
-                onSelect={() => onDelete()}
-                data-testid="category-kebab-delete"
-              >
-                {tActions('delete')}
-              </KebabMenuItem>
-            </KebabMenuContent>
-          </KebabMenu>
+            <CategoryActionButton
+              label={t('actions.duplicate')}
+              icon={Copy}
+              onClick={onDuplicate}
+              disabled={isDuplicating}
+              testId="category-action-duplicate"
+            />
+            <CategoryActionButton
+              label={tActions('delete')}
+              icon={Trash2}
+              onClick={onDelete}
+              tone="danger"
+              testId="category-action-delete"
+            />
+          </div>
         </div>
 
         <CollapsibleContent data-testid="category-products">
@@ -544,6 +517,48 @@ function SortableCategoryItem({
         </CollapsibleContent>
       </Collapsible>
     </li>
+  );
+}
+
+interface CategoryActionButtonProps {
+  label: string;
+  icon: typeof Pencil;
+  onClick: () => void;
+  disabled?: boolean;
+  tone?: 'default' | 'danger';
+  testId: string;
+}
+
+function CategoryActionButton({
+  label,
+  icon: Icon,
+  onClick,
+  disabled = false,
+  tone = 'default',
+  testId,
+}: CategoryActionButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      data-testid={testId}
+      className={[
+        'flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1',
+        'disabled:pointer-events-none disabled:opacity-40',
+        tone === 'danger'
+          ? 'text-danger hover:border-danger/40 hover:bg-danger-soft'
+          : 'text-text-muted hover:border-border-soft hover:bg-chip hover:text-text-default',
+      ].join(' ')}
+    >
+      <Icon size={13} strokeWidth={1.5} aria-hidden="true" />
+    </button>
   );
 }
 
@@ -574,7 +589,7 @@ function CategoryIcon({ category, emoji }: { category: Category; emoji: string }
 function CategoriesListSkeleton() {
   return (
     <div
-      className="flex w-full lg:w-[360px] lg:shrink-0 flex-col gap-3.5 self-start rounded-[12px] border border-border bg-sidebar p-4"
+      className="flex w-full flex-col gap-3.5 self-start rounded-[12px] border border-border bg-sidebar p-4"
       data-testid="categories-list-skeleton"
     >
       <Skeleton className="h-8 w-full rounded-md" />

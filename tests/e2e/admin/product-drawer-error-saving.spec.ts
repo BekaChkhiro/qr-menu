@@ -20,7 +20,7 @@ test.describe('product drawer — error + saving states (T14.6)', () => {
   test.beforeEach(async ({ context }, testInfo) => {
     test.skip(
       testInfo.project.name !== 'desktop',
-      'Desktop-only; mobile bottom-sheet variant lands in T17.4',
+      'Desktop-only; mobile bottom-sheet variant lands in T17.4'
     );
     await resetDb();
     await context.clearCookies();
@@ -56,12 +56,7 @@ test.describe('product drawer — error + saving states (T14.6)', () => {
 
   async function openEditDrawerForFirstProduct(page: Page) {
     await expandFirstCategory(page);
-    await page
-      .getByTestId('product-row')
-      .first()
-      .getByTestId('product-kebab-trigger')
-      .click();
-    await page.getByTestId('product-kebab-edit').click();
+    await page.getByTestId('product-row').first().getByTestId('product-action-edit').click();
     await expect(page.getByTestId('product-drawer')).toBeVisible();
   }
 
@@ -103,7 +98,7 @@ test.describe('product drawer — error + saving states (T14.6)', () => {
           return;
         }
         await route.continue();
-      },
+      }
     );
 
     await page.getByTestId('product-drawer-save').click();
@@ -113,15 +108,12 @@ test.describe('product drawer — error + saving states (T14.6)', () => {
     await expect(banner).toContainText("Couldn't save product");
 
     const drawer = page.getByTestId('product-drawer');
-    await expect(drawer).toHaveScreenshot(
-      `product-drawer-error-${testInfo.project.name}.png`,
-      { maxDiffPixelRatio: 0.05 },
-    );
+    await expect(drawer).toHaveScreenshot(`product-drawer-error-${testInfo.project.name}.png`, {
+      maxDiffPixelRatio: 0.05,
+    });
   });
 
-  test('visual: save button in saving state (in-flight)', async ({
-    page,
-  }, testInfo) => {
+  test('visual: save button in saving state (in-flight)', async ({ page }, testInfo) => {
     const { menu } = await seedAndOpenEditor(page);
     await openEditDrawerForFirstProduct(page);
     await suppressAnimations(page);
@@ -138,7 +130,7 @@ test.describe('product drawer — error + saving states (T14.6)', () => {
           return;
         }
         await route.continue();
-      },
+      }
     );
 
     // Fire save without awaiting; the request will sit pending during the delay
@@ -149,19 +141,16 @@ test.describe('product drawer — error + saving states (T14.6)', () => {
     await expect(saveBtn).toContainText('Saving…');
 
     const drawer = page.getByTestId('product-drawer');
-    await expect(drawer).toHaveScreenshot(
-      `product-drawer-saving-${testInfo.project.name}.png`,
-      { maxDiffPixelRatio: 0.05 },
-    );
+    await expect(drawer).toHaveScreenshot(`product-drawer-saving-${testInfo.project.name}.png`, {
+      maxDiffPixelRatio: 0.05,
+    });
 
     await savePromise;
   });
 
   // ── Functional: empty name submit ──────────────────────────────────────────
 
-  test('functional: submit with empty name shows inline name error', async ({
-    page,
-  }) => {
+  test('functional: submit with empty name shows inline name error', async ({ page }) => {
     await seedAndOpenEditor(page);
     await openEditDrawerForFirstProduct(page);
 
@@ -202,13 +191,12 @@ test.describe('product drawer — error + saving states (T14.6)', () => {
           return;
         }
         await route.continue();
-      },
+      }
     );
 
     const responsePromise = page.waitForResponse(
       (res) =>
-        res.url().includes(`/api/menus/${menu.id}/products/`) &&
-        res.request().method() === 'PATCH',
+        res.url().includes(`/api/menus/${menu.id}/products/`) && res.request().method() === 'PATCH'
     );
 
     await page.getByTestId('product-drawer-save').click();
@@ -222,9 +210,7 @@ test.describe('product drawer — error + saving states (T14.6)', () => {
     expect(response.status()).toBe(200);
 
     // Success toast surfaces
-    await expect(
-      page.getByText('Product updated successfully'),
-    ).toBeVisible();
+    await expect(page.getByText('Product updated successfully')).toBeVisible();
 
     // Drawer closes
     await expect(page.getByTestId('product-drawer')).toBeHidden();
@@ -259,7 +245,7 @@ test.describe('product drawer — error + saving states (T14.6)', () => {
           return;
         }
         await route.continue();
-      },
+      }
     );
 
     const nameInput = page.getByTestId('product-basics-name-input');

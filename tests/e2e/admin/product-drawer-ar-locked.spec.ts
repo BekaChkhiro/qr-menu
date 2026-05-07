@@ -32,7 +32,7 @@ test.describe('product drawer — AR locked (T18.4)', () => {
   test.beforeEach(async ({ context }, testInfo) => {
     test.skip(
       testInfo.project.name !== 'desktop',
-      'Desktop-only; mobile bottom-sheet variant lands in T17 mobile sweep',
+      'Desktop-only; mobile bottom-sheet variant lands in T17 mobile sweep'
     );
     await resetDb();
     await context.clearCookies();
@@ -41,10 +41,7 @@ test.describe('product drawer — AR locked (T18.4)', () => {
     ]);
   });
 
-  async function seedAndOpenEditor(
-    page: Page,
-    plan: 'FREE' | 'STARTER' | 'PRO' = 'STARTER',
-  ) {
+  async function seedAndOpenEditor(page: Page, plan: 'FREE' | 'STARTER' | 'PRO' = 'STARTER') {
     const email = 'nino@cafelinville.ge';
     const user = await seedUser({ plan, name: 'Nino Kapanadze', email });
     const menu = await seedMenu({
@@ -67,12 +64,7 @@ test.describe('product drawer — AR locked (T18.4)', () => {
 
   async function openEditDrawerForFirstProduct(page: Page) {
     await expandFirstCategory(page);
-    await page
-      .getByTestId('product-row')
-      .first()
-      .getByTestId('product-kebab-trigger')
-      .click();
-    await page.getByTestId('product-kebab-edit').click();
+    await page.getByTestId('product-row').first().getByTestId('product-action-edit').click();
     await expect(page.getByTestId('product-drawer')).toBeVisible();
   }
 
@@ -80,7 +72,7 @@ test.describe('product drawer — AR locked (T18.4)', () => {
     await page.getByTestId('product-drawer-tab-arModel').click();
     await expect(page.getByTestId('product-drawer-tab-arModel')).toHaveAttribute(
       'data-state',
-      'active',
+      'active'
     );
   }
 
@@ -106,10 +98,9 @@ test.describe('product drawer — AR locked (T18.4)', () => {
     await expect(overlay).toBeVisible();
 
     const drawer = page.getByTestId('product-drawer');
-    await expect(drawer).toHaveScreenshot(
-      `product-drawer-ar-locked-${testInfo.project.name}.png`,
-      { maxDiffPixelRatio: 0.05 },
-    );
+    await expect(drawer).toHaveScreenshot(`product-drawer-ar-locked-${testInfo.project.name}.png`, {
+      maxDiffPixelRatio: 0.05,
+    });
   });
 
   // ── Functional: STARTER tab shows PRO lock badge + upgrade screen ──────────
@@ -129,19 +120,11 @@ test.describe('product drawer — AR locked (T18.4)', () => {
     // Locked overlay visible, upload UI absent.
     const locked = page.getByTestId('product-drawer-ar-locked');
     await expect(locked).toBeVisible();
-    await expect(
-      page.getByTestId('product-drawer-ar-locked-overlay'),
-    ).toBeVisible();
+    await expect(page.getByTestId('product-drawer-ar-locked-overlay')).toBeVisible();
     await expect(page.getByTestId('product-drawer-ar')).toHaveCount(0);
-    await expect(page.getByTestId('product-drawer-ar-glb-dropzone')).toHaveCount(
-      0,
-    );
-    await expect(
-      page.getByTestId('product-drawer-ar-usdz-dropzone'),
-    ).toHaveCount(0);
-    await expect(
-      page.getByTestId('product-drawer-ar-enable-toggle'),
-    ).toHaveCount(0);
+    await expect(page.getByTestId('product-drawer-ar-glb-dropzone')).toHaveCount(0);
+    await expect(page.getByTestId('product-drawer-ar-usdz-dropzone')).toHaveCount(0);
+    await expect(page.getByTestId('product-drawer-ar-enable-toggle')).toHaveCount(0);
   });
 
   // ── Functional: blurred preview is non-interactive ─────────────────────────
@@ -162,10 +145,7 @@ test.describe('product drawer — AR locked (T18.4)', () => {
     // the CSS truly lets the click pass through.
     let sawMutation = false;
     page.on('request', (req) => {
-      if (
-        req.method() === 'PUT' &&
-        /\/api\/menus\/[^/]+\/products\/[^/]+/.test(req.url())
-      ) {
+      if (req.method() === 'PUT' && /\/api\/menus\/[^/]+\/products\/[^/]+/.test(req.url())) {
         sawMutation = true;
       }
     });
@@ -177,9 +157,7 @@ test.describe('product drawer — AR locked (T18.4)', () => {
 
   // ── Functional: CTA navigates to /admin/settings/billing ───────────────────
 
-  test('functional: Upgrade to PRO CTA navigates to /admin/settings/billing', async ({
-    page,
-  }) => {
+  test('functional: Upgrade to PRO CTA navigates to /admin/settings/billing', async ({ page }) => {
     await seedAndOpenEditor(page, 'STARTER');
     await openEditDrawerForFirstProduct(page);
     await goToArTab(page);
@@ -194,27 +172,19 @@ test.describe('product drawer — AR locked (T18.4)', () => {
 
   // ── Functional: FREE plan also sees the locked state ───────────────────────
 
-  test('functional: FREE plan also shows the locked overlay (AR is PRO-only)', async ({
-    page,
-  }) => {
+  test('functional: FREE plan also shows the locked overlay (AR is PRO-only)', async ({ page }) => {
     await seedAndOpenEditor(page, 'FREE');
     await openEditDrawerForFirstProduct(page);
     await goToArTab(page);
 
     await expect(page.getByTestId('product-drawer-ar-locked')).toBeVisible();
-    await expect(
-      page.getByTestId('product-drawer-ar-locked-overlay'),
-    ).toBeVisible();
-    await expect(page.getByTestId('product-drawer-ar-glb-dropzone')).toHaveCount(
-      0,
-    );
+    await expect(page.getByTestId('product-drawer-ar-locked-overlay')).toBeVisible();
+    await expect(page.getByTestId('product-drawer-ar-glb-dropzone')).toHaveCount(0);
   });
 
   // ── Functional: direct API call to /api/upload/3d returns 403 ──────────────
 
-  test('functional: STARTER session POST /api/upload/3d returns 403', async ({
-    page,
-  }) => {
+  test('functional: STARTER session POST /api/upload/3d returns 403', async ({ page }) => {
     await seedAndOpenEditor(page, 'STARTER');
 
     const response = await page.request.post('/api/upload/3d', {
@@ -250,14 +220,11 @@ test.describe('product drawer — AR locked (T18.4)', () => {
     });
     if (!product) throw new Error('Seeded product not found');
 
-    const response = await page.request.fetch(
-      `/api/menus/${menu.id}/products/${product.id}`,
-      {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        data: JSON.stringify({ arEnabled: true }),
-      },
-    );
+    const response = await page.request.fetch(`/api/menus/${menu.id}/products/${product.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      data: JSON.stringify({ arEnabled: true }),
+    });
 
     expect(response.status()).toBe(403);
     const body = (await response.json()) as {

@@ -21,7 +21,7 @@ test.describe('product drawer — allergens tab (T14.4)', () => {
   test.beforeEach(async ({ context }, testInfo) => {
     test.skip(
       testInfo.project.name !== 'desktop',
-      'Desktop-only; mobile bottom-sheet variant lands in T17.4',
+      'Desktop-only; mobile bottom-sheet variant lands in T17.4'
     );
     await resetDb();
     await context.clearCookies();
@@ -30,10 +30,7 @@ test.describe('product drawer — allergens tab (T14.4)', () => {
     ]);
   });
 
-  async function seedAndOpenEditor(
-    page: Page,
-    plan: 'FREE' | 'STARTER' | 'PRO' = 'PRO',
-  ) {
+  async function seedAndOpenEditor(page: Page, plan: 'FREE' | 'STARTER' | 'PRO' = 'PRO') {
     const email = 'nino@cafelinville.ge';
     const user = await seedUser({
       plan,
@@ -60,12 +57,7 @@ test.describe('product drawer — allergens tab (T14.4)', () => {
 
   async function openEditDrawerForFirstProduct(page: Page) {
     await expandFirstCategory(page);
-    await page
-      .getByTestId('product-row')
-      .first()
-      .getByTestId('product-kebab-trigger')
-      .click();
-    await page.getByTestId('product-kebab-edit').click();
+    await page.getByTestId('product-row').first().getByTestId('product-action-edit').click();
     await expect(page.getByTestId('product-drawer')).toBeVisible();
   }
 
@@ -73,7 +65,7 @@ test.describe('product drawer — allergens tab (T14.4)', () => {
     await page.getByTestId('product-drawer-tab-allergens').click();
     await expect(page.getByTestId('product-drawer-tab-allergens')).toHaveAttribute(
       'data-state',
-      'active',
+      'active'
     );
   }
 
@@ -119,23 +111,19 @@ test.describe('product drawer — allergens tab (T14.4)', () => {
 
     // Wait for tiles to render + reflect pre-seeded state
     await expect(
-      page
-        .getByTestId('product-drawer-allergens-tile')
-        .filter({ hasText: 'Gluten' }),
+      page.getByTestId('product-drawer-allergens-tile').filter({ hasText: 'Gluten' })
     ).toHaveAttribute('data-active', 'true');
 
     const drawer = page.getByTestId('product-drawer');
     await expect(drawer).toHaveScreenshot(
       `product-drawer-allergens-pro-${testInfo.project.name}.png`,
-      { maxDiffPixelRatio: 0.05 },
+      { maxDiffPixelRatio: 0.05 }
     );
   });
 
   // ── Functional: toggle allergen persists to product.allergens ──────────────
 
-  test('functional: toggling Gluten on persists to product.allergens', async ({
-    page,
-  }) => {
+  test('functional: toggling Gluten on persists to product.allergens', async ({ page }) => {
     const { menu } = await seedAndOpenEditor(page, 'PRO');
     const productId = await getFirstProductId(menu.id);
 
@@ -157,11 +145,9 @@ test.describe('product drawer — allergens tab (T14.4)', () => {
 
     const responsePromise = page.waitForResponse(
       (res) =>
-        res
-          .url()
-          .includes(`/api/menus/${menu.id}/products/${productId}`) &&
+        res.url().includes(`/api/menus/${menu.id}/products/${productId}`) &&
         res.request().method() === 'PUT' &&
-        res.status() === 200,
+        res.status() === 200
     );
 
     await glutenTile.click();
@@ -200,8 +186,8 @@ test.describe('product drawer — allergens tab (T14.4)', () => {
       .filter({ has: page.locator('[data-dietary="glutenFree"]') })
       .or(
         page.locator(
-          '[data-testid="product-drawer-allergens-dietary-label"][data-dietary="glutenFree"]',
-        ),
+          '[data-testid="product-drawer-allergens-dietary-label"][data-dietary="glutenFree"]'
+        )
       );
 
     await expect(glutenFreeLabel).toHaveAttribute('data-checked', 'true');
@@ -214,11 +200,9 @@ test.describe('product drawer — allergens tab (T14.4)', () => {
 
     const putPromise = page.waitForResponse(
       (res) =>
-        res
-          .url()
-          .includes(`/api/menus/${menu.id}/products/${productId}`) &&
+        res.url().includes(`/api/menus/${menu.id}/products/${productId}`) &&
         res.request().method() === 'PUT' &&
-        res.status() === 200,
+        res.status() === 200
     );
     await glutenTile.click();
     await putPromise;
@@ -229,9 +213,7 @@ test.describe('product drawer — allergens tab (T14.4)', () => {
 
   // ── Functional: Halal dietary checkbox persists ────────────────────────────
 
-  test('functional: toggling Halal persists to product.isHalal', async ({
-    page,
-  }) => {
+  test('functional: toggling Halal persists to product.isHalal', async ({ page }) => {
     const { menu } = await seedAndOpenEditor(page, 'PRO');
     const productId = await getFirstProductId(menu.id);
 
@@ -239,24 +221,20 @@ test.describe('product drawer — allergens tab (T14.4)', () => {
     await goToAllergensTab(page);
 
     const halalLabel = page.locator(
-      '[data-testid="product-drawer-allergens-dietary-label"][data-dietary="halal"]',
+      '[data-testid="product-drawer-allergens-dietary-label"][data-dietary="halal"]'
     );
     await expect(halalLabel).toHaveAttribute('data-checked', 'false');
 
     const putPromise = page.waitForResponse(
       (res) =>
-        res
-          .url()
-          .includes(`/api/menus/${menu.id}/products/${productId}`) &&
+        res.url().includes(`/api/menus/${menu.id}/products/${productId}`) &&
         res.request().method() === 'PUT' &&
-        res.status() === 200,
+        res.status() === 200
     );
     // Click the checkbox primitive directly — Radix renders it as a button,
     // which isn't an input so clicking the wrapping <label> doesn't reliably
     // forward the click in all browsers.
-    await halalLabel
-      .getByTestId('product-drawer-allergens-dietary-input')
-      .click();
+    await halalLabel.getByTestId('product-drawer-allergens-dietary-input').click();
     await putPromise;
 
     const after = await prismaTest.product.findUnique({

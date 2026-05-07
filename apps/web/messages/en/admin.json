@@ -21,7 +21,11 @@
     "upgrade": "Upgrade",
     "planLabel": "plan",
     "upgradeToPro": "Upgrade to PRO",
-    "mobileNavLabel": "Primary navigation"
+    "mobileNavLabel": "Primary navigation",
+    "menuCount": "{count, plural, =0 {No menus yet} one {# menu} other {# menus}}",
+    "noMenus": "No menus yet. Create your first menu to show it here.",
+    "createMenu": "Create menu",
+    "viewAllMenus": "View all menus"
   },
   "topbar": {
     "searchPlaceholder": "Search menus, products, settings…",

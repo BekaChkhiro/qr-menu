@@ -20,10 +20,7 @@ import { Segmented, SegmentedItem } from '@/components/ui/segmented';
 import { MenuCard } from './menu-card';
 import { MenuGridSkeleton } from './menu-card-skeleton';
 import { MenusTable, type MenusTableSort } from './menus-table';
-import {
-  MenusFilterChips,
-  type MenusFilterKey,
-} from './menus-filter-chips';
+import { MenusFilterChips, type MenusFilterKey } from './menus-filter-chips';
 import { useMenus, useDeleteMenu, usePublishMenu } from '@/hooks/use-menus';
 import type { Menu } from '@/types/menu';
 
@@ -64,7 +61,7 @@ export function MenusList() {
   }, [view]);
 
   const handleEdit = (menu: Menu) => {
-    router.push(`/admin/menus/${menu.id}/edit`);
+    router.push(`/admin/menus/${menu.id}`);
   };
 
   const handleDelete = (menu: Menu) => {
@@ -92,11 +89,7 @@ export function MenusList() {
     return (
       <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center">
         <p className="text-destructive">{error.message}</p>
-        <Button
-          variant="outline"
-          className="mt-4"
-          onClick={() => window.location.reload()}
-        >
+        <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
           {tActions('tryAgain')}
         </Button>
       </div>
@@ -194,16 +187,11 @@ export function MenusList() {
       )}
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={!!menuToDelete}
-        onOpenChange={(open) => !open && setMenuToDelete(null)}
-      >
+      <AlertDialog open={!!menuToDelete} onOpenChange={(open) => !open && setMenuToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('delete.title')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('delete.message')}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t('delete.message')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteMenu.isPending}>
@@ -221,10 +209,7 @@ export function MenusList() {
       </AlertDialog>
 
       {/* Publish/Unpublish Confirmation Dialog */}
-      <PublishDialog
-        menu={menuToToggle}
-        onClose={() => setMenuToToggle(null)}
-      />
+      <PublishDialog menu={menuToToggle} onClose={() => setMenuToToggle(null)} />
     </>
   );
 }
@@ -243,12 +228,7 @@ function MenuCardWithPublish({
   onTogglePublish,
 }: MenuCardWithPublishProps) {
   return (
-    <MenuCard
-      menu={menu}
-      onEdit={onEdit}
-      onDelete={onDelete}
-      onTogglePublish={onTogglePublish}
-    />
+    <MenuCard menu={menu} onEdit={onEdit} onDelete={onDelete} onTogglePublish={onTogglePublish} />
   );
 }
 
@@ -283,15 +263,12 @@ function PublishDialog({ menu, onClose }: PublishDialogProps) {
           <AlertDialogCancel disabled={publishMenu.isPending}>
             {tActions('cancel')}
           </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleConfirm}
-            disabled={publishMenu.isPending}
-          >
+          <AlertDialogAction onClick={handleConfirm} disabled={publishMenu.isPending}>
             {publishMenu.isPending
               ? tActions('loading')
               : isPublished
-              ? tActions('unpublish')
-              : tActions('publish')}
+                ? tActions('unpublish')
+                : tActions('publish')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

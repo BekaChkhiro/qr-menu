@@ -22,7 +22,7 @@ test.describe('product drawer — allergens locked (T14.5)', () => {
   test.beforeEach(async ({ context }, testInfo) => {
     test.skip(
       testInfo.project.name !== 'desktop',
-      'Desktop-only; mobile bottom-sheet variant lands in T17.4',
+      'Desktop-only; mobile bottom-sheet variant lands in T17.4'
     );
     await resetDb();
     await context.clearCookies();
@@ -31,10 +31,7 @@ test.describe('product drawer — allergens locked (T14.5)', () => {
     ]);
   });
 
-  async function seedAndOpenEditor(
-    page: Page,
-    plan: 'FREE' | 'STARTER' | 'PRO' = 'STARTER',
-  ) {
+  async function seedAndOpenEditor(page: Page, plan: 'FREE' | 'STARTER' | 'PRO' = 'STARTER') {
     const email = 'nino@cafelinville.ge';
     const user = await seedUser({ plan, name: 'Nino Kapanadze', email });
     const menu = await seedMenu({
@@ -57,12 +54,7 @@ test.describe('product drawer — allergens locked (T14.5)', () => {
 
   async function openEditDrawerForFirstProduct(page: Page) {
     await expandFirstCategory(page);
-    await page
-      .getByTestId('product-row')
-      .first()
-      .getByTestId('product-kebab-trigger')
-      .click();
-    await page.getByTestId('product-kebab-edit').click();
+    await page.getByTestId('product-row').first().getByTestId('product-action-edit').click();
     await expect(page.getByTestId('product-drawer')).toBeVisible();
   }
 
@@ -70,7 +62,7 @@ test.describe('product drawer — allergens locked (T14.5)', () => {
     await page.getByTestId('product-drawer-tab-allergens').click();
     await expect(page.getByTestId('product-drawer-tab-allergens')).toHaveAttribute(
       'data-state',
-      'active',
+      'active'
     );
   }
 
@@ -98,7 +90,7 @@ test.describe('product drawer — allergens locked (T14.5)', () => {
     const drawer = page.getByTestId('product-drawer');
     await expect(drawer).toHaveScreenshot(
       `product-drawer-allergens-locked-${testInfo.project.name}.png`,
-      { maxDiffPixelRatio: 0.05 },
+      { maxDiffPixelRatio: 0.05 }
     );
   });
 
@@ -119,9 +111,7 @@ test.describe('product drawer — allergens locked (T14.5)', () => {
     // Locked overlay visible, interactive tiles absent.
     const locked = page.getByTestId('product-drawer-allergens-locked');
     await expect(locked).toBeVisible();
-    await expect(
-      page.getByTestId('product-drawer-allergens-locked-overlay'),
-    ).toBeVisible();
+    await expect(page.getByTestId('product-drawer-allergens-locked-overlay')).toBeVisible();
     await expect(page.getByTestId('product-drawer-allergens-tiles')).toHaveCount(0);
     await expect(page.getByTestId('product-drawer-allergens-tile')).toHaveCount(0);
   });
@@ -143,10 +133,7 @@ test.describe('product drawer — allergens locked (T14.5)', () => {
     // a product PUT request. We fail the test if any /products/:pid PUT fires.
     let sawMutation = false;
     page.on('request', (req) => {
-      if (
-        req.method() === 'PUT' &&
-        /\/api\/menus\/[^/]+\/products\/[^/]+/.test(req.url())
-      ) {
+      if (req.method() === 'PUT' && /\/api\/menus\/[^/]+\/products\/[^/]+/.test(req.url())) {
         sawMutation = true;
       }
     });
@@ -161,9 +148,7 @@ test.describe('product drawer — allergens locked (T14.5)', () => {
 
   // ── Functional: CTA navigates to /admin/settings/billing ───────────────────
 
-  test('functional: Upgrade to PRO CTA navigates to /admin/settings/billing', async ({
-    page,
-  }) => {
+  test('functional: Upgrade to PRO CTA navigates to /admin/settings/billing', async ({ page }) => {
     await seedAndOpenEditor(page, 'STARTER');
     await openEditDrawerForFirstProduct(page);
     await goToAllergensTab(page);
@@ -186,9 +171,7 @@ test.describe('product drawer — allergens locked (T14.5)', () => {
     await goToAllergensTab(page);
 
     await expect(page.getByTestId('product-drawer-allergens-locked')).toBeVisible();
-    await expect(
-      page.getByTestId('product-drawer-allergens-locked-overlay'),
-    ).toBeVisible();
+    await expect(page.getByTestId('product-drawer-allergens-locked-overlay')).toBeVisible();
     await expect(page.getByTestId('product-drawer-allergens-tiles')).toHaveCount(0);
   });
 });

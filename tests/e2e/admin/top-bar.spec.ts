@@ -102,6 +102,26 @@ test.describe('admin top bar (T11.2)', () => {
       await expect(crumbs).toContainText('Dashboard');
     });
 
+    test('functional: language switcher changes the admin interface locale', async ({
+      page,
+      context,
+    }) => {
+      await page.goto('/admin/dashboard');
+      await expect(page.getByTestId('topbar-breadcrumbs')).toContainText(
+        'Dashboard',
+      );
+
+      await page.getByTestId('topbar-language-switcher').click();
+      await page.getByRole('menuitem', { name: /ქართული/ }).click();
+
+      await expect(page.getByTestId('topbar-breadcrumbs')).toContainText(
+        'პანელი',
+      );
+
+      const cookies = await context.cookies();
+      expect(cookies.find((c) => c.name === 'NEXT_LOCALE')?.value).toBe('ka');
+    });
+
     test('functional: breadcrumbs update when navigating to /admin/menus', async ({
       page,
     }) => {

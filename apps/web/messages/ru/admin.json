@@ -21,7 +21,11 @@
     "upgrade": "Обновить",
     "planLabel": "план",
     "upgradeToPro": "Перейти на PRO",
-    "mobileNavLabel": "Основная навигация"
+    "mobileNavLabel": "Основная навигация",
+    "menuCount": "{count, plural, =0 {Меню пока нет} one {# меню} other {# меню}}",
+    "noMenus": "Меню пока нет. Создайте первое меню, и оно появится здесь.",
+    "createMenu": "Создать меню",
+    "viewAllMenus": "Все меню"
   },
   "topbar": {
     "searchPlaceholder": "Поиск по меню, продуктам, настройкам…",

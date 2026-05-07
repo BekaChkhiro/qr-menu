@@ -4,13 +4,13 @@
 //
 // Covers:
 //   Visual — expanded category with nested product rows (thumbnail + name +
-//   price + drag handle + kebab) and the inline "+ Add item to {category}"
+//   price + drag handle + inline actions) and the inline "+ Add item to {category}"
 //   link.
 //   Functional — drag reorders products within a category via POST
 //   /api/menus/[id]/products/reorder (DB sortOrder reflects the new order);
-//   kebab Edit opens the Product dialog; kebab "Move to {target}" fires PUT
+//   inline Edit opens the Product dialog; inline "Move to {target}" fires PUT
 //   /api/menus/[id]/products/[pid] with the new categoryId (DB reassigns);
-//   kebab Delete → confirm hits DELETE and removes the row.
+//   inline Delete → confirm hits DELETE and removes the row.
 
 import { expect, test, type Page } from '@playwright/test';
 
@@ -21,10 +21,7 @@ test.describe('editor content tab — nested product rows (T13.3)', () => {
   test.describe.configure({ mode: 'serial' });
 
   test.beforeEach(async ({ context }, testInfo) => {
-    test.skip(
-      testInfo.project.name !== 'desktop',
-      'Desktop-only; mobile variant lands in T17.3',
-    );
+    test.skip(testInfo.project.name !== 'desktop', 'Desktop-only; mobile variant lands in T17.3');
     await resetDb();
     await context.clearCookies();
     await context.addCookies([
@@ -32,11 +29,7 @@ test.describe('editor content tab — nested product rows (T13.3)', () => {
     ]);
   });
 
-  async function seedEditorAndLogin(
-    page: Page,
-    categoryCount = 3,
-    productCount = 3,
-  ) {
+  async function seedEditorAndLogin(page: Page, categoryCount = 3, productCount = 3) {
     const email = 'nino@cafelinville.ge';
     const user = await seedUser({
       plan: 'STARTER',
@@ -91,15 +84,14 @@ test.describe('editor content tab — nested product rows (T13.3)', () => {
     await expect(page.getByTestId('product-row')).toHaveCount(3);
 
     const list = page.getByTestId('categories-list');
-    await expect(list).toHaveScreenshot(
-      `editor-content-products-${testInfo.project.name}.png`,
-      { maxDiffPixelRatio: 0.05 },
-    );
+    await expect(list).toHaveScreenshot(`editor-content-products-${testInfo.project.name}.png`, {
+      maxDiffPixelRatio: 0.05,
+    });
   });
 
   // ── Functional ────────────────────────────────────────────────────────────
 
-  test('functional: expanded category renders 3 product rows with name, price, drag handle, kebab', async ({
+  test('functional: expanded category renders 3 product rows with name, price, drag handle, actions', async ({
     page,
   }) => {
     const { menu } = await seedEditorAndLogin(page, 2, 3);
@@ -113,7 +105,9 @@ test.describe('editor content tab — nested product rows (T13.3)', () => {
     await expect(firstRow.getByTestId('product-name')).toBeVisible();
     await expect(firstRow.getByTestId('product-price')).toBeVisible();
     await expect(firstRow.getByTestId('product-drag-handle')).toBeVisible();
-    await expect(firstRow.getByTestId('product-kebab-trigger')).toBeVisible();
+    await expect(firstRow.getByTestId('product-action-edit')).toBeVisible();
+    await expect(firstRow.getByTestId('product-action-duplicate')).toBeVisible();
+    await expect(firstRow.getByTestId('product-action-delete')).toBeVisible();
 
     // Inline add button visible and enabled on STARTER.
     const add = page.getByTestId('products-add-inline');
@@ -140,7 +134,7 @@ test.describe('editor content tab — nested product rows (T13.3)', () => {
       (r) =>
         r.url().includes(`/api/menus/${menu.id}/products/reorder`) &&
         r.request().method() === 'POST' &&
-        r.ok(),
+        r.ok()
     );
 
     // Mouse-driven drag: pick up the first handle and drop it over the third
@@ -167,18 +161,17 @@ test.describe('editor content tab — nested product rows (T13.3)', () => {
     expect(after.map((p) => p.id)).toEqual([p2.id, p3.id, p1.id]);
   });
 
-  test('functional: kebab Edit opens the product dialog', async ({ page }) => {
+  test('functional: inline Edit opens the product dialog', async ({ page }) => {
     const { menu } = await seedEditorAndLogin(page, 2, 2);
     await page.goto(`/admin/menus/${menu.id}?tab=content`);
     await expandFirstCategory(page);
 
-    await page.getByTestId('product-row').first().getByTestId('product-kebab-trigger').click();
-    await page.getByTestId('product-kebab-edit').click();
+    await page.getByTestId('product-row').first().getByTestId('product-action-edit').click();
 
     await expect(page.getByRole('dialog')).toBeVisible();
   });
 
-  test('functional: kebab Move-to reassigns categoryId via PUT', async ({ page }) => {
+  test('functional: inline Move-to reassigns categoryId via PUT', async ({ page }) => {
     const { menu } = await seedEditorAndLogin(page, 3, 2);
     await page.goto(`/admin/menus/${menu.id}?tab=content`);
     await expandFirstCategory(page);
@@ -197,18 +190,20 @@ test.describe('editor content tab — nested product rows (T13.3)', () => {
     await page
       .getByTestId('product-row')
       .first()
-      .getByTestId('product-kebab-trigger')
+      .getByTestId('product-action-move-trigger')
       .click();
 
     const moveResponse = page.waitForResponse(
       (r) =>
         r.url().includes(`/api/menus/${menu.id}/products/${firstProduct.id}`) &&
         r.request().method() === 'PUT' &&
-        r.ok(),
+        r.ok()
     );
 
     await page
-      .locator(`[data-testid="product-kebab-move-to"][data-target-category-id="${targetCategoryId}"]`)
+      .locator(
+        `[data-testid="product-action-move-to"][data-target-category-id="${targetCategoryId}"]`
+      )
       .click();
 
     await moveResponse;
@@ -224,9 +219,7 @@ test.describe('editor content tab — nested product rows (T13.3)', () => {
     expect(remaining).toHaveLength(1);
   });
 
-  test('functional: kebab Delete → confirm removes the product via DELETE', async ({
-    page,
-  }) => {
+  test('functional: inline Delete → confirm removes the product via DELETE', async ({ page }) => {
     const { menu } = await seedEditorAndLogin(page, 2, 3);
     await page.goto(`/admin/menus/${menu.id}?tab=content`);
     await expandFirstCategory(page);
@@ -235,14 +228,13 @@ test.describe('editor content tab — nested product rows (T13.3)', () => {
     const targetId = await firstRow.getAttribute('data-product-id');
     expect(targetId).toBeTruthy();
 
-    await firstRow.getByTestId('product-kebab-trigger').click();
-    await page.getByTestId('product-kebab-delete').click();
+    await firstRow.getByTestId('product-action-delete').click();
 
     const deleteResponse = page.waitForResponse(
       (r) =>
         r.url().includes(`/api/menus/${menu.id}/products/${targetId}`) &&
         r.request().method() === 'DELETE' &&
-        r.ok(),
+        r.ok()
     );
 
     await page.getByTestId('products-delete-confirm').click();

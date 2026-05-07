@@ -23,7 +23,7 @@ test.describe('product drawer — sheet shell (T14.1)', () => {
   test.beforeEach(async ({ context }, testInfo) => {
     test.skip(
       testInfo.project.name !== 'desktop',
-      'Desktop-only; mobile bottom-sheet variant lands in T17.4',
+      'Desktop-only; mobile bottom-sheet variant lands in T17.4'
     );
     await resetDb();
     await context.clearCookies();
@@ -32,10 +32,7 @@ test.describe('product drawer — sheet shell (T14.1)', () => {
     ]);
   });
 
-  async function seedAndOpenEditor(
-    page: Page,
-    plan: 'FREE' | 'STARTER' | 'PRO' = 'STARTER',
-  ) {
+  async function seedAndOpenEditor(page: Page, plan: 'FREE' | 'STARTER' | 'PRO' = 'STARTER') {
     const email = 'nino@cafelinville.ge';
     const user = await seedUser({
       plan,
@@ -62,12 +59,7 @@ test.describe('product drawer — sheet shell (T14.1)', () => {
 
   async function openEditDrawerForFirstProduct(page: Page) {
     await expandFirstCategory(page);
-    await page
-      .getByTestId('product-row')
-      .first()
-      .getByTestId('product-kebab-trigger')
-      .click();
-    await page.getByTestId('product-kebab-edit').click();
+    await page.getByTestId('product-row').first().getByTestId('product-action-edit').click();
     await expect(page.getByTestId('product-drawer')).toBeVisible();
   }
 
@@ -84,10 +76,9 @@ test.describe('product drawer — sheet shell (T14.1)', () => {
     });
 
     const drawer = page.getByTestId('product-drawer');
-    await expect(drawer).toHaveScreenshot(
-      `product-drawer-shell-${testInfo.project.name}.png`,
-      { maxDiffPixelRatio: 0.05 },
-    );
+    await expect(drawer).toHaveScreenshot(`product-drawer-shell-${testInfo.project.name}.png`, {
+      maxDiffPixelRatio: 0.05,
+    });
   });
 
   // ── Functional ────────────────────────────────────────────────────────────
@@ -98,9 +89,7 @@ test.describe('product drawer — sheet shell (T14.1)', () => {
 
     const drawer = page.getByTestId('product-drawer');
     await expect(drawer).toHaveAttribute('data-mode', 'edit');
-    await expect(page.getByTestId('product-drawer-title')).toHaveText(
-      'Edit product',
-    );
+    await expect(page.getByTestId('product-drawer-title')).toHaveText('Edit product');
     // Subtitle should include the product name and its category.
     await expect(page.getByTestId('product-drawer-subtitle')).toBeVisible();
   });
@@ -124,7 +113,7 @@ test.describe('product drawer — sheet shell (T14.1)', () => {
     // Default active tab is Basics.
     await expect(page.getByTestId('product-drawer-tab-basics')).toHaveAttribute(
       'data-state',
-      'active',
+      'active'
     );
   });
 
@@ -189,9 +178,7 @@ test.describe('product drawer — sheet shell (T14.1)', () => {
     await expect(variationsTab).toHaveAttribute('data-state', 'active');
 
     // Body should now show the Variations placeholder.
-    await expect(
-      page.getByTestId('product-drawer-placeholder-variations'),
-    ).toBeVisible();
+    await expect(page.getByTestId('product-drawer-placeholder-variations')).toBeVisible();
   });
 
   test('functional: STARTER plan shows Allergens lock badge', async ({ page }) => {
@@ -200,9 +187,7 @@ test.describe('product drawer — sheet shell (T14.1)', () => {
 
     const allergensTab = page.getByTestId('product-drawer-tab-allergens');
     await expect(allergensTab).toHaveAttribute('data-pro-locked', 'true');
-    await expect(
-      page.getByTestId('product-drawer-tab-allergens-lock'),
-    ).toBeVisible();
+    await expect(page.getByTestId('product-drawer-tab-allergens-lock')).toBeVisible();
   });
 
   test('functional: PRO plan does NOT show Allergens lock badge', async ({ page }) => {
@@ -211,9 +196,7 @@ test.describe('product drawer — sheet shell (T14.1)', () => {
 
     const allergensTab = page.getByTestId('product-drawer-tab-allergens');
     await expect(allergensTab).toHaveAttribute('data-pro-locked', 'false');
-    await expect(
-      page.getByTestId('product-drawer-tab-allergens-lock'),
-    ).toHaveCount(0);
+    await expect(page.getByTestId('product-drawer-tab-allergens-lock')).toHaveCount(0);
   });
 
   test('functional: New product mode — header shows "Add new product", no Delete in footer, no subtitle', async ({
@@ -228,9 +211,7 @@ test.describe('product drawer — sheet shell (T14.1)', () => {
     const drawer = page.getByTestId('product-drawer');
     await expect(drawer).toBeVisible();
     await expect(drawer).toHaveAttribute('data-mode', 'create');
-    await expect(page.getByTestId('product-drawer-title')).toHaveText(
-      'Add new product',
-    );
+    await expect(page.getByTestId('product-drawer-title')).toHaveText('Add new product');
     await expect(page.getByTestId('product-drawer-subtitle')).toHaveCount(0);
     await expect(page.getByTestId('product-drawer-delete')).toHaveCount(0);
   });

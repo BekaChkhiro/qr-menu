@@ -1522,7 +1522,7 @@ digital-menu/
   - Functional: create promotion with all fields → POST /api/menus/[id]/promotions, promo appears in list; discount type Percentage vs Fixed switches inputs
 
 #### T15.9: Promotions Tab — FREE Locked
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Low
 - **Estimated**: 0.5 hours
 - **Dependencies**: T15.7
@@ -1550,7 +1550,7 @@ digital-menu/
   - Functional: change style → SVG rerenders with correct module shapes; PRO logo toggle on → "CL" center logo appears
 
 #### T15.11: QR Tab — Download Panel + Scan Stats
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 2 hours
 - **Dependencies**: T15.10
@@ -1563,7 +1563,7 @@ digital-menu/
   - Functional: click Download PNG → triggers browser download of generated QR image; copy button writes to clipboard
 
 #### T15.12: QR Tab — Template Picker Modal
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 2 hours
 - **Dependencies**: T15.10
@@ -1591,7 +1591,7 @@ digital-menu/
   - Functional: change slug + save → public menu URL updates, password protection requires password to access `/m/[slug]`
 
 #### T15.14: Menu Settings Tab — Schedule + SEO
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 2 hours
 - **Dependencies**: T15.13
@@ -1654,7 +1654,7 @@ digital-menu/
   - Functional: change first name + Save → PATCH request fires, session updates, top bar avatar initials refresh
 
 #### T16.3: Business Info Tab
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: High
 - **Estimated**: 3 hours
 - **Dependencies**: T16.1, T10.2
@@ -1671,7 +1671,7 @@ digital-menu/
   - Functional: change cuisine chip + Save → persists; opening hours toggle closed → times disabled; "Copy to all" applies Monday hours to all days
 
 #### T16.4: Plan & Billing Tab (Display Only)
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 2 hours
 - **Dependencies**: T16.1
@@ -1687,7 +1687,7 @@ digital-menu/
   - Functional: plan card shows user's real plan; clicking Upgrade shows contact-us toast
 
 #### T16.5: Team Tab (Locked Only — both FREE/STARTER/PRO currently)
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Low
 - **Estimated**: 0.5 hours
 - **Dependencies**: T16.1
@@ -1699,7 +1699,7 @@ digital-menu/
   - Functional: all plans see locked state; "Join waitlist" opens email client or shows toast
 
 #### T16.6: Notifications Tab
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 2 hours
 - **Dependencies**: T16.1, T10.2
@@ -1713,7 +1713,7 @@ digital-menu/
   - Functional: toggle digest off → PATCH /api/user/notifications, payment-failed toggle locked visually
 
 #### T16.7: Security Tab
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: High
 - **Estimated**: 2 hours
 - **Dependencies**: T16.1
@@ -1728,7 +1728,7 @@ digital-menu/
   - Functional: change password with wrong current → error, correct current → success + re-login required; sign out another session → that session's next request returns 401
 
 #### T16.8: Language Tab
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 1 hour
 - **Dependencies**: T16.1
@@ -1749,7 +1749,7 @@ digital-menu/
 **Design Reference**: `mobile-main` artboard + mobile adaptations described in Section I.
 
 #### T17.1: Sidebar → Bottom Tab Bar (mobile)
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 2 hours
 - **Dependencies**: T11.1, T10.6
@@ -1874,7 +1874,7 @@ digital-menu/
 - Custom AR scale / placement controls beyond `<model-viewer>` defaults
 
 #### T18.1: Schema + Plan Feature Flag
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Low
 - **Estimated**: 1 hour
 - **Dependencies**: —
@@ -1887,7 +1887,7 @@ digital-menu/
   - Not visual — schema-level. Add a unit test under `tests/unit/permissions.test.ts`: `hasFeature('PRO', 'arViewer') === true`, FREE/STARTER === false
 
 #### T18.2: 3D Model Upload Pipeline
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 2.5 hours
 - **Dependencies**: T18.1
@@ -1901,7 +1901,7 @@ digital-menu/
   - Functional: PRO user POSTs valid GLB → 201, returns `{ url, publicId }`; STARTER user → 403; oversized file → 400; spoofed extension → 400
 
 #### T18.3: Product Drawer — AR Tab (PRO unlocked)
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 3 hours
 - **Dependencies**: T14.1, T18.2
@@ -1917,7 +1917,7 @@ digital-menu/
   - Functional: tab is unlocked for PRO; upload GLB fixture → preview renders; toggle OFF hides preview; save persists `arEnabled=true` and `arModelUrl` to DB
 
 #### T18.4: Product Drawer — AR Tab (STARTER/FREE locked)
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Low
 - **Estimated**: 1 hour
 - **Dependencies**: T18.3
@@ -1931,7 +1931,7 @@ digital-menu/
   - Functional: lock badge visible; clicking tab shows upgrade screen (not upload UI); attempting direct API call returns 403
 
 #### T18.5: Public Product Card — AR Button + Viewer Dialog
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 2.5 hours
 - **Dependencies**: T18.3
@@ -1947,7 +1947,7 @@ digital-menu/
   - Functional: AR button only renders for products with `arEnabled=true`; clicking opens dialog; dialog contains `<model-viewer>` element; dialog closes on backdrop click
 
 #### T18.6: 3D Model Validation + Size Guards
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Medium
 - **Estimated**: 2 hours
 - **Dependencies**: T18.2
@@ -1960,7 +1960,7 @@ digital-menu/
   - Unit test `tests/unit/3d-validator.test.ts` against fixture GLBs (one valid 5K-tri, one rejected 80K-tri)
 
 #### T18.7: i18n Strings (ka/en/ru)
-- [ ] **Status**: TODO
+- [x] **Status**: DONE ✅
 - **Complexity**: Low
 - **Estimated**: 0.5 hours
 - **Dependencies**: T18.3, T18.5
@@ -2243,6 +2243,143 @@ digital-menu/
     - Background the tab for 5 minutes → still receives Pusher events on foreground.
 - **Playwright test**:
   - The full-flow spec above is the test for this task.
+
+---
+
+### Phase 20: Menu Editor — Field Redistribution & Cleanup
+
+**Goal**: Eliminate the duplication between the editor's `Settings` tab (which still embeds the legacy `MenuSettingsForm` covering Layout/Branding/Typography/Languages/Display/Location) and the dedicated `Branding` / `Languages` tabs. Move every menu field to exactly **one** location across the 7 editor tabs, fix the broken Schedule cron, and delete the dead `/admin/menus/[id]/edit` route.
+
+**Constraints (do not violate)**:
+- Editor still has exactly **7 tabs**: Content · Branding · Languages · Analytics · Promotions · QR · Settings.
+- No new tab can be added — Layout/Display group fields fold into existing tabs as sub-cards.
+- Tests must hit the real API + DB and verify the public menu re-renders with the new value (no hard-coded mocks).
+
+**Final field map** (after Phase 20):
+
+| Tab | Owns these menu fields |
+|---|---|
+| Content | categories, products **+ Display sub-card**: `allergenDisplay`, `caloriesDisplay`, `showNutrition`, `showDiscount` |
+| Branding | `logoUrl`, `coverImageUrl`, `primaryColor`, `accentColor`, `currencySymbol`, `cornerRadius`, `headingFont`/`bodyFont` (single picker, both written to same value) **+ Layout & Style sub-card**: `menuTemplate`, `menuLayout`, `productCardStyle`, `productTouchEffect`, `splitByType` |
+| Languages | `enabledLanguages` + translation matrix |
+| Analytics | (read-only) |
+| Promotions | promotions list |
+| QR | `qrStyle`, `qrForegroundColor`, `qrBackgroundColor`, `qrLogoUrl`, `qrTemplate` |
+| Settings | URL · Visibility · Schedule · SEO · Shared Table · Advanced **+ Location & Contact card**: `address`, `phone`, `wifiSsid`, `wifiPassword`, `wcDirection`, `wcImageUrl` |
+
+After Phase 20: legacy `MenuSettingsForm` is deleted, legacy `/admin/menus/[id]/edit` route is deleted, Schedule fires on a real Vercel cron.
+
+#### T20.1: Branding Tab — accentColor + currencySymbol
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 1 hour
+- **Dependencies**: T13.1
+- **Description**:
+  - Extend `BrandingTab` with two new sub-cards:
+    - `Accent color` — palette swatches + hex input (mirror existing `primaryColor` UX), commits to `accentColor` via `useUpdateMenu`
+    - `Currency` — Select with the 6 currencies the legacy form had (₾ GEL, $, €, £, ₽, ₺), commits to `currencySymbol`
+  - DO NOT remove these from the legacy form yet (T20.6 deletes the legacy form atomically once everything has migrated)
+- **Playwright test**: `tests/e2e/admin/branding-accent-currency.spec.ts`
+  - Visual: `branding-accent-currency.png`
+  - Functional:
+    - change accentColor swatch → PATCH `/api/menus/:id` with `accentColor` in body → DB row updates → public menu CSS var `--accent-color` reflects new value (assert via `getComputedStyle` on `/m/{slug}`)
+    - change currency to `$` → PATCH → DB updates → public product card price suffix renders `$` instead of `₾`
+
+#### T20.2: Branding Tab — Layout & Style Sub-Card
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2 hours
+- **Dependencies**: T20.1
+- **Description**:
+  - Add an "Layout & Style" sub-card to `BrandingTab` containing:
+    - Template picker (CLASSIC / MAGAZINE / COMPACT) — radio cards with mini previews (port from legacy form lines 213-298)
+    - 2×2 grid of Selects: Layout (LINEAR / CATEGORIES_FIRST), Card style (BORDERED / ELEVATED / FLAT / MINIMAL), Touch effect (SCALE / GLOW / GRADIENT / NONE)
+    - "Foods/Drinks split" Switch row
+  - Each control commits its respective field via `useUpdateMenu` on change (no separate Save button — match the rest of the BrandingTab UX)
+- **Playwright test**: `tests/e2e/admin/branding-layout.spec.ts`
+  - Visual: `branding-layout-card.png`
+  - Functional: select MAGAZINE template → PATCH → DB row → public menu renders `<ProductCardMagazine>` instead of classic; toggle splitByType → header tabs (Foods | Drinks) appear on `/m/{slug}`
+
+#### T20.3: Content Tab — Display Sub-Card
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 1.5 hours
+- **Dependencies**: T13.1
+- **Description**:
+  - Add a "Display" card above the categories list in `CategoriesList` (or as a separate component rendered before it), containing:
+    - Allergen display (TEXT / ICON / WARNING) — Select with icon-prefixed options
+    - Calories display (DIRECT / FLIP_REVEAL / HIDDEN) — Select
+    - "Nutrition details" Switch (`showNutrition`)
+    - "Discount prices crossed out" Switch (`showDiscount`)
+  - Each commits via `useUpdateMenu` on change
+- **Playwright test**: `tests/e2e/admin/content-display.spec.ts`
+  - Visual: `content-display-card.png`
+  - Functional: switch allergenDisplay to ICON → PATCH → public product card renders allergen icons instead of text labels; toggle showDiscount off → crossed-out original price disappears on `/m/{slug}`
+
+#### T20.4: Settings Tab — Location & Contact Card
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2 hours
+- **Dependencies**: T15.13
+- **Description**:
+  - New `MenuLocationContactSection` component, rendered in `MenuSettingsTab` between SEO and Advanced
+  - Fields: address (textarea), phone, wifiSsid, wifiPassword, wcDirection (textarea), wcImageUrl (ImageUpload preset=promotion, aspectRatio=wide)
+  - Save button + dirty state (mirror `ScheduleSection` UX)
+- **Playwright test**: `tests/e2e/admin/settings-location.spec.ts`
+  - Visual: `settings-location-card.png`
+  - Functional: save phone + Wi-Fi → PATCH → public menu header WC modal + Wi-Fi modal render the new values; save wcImageUrl → image appears in WC modal
+
+#### T20.5: Branding Tab — Font Picker Coherence
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 0.5 hours
+- **Dependencies**: T20.1
+- **Description**:
+  - The current single-font picker (`headingFont = bodyFont`) is the canonical UX. Audit the picker to ensure:
+    - All 5 presets in `FONT_PRESETS` (`Inter`, `Playfair Display`, `Noto Sans Georgian`, `Lora`, `BPG Arial`) are reachable from the Select
+    - Saving a preset always writes the same value to BOTH `headingFont` AND `bodyFont` (no drift)
+  - Remove the legacy form's "preset / custom heading-vs-body" UI — happens automatically when T20.6 deletes the legacy form, so this task is just a safety audit + assertion that the 5-preset picker covers all real-world cases
+- **Playwright test**: extends T20.1 spec
+  - Functional: select each of the 5 presets → assert `headingFont === bodyFont === preset.value` in the response body
+
+#### T20.6: Remove Legacy MenuSettingsForm
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 0.5 hours
+- **Dependencies**: T20.1, T20.2, T20.3, T20.4, T20.5
+- **Description**:
+  - Delete the embedded `<MenuSettingsForm menu={menu} />` block from `menu-settings-tab.tsx` (lines 112-126)
+  - Delete the file `apps/web/components/admin/menu-settings-form.tsx`
+  - Delete the `Clock` icon's `createdAt` footer from MenuSettingsTab (move to a new tiny "Created at" display row inside the Advanced card if still wanted)
+- **Playwright test**: `tests/e2e/admin/settings-no-legacy.spec.ts`
+  - Functional: open `/admin/menus/{id}?tab=settings` → assert no `<form>` element matching the legacy `space-y-3` shell renders, no Layout/Typography/Languages/Display section trigger appears in the DOM
+
+#### T20.7: Schedule Cron — Auto-Publish/Auto-Unpublish
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2 hours
+- **Dependencies**: T15.14
+- **Description**:
+  - New cron route `app/api/cron/schedule-menus/route.ts`:
+    - Query `menu where (scheduledPublishAt <= NOW() AND status='DRAFT') OR (scheduledUnpublishAt <= NOW() AND status='PUBLISHED')`
+    - For each match: flip `status` (DRAFT→PUBLISHED or PUBLISHED→DRAFT), set `publishedAt = NOW()` on publish, clear the relevant `scheduledXAt` field, run `invalidateMenuCache(slug)`, broadcast `menu:updated` Pusher event
+    - Wrap in `verifyCronAuth(request)` (`Authorization: Bearer ${CRON_SECRET}`)
+  - Update `apps/web/vercel.json` to add `{ "path": "/api/cron/schedule-menus", "schedule": "0 * * * *" }` (hourly, Hobby plan compatible — keep daily `tables-cleanup` cron untouched)
+  - UI: `ScheduleSection` should NOT promise minute-precision — confirm copy already reads "auto-publish at the scheduled time"; if it suggests faster, soften the wording
+- **Playwright test**: `tests/e2e/admin/schedule-cron.spec.ts`
+  - Functional: insert a DRAFT menu with `scheduledPublishAt` 5 minutes ago via DB seed → POST `/api/cron/schedule-menus` with `Authorization: Bearer ${CRON_SECRET}` → assert response 200, menu now `status='PUBLISHED'`, `publishedAt` set, `scheduledPublishAt` cleared. Reverse for unpublish.
+
+#### T20.8: Delete Legacy /admin/menus/[id]/edit Route
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 0.5 hours
+- **Dependencies**: T20.6
+- **Description**:
+  - Delete the directory `apps/web/app/admin/menus/[id]/edit/` (page.tsx is the only file)
+  - `MenuForm` (used by `/admin/menus/new`) stays — only the `/edit` consumer is removed
+  - Search for any remaining `<Link href={`/admin/menus/${id}/edit`}>` references and remove (there should be none — already verified in research, only `.next` build artifacts mention the path)
+- **Playwright test**: extends T20.6 spec
+  - Functional: navigate to `/admin/menus/{id}/edit` → assert 404 page renders (Next.js auto-404 since route file is gone)
 
 ---
 

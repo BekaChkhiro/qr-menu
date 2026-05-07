@@ -19,7 +19,7 @@ test.describe('product drawer — basics tab (T14.2)', () => {
   test.beforeEach(async ({ context }, testInfo) => {
     test.skip(
       testInfo.project.name !== 'desktop',
-      'Desktop-only; mobile bottom-sheet variant lands in T17.4',
+      'Desktop-only; mobile bottom-sheet variant lands in T17.4'
     );
     await resetDb();
     await context.clearCookies();
@@ -28,10 +28,7 @@ test.describe('product drawer — basics tab (T14.2)', () => {
     ]);
   });
 
-  async function seedAndOpenEditor(
-    page: Page,
-    plan: 'FREE' | 'STARTER' | 'PRO' = 'STARTER',
-  ) {
+  async function seedAndOpenEditor(page: Page, plan: 'FREE' | 'STARTER' | 'PRO' = 'STARTER') {
     const email = 'nino@cafelinville.ge';
     const user = await seedUser({
       plan,
@@ -58,12 +55,7 @@ test.describe('product drawer — basics tab (T14.2)', () => {
 
   async function openEditDrawerForFirstProduct(page: Page) {
     await expandFirstCategory(page);
-    await page
-      .getByTestId('product-row')
-      .first()
-      .getByTestId('product-kebab-trigger')
-      .click();
-    await page.getByTestId('product-kebab-edit').click();
+    await page.getByTestId('product-row').first().getByTestId('product-action-edit').click();
     await expect(page.getByTestId('product-drawer')).toBeVisible();
   }
 
@@ -91,13 +83,13 @@ test.describe('product drawer — basics tab (T14.2)', () => {
     // Ensure we're on the Basics tab
     await expect(page.getByTestId('product-drawer-tab-basics')).toHaveAttribute(
       'data-state',
-      'active',
+      'active'
     );
 
     const drawer = page.getByTestId('product-drawer');
     await expect(drawer).toHaveScreenshot(
       `product-drawer-basics-filled-${testInfo.project.name}.png`,
-      { maxDiffPixelRatio: 0.05 },
+      { maxDiffPixelRatio: 0.05 }
     );
   });
 
@@ -109,7 +101,7 @@ test.describe('product drawer — basics tab (T14.2)', () => {
     const drawer = page.getByTestId('product-drawer');
     await expect(drawer).toHaveScreenshot(
       `product-drawer-basics-new-${testInfo.project.name}.png`,
-      { maxDiffPixelRatio: 0.05 },
+      { maxDiffPixelRatio: 0.05 }
     );
   });
 
@@ -129,7 +121,7 @@ test.describe('product drawer — basics tab (T14.2)', () => {
     const drawer = page.getByTestId('product-drawer');
     await expect(drawer).toHaveScreenshot(
       `product-drawer-basics-error-${testInfo.project.name}.png`,
-      { maxDiffPixelRatio: 0.05 },
+      { maxDiffPixelRatio: 0.05 }
     );
   });
 
@@ -154,8 +146,7 @@ test.describe('product drawer — basics tab (T14.2)', () => {
     // Listen for the POST request
     const responsePromise = page.waitForResponse(
       (res) =>
-        res.url().includes(`/api/menus/${menu.id}/products`) &&
-        res.request().method() === 'POST',
+        res.url().includes(`/api/menus/${menu.id}/products`) && res.request().method() === 'POST'
     );
 
     // Submit
@@ -170,7 +161,7 @@ test.describe('product drawer — basics tab (T14.2)', () => {
     // Expand category again and verify new product row appears
     await expandFirstCategory(page);
     await expect(
-      page.getByTestId('products-list-rows').locator('[data-product-name="ხაჭაპური აჭარული"]'),
+      page.getByTestId('products-list-rows').locator('[data-product-name="ხაჭაპური აჭარული"]')
     ).toBeVisible();
   });
 
@@ -198,9 +189,7 @@ test.describe('product drawer — basics tab (T14.2)', () => {
 
   // ── Functional: discount toggle ─────────────────────────────────────────────
 
-  test('functional: discount toggle reveals row; −25% pill shown for 20 → 15', async ({
-    page,
-  }) => {
+  test('functional: discount toggle reveals row; −25% pill shown for 20 → 15', async ({ page }) => {
     await seedAndOpenEditor(page, 'STARTER');
     await openEditDrawerForFirstProduct(page);
 
@@ -296,9 +285,7 @@ test.describe('product drawer — basics tab (T14.2)', () => {
 
   // ── Functional: tags chip interaction ──────────────────────────────────────
 
-  test('functional: clicking Vegan suggest chip activates it; X removes it', async ({
-    page,
-  }) => {
+  test('functional: clicking Vegan suggest chip activates it; X removes it', async ({ page }) => {
     await seedAndOpenEditor(page, 'STARTER');
     await openCreateDrawer(page);
 

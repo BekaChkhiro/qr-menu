@@ -20,7 +20,7 @@ test.describe('product drawer — mobile bottom sheet (T17.4)', () => {
   test.beforeEach(async ({ context }, testInfo) => {
     test.skip(
       testInfo.project.name !== 'mobile',
-      'Mobile-only; desktop variant is covered in T14.1',
+      'Mobile-only; desktop variant is covered in T14.1'
     );
     await resetDb();
     await context.clearCookies();
@@ -29,10 +29,7 @@ test.describe('product drawer — mobile bottom sheet (T17.4)', () => {
     ]);
   });
 
-  async function seedAndOpenEditor(
-    page: Page,
-    plan: 'FREE' | 'STARTER' | 'PRO' = 'STARTER',
-  ) {
+  async function seedAndOpenEditor(page: Page, plan: 'FREE' | 'STARTER' | 'PRO' = 'STARTER') {
     const email = 'nino@cafelinville.ge';
     const user = await seedUser({
       plan,
@@ -59,12 +56,7 @@ test.describe('product drawer — mobile bottom sheet (T17.4)', () => {
 
   async function openEditDrawerForFirstProduct(page: Page) {
     await expandFirstCategory(page);
-    await page
-      .getByTestId('product-row')
-      .first()
-      .getByTestId('product-kebab-trigger')
-      .click();
-    await page.getByTestId('product-kebab-edit').click();
+    await page.getByTestId('product-row').first().getByTestId('product-action-edit').click();
     const drawer = page.getByTestId('product-drawer');
     await expect(drawer).toBeVisible();
     await expect(drawer).toHaveAttribute('data-state', 'open');
@@ -85,10 +77,9 @@ test.describe('product drawer — mobile bottom sheet (T17.4)', () => {
     });
 
     const drawer = page.getByTestId('product-drawer');
-    await expect(drawer).toHaveScreenshot(
-      `mobile-product-sheet-${testInfo.project.name}.png`,
-      { maxDiffPixelRatio: 0.05 },
-    );
+    await expect(drawer).toHaveScreenshot(`mobile-product-sheet-${testInfo.project.name}.png`, {
+      maxDiffPixelRatio: 0.05,
+    });
   });
 
   // ── Functional ────────────────────────────────────────────────────────────
@@ -117,9 +108,7 @@ test.describe('product drawer — mobile bottom sheet (T17.4)', () => {
     expect(box!.y + box!.height).toBeCloseTo(viewportHeight, 0);
   });
 
-  test('functional: drag handle is visible on mobile and hidden on desktop', async ({
-    page,
-  }) => {
+  test('functional: drag handle is visible on mobile and hidden on desktop', async ({ page }) => {
     await seedAndOpenEditor(page, 'STARTER');
     await openEditDrawerForFirstProduct(page);
 
@@ -141,10 +130,10 @@ test.describe('product drawer — mobile bottom sheet (T17.4)', () => {
 
     const drawer = page.getByTestId('product-drawer');
     const borderTopLeftRadius = await drawer.evaluate(
-      (el) => getComputedStyle(el).borderTopLeftRadius,
+      (el) => getComputedStyle(el).borderTopLeftRadius
     );
     const borderTopRightRadius = await drawer.evaluate(
-      (el) => getComputedStyle(el).borderTopRightRadius,
+      (el) => getComputedStyle(el).borderTopRightRadius
     );
 
     // 16px rounded top corners per the responsive bottom-sheet spec.
@@ -178,9 +167,7 @@ test.describe('product drawer — mobile bottom sheet (T17.4)', () => {
     await expect(page.getByTestId('product-drawer')).toBeHidden();
   });
 
-  test('functional: new product mode shows create title and no delete button', async ({
-    page,
-  }) => {
+  test('functional: new product mode shows create title and no delete button', async ({ page }) => {
     await seedAndOpenEditor(page, 'STARTER');
     await expandFirstCategory(page);
 
@@ -189,9 +176,7 @@ test.describe('product drawer — mobile bottom sheet (T17.4)', () => {
     const drawer = page.getByTestId('product-drawer');
     await expect(drawer).toBeVisible();
     await expect(drawer).toHaveAttribute('data-mode', 'create');
-    await expect(page.getByTestId('product-drawer-title')).toHaveText(
-      'Add new product',
-    );
+    await expect(page.getByTestId('product-drawer-title')).toHaveText('Add new product');
     await expect(page.getByTestId('product-drawer-delete')).toHaveCount(0);
   });
 });

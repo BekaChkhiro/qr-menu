@@ -33,7 +33,7 @@ test.describe('product drawer — AR tab (T18.3)', () => {
   test.beforeEach(async ({ context }, testInfo) => {
     test.skip(
       testInfo.project.name !== 'desktop',
-      'Desktop-only; mobile bottom-sheet variant is part of T17 mobile sweep',
+      'Desktop-only; mobile bottom-sheet variant is part of T17 mobile sweep'
     );
     await resetDb();
     await context.clearCookies();
@@ -65,12 +65,7 @@ test.describe('product drawer — AR tab (T18.3)', () => {
 
   async function openEditDrawerForFirstProduct(page: Page) {
     await expandFirstCategory(page);
-    await page
-      .getByTestId('product-row')
-      .first()
-      .getByTestId('product-kebab-trigger')
-      .click();
-    await page.getByTestId('product-kebab-edit').click();
+    await page.getByTestId('product-row').first().getByTestId('product-action-edit').click();
     await expect(page.getByTestId('product-drawer')).toBeVisible();
   }
 
@@ -78,7 +73,7 @@ test.describe('product drawer — AR tab (T18.3)', () => {
     await page.getByTestId('product-drawer-tab-arModel').click();
     await expect(page.getByTestId('product-drawer-tab-arModel')).toHaveAttribute(
       'data-state',
-      'active',
+      'active'
     );
   }
 
@@ -113,26 +108,21 @@ test.describe('product drawer — AR tab (T18.3)', () => {
     await expect(page.getByTestId('product-drawer-ar-usdz-dropzone')).toBeVisible();
 
     const drawer = page.getByTestId('product-drawer');
-    await expect(drawer).toHaveScreenshot(
-      `product-drawer-ar-tab-${testInfo.project.name}.png`,
-      { maxDiffPixelRatio: 0.05 },
-    );
+    await expect(drawer).toHaveScreenshot(`product-drawer-ar-tab-${testInfo.project.name}.png`, {
+      maxDiffPixelRatio: 0.05,
+    });
   });
 
   // ── Functional ─────────────────────────────────────────────────────────────
 
-  test('functional: AR tab is unlocked for PRO (no lock badge on trigger)', async ({
-    page,
-  }) => {
+  test('functional: AR tab is unlocked for PRO (no lock badge on trigger)', async ({ page }) => {
     await seedAndOpenEditor(page, 'PRO');
     await openEditDrawerForFirstProduct(page);
 
     const trigger = page.getByTestId('product-drawer-tab-arModel');
     await expect(trigger).toBeVisible();
     await expect(trigger).toHaveAttribute('data-pro-locked', 'false');
-    await expect(
-      page.getByTestId('product-drawer-tab-arModel-lock'),
-    ).toHaveCount(0);
+    await expect(page.getByTestId('product-drawer-tab-arModel-lock')).toHaveCount(0);
   });
 
   test('functional: uploading a .glb persists arModelUrl and shows the file summary', async ({
@@ -195,7 +185,7 @@ test.describe('product drawer — AR tab (T18.3)', () => {
       (res) =>
         res.url().includes(`/api/menus/${menu.id}/products/${productId}`) &&
         res.request().method() === 'PUT' &&
-        res.status() === 200,
+        res.status() === 200
     );
 
     // Drive the hidden file input directly — Playwright supports this on any
@@ -211,9 +201,7 @@ test.describe('product drawer — AR tab (T18.3)', () => {
 
     // UI flips from dropzone to summary
     await expect(page.getByTestId('product-drawer-ar-glb-summary')).toBeVisible();
-    await expect(
-      page.getByTestId('product-drawer-ar-glb-filename'),
-    ).toContainText('test.glb');
+    await expect(page.getByTestId('product-drawer-ar-glb-filename')).toContainText('test.glb');
 
     // DB reflects the change
     const after = await prismaTest.product.findUnique({
@@ -223,9 +211,7 @@ test.describe('product drawer — AR tab (T18.3)', () => {
     expect(after?.arModelUrl).toBe(stubPublicUrl);
   });
 
-  test('functional: enable toggle persists arEnabled once a GLB is uploaded', async ({
-    page,
-  }) => {
+  test('functional: enable toggle persists arEnabled once a GLB is uploaded', async ({ page }) => {
     const { menu } = await seedAndOpenEditor(page, 'PRO');
     const productId = await getFirstProductId(menu.id);
 
@@ -233,8 +219,7 @@ test.describe('product drawer — AR tab (T18.3)', () => {
     await prismaTest.product.update({
       where: { id: productId },
       data: {
-        arModelUrl:
-          'https://res.cloudinary.com/demo/raw/upload/v1/digital-menu/test.glb',
+        arModelUrl: 'https://res.cloudinary.com/demo/raw/upload/v1/digital-menu/test.glb',
       },
     });
 
@@ -248,7 +233,7 @@ test.describe('product drawer — AR tab (T18.3)', () => {
       (res) =>
         res.url().includes(`/api/menus/${menu.id}/products/${productId}`) &&
         res.request().method() === 'PUT' &&
-        res.status() === 200,
+        res.status() === 200
     );
 
     await toggle.click();
@@ -263,7 +248,7 @@ test.describe('product drawer — AR tab (T18.3)', () => {
     // Preview switches from empty state to active
     await expect(page.getByTestId('product-drawer-ar-preview')).toHaveAttribute(
       'data-state',
-      'active',
+      'active'
     );
   });
 });

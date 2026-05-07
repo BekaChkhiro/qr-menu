@@ -17,10 +17,7 @@ test.describe('editor content tab — category list (T13.2)', () => {
   test.describe.configure({ mode: 'serial' });
 
   test.beforeEach(async ({ context }, testInfo) => {
-    test.skip(
-      testInfo.project.name !== 'desktop',
-      'Desktop-only; mobile variant lands in T17.3',
-    );
+    test.skip(testInfo.project.name !== 'desktop', 'Desktop-only; mobile variant lands in T17.3');
     await resetDb();
     await context.clearCookies();
     await context.addCookies([
@@ -72,7 +69,7 @@ test.describe('editor content tab — category list (T13.2)', () => {
 
     await expect(list).toHaveScreenshot(
       `editor-content-categories-collapsed-${testInfo.project.name}.png`,
-      { maxDiffPixelRatio: 0.05 },
+      { maxDiffPixelRatio: 0.05 }
     );
   });
 
@@ -88,15 +85,12 @@ test.describe('editor content tab — category list (T13.2)', () => {
     // Expand the first category.
     const firstToggle = page.getByTestId('category-row-toggle').first();
     await firstToggle.click();
-    await expect(page.getByTestId('category-row').first()).toHaveAttribute(
-      'data-expanded',
-      'true',
-    );
+    await expect(page.getByTestId('category-row').first()).toHaveAttribute('data-expanded', 'true');
 
     const list = page.getByTestId('categories-list');
     await expect(list).toHaveScreenshot(
       `editor-content-categories-expanded-${testInfo.project.name}.png`,
-      { maxDiffPixelRatio: 0.05 },
+      { maxDiffPixelRatio: 0.05 }
     );
   });
 
@@ -109,15 +103,10 @@ test.describe('editor content tab — category list (T13.2)', () => {
     const rows = page.getByTestId('category-row');
     await expect(rows).toHaveCount(3);
     await expect(page.getByTestId('categories-add-dashed')).toBeVisible();
-    await expect(page.getByTestId('categories-add-dashed')).toHaveAttribute(
-      'data-can-add',
-      'true',
-    );
+    await expect(page.getByTestId('categories-add-dashed')).toHaveAttribute('data-can-add', 'true');
   });
 
-  test('functional: clicking a row toggles expand + reveals its products', async ({
-    page,
-  }) => {
+  test('functional: clicking a row toggles expand + reveals its products', async ({ page }) => {
     const { menu } = await seedEditorAndLogin(page, 2, 2);
     await page.goto(`/admin/menus/${menu.id}?tab=content`);
 
@@ -146,7 +135,7 @@ test.describe('editor content tab — category list (T13.2)', () => {
     await expect(page.getByTestId('category-row')).toHaveCount(1);
     await expect(page.getByTestId('category-row').first()).toHaveAttribute(
       'data-category-name',
-      'სალათები',
+      'სალათები'
     );
 
     await search.fill('');
@@ -157,9 +146,7 @@ test.describe('editor content tab — category list (T13.2)', () => {
     await expect(page.getByTestId('categories-no-results')).toBeVisible();
   });
 
-  test('functional: drag reorder calls /reorder and persists in the DB', async ({
-    page,
-  }) => {
+  test('functional: drag reorder calls /reorder and persists in the DB', async ({ page }) => {
     const { menu } = await seedEditorAndLogin(page, 3, 1);
     await page.goto(`/admin/menus/${menu.id}?tab=content`);
 
@@ -171,17 +158,14 @@ test.describe('editor content tab — category list (T13.2)', () => {
       .getByTestId('category-row')
       .first()
       .getByTestId('category-drag-handle');
-    const thirdHandle = page
-      .getByTestId('category-row')
-      .nth(2)
-      .getByTestId('category-drag-handle');
+    const thirdHandle = page.getByTestId('category-row').nth(2).getByTestId('category-drag-handle');
 
     // Wait for the reorder POST to fire before asserting the DB row.
     const reorderResponse = page.waitForResponse(
       (r) =>
         r.url().includes(`/api/menus/${menu.id}/categories/reorder`) &&
         r.request().method() === 'POST' &&
-        r.ok(),
+        r.ok()
     );
 
     // Keyboard-driven DnD: focus the handle, Space to pick up, ArrowDown to move,
@@ -202,9 +186,7 @@ test.describe('editor content tab — category list (T13.2)', () => {
     expect(reorderedIds).toEqual([secondCat.id, thirdCat.id, firstCat.id]);
   });
 
-  test('functional: kebab → Delete removes the category via DELETE', async ({
-    page,
-  }) => {
+  test('functional: inline Delete removes the category via DELETE', async ({ page }) => {
     const { menu } = await seedEditorAndLogin(page, 3, 1);
     await page.goto(`/admin/menus/${menu.id}?tab=content`);
 
@@ -212,14 +194,13 @@ test.describe('editor content tab — category list (T13.2)', () => {
     const targetId = await firstRow.getAttribute('data-category-id');
     expect(targetId).toBeTruthy();
 
-    await firstRow.getByTestId('category-kebab-trigger').click();
-    await page.getByTestId('category-kebab-delete').click();
+    await firstRow.getByTestId('category-action-delete').click();
 
     const deleteResponse = page.waitForResponse(
       (r) =>
         r.url().includes(`/api/menus/${menu.id}/categories/${targetId}`) &&
         r.request().method() === 'DELETE' &&
-        r.ok(),
+        r.ok()
     );
 
     await page.getByTestId('categories-delete-confirm').click();
@@ -231,9 +212,7 @@ test.describe('editor content tab — category list (T13.2)', () => {
     expect(row).toBeNull();
   });
 
-  test('functional: dashed "Add category" opens the category creation sheet', async ({
-    page,
-  }) => {
+  test('functional: dashed "Add category" opens the category creation sheet', async ({ page }) => {
     const { menu } = await seedEditorAndLogin(page, 1, 1);
     await page.goto(`/admin/menus/${menu.id}?tab=content`);
 

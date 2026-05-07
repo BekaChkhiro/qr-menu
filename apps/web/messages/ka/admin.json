@@ -21,7 +21,11 @@
     "upgrade": "განახლება",
     "planLabel": "გეგმა",
     "upgradeToPro": "PRO-ზე გადასვლა",
-    "mobileNavLabel": "ძირითადი ნავიგაცია"
+    "mobileNavLabel": "ძირითადი ნავიგაცია",
+    "menuCount": "{count, plural, =0 {მენიუ ჯერ არ გაქვს} one {# მენიუ} other {# მენიუ}}",
+    "noMenus": "მენიუ ჯერ არ გაქვს. შექმენი პირველი მენიუ და აქ გამოჩნდება.",
+    "createMenu": "მენიუს შექმნა",
+    "viewAllMenus": "ყველა მენიუს ნახვა"
   },
   "topbar": {
     "searchPlaceholder": "მოძებნე მენიუები, პროდუქტები, პარამეტრები…",
