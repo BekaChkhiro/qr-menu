@@ -134,9 +134,9 @@ test.describe('public — host view real-time sync (T19.6)', () => {
       // The host view should pick up the new guest card AND the selection row
       // without any manual reload.
       await expect(
-        page
-          .getByTestId('public-table-host-selection-row')
-          .filter({ has: page.locator(`[data-selection-id="${selectionId}"]`) }),
+        page.locator(
+          `[data-testid="public-table-host-selection-row"][data-selection-id="${selectionId}"]`,
+        ),
       ).toBeVisible({ timeout: 3_000 });
 
       // Guest card now exists for Anna with count=1.
@@ -148,7 +148,7 @@ test.describe('public — host view real-time sync (T19.6)', () => {
     }
   });
 
-  test('functional: when host closes, guest browsing the table-mode menu navigates to /m/<slug>', async ({
+  test('functional: when host closes, host view navigates to /m/<slug>', async ({
     page,
     browser,
   }) => {
