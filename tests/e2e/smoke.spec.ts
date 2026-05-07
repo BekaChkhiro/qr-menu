@@ -28,9 +28,22 @@ test.describe('smoke: landing page', () => {
   });
 
   test('visual: landing matches baseline', async ({ page }, testInfo) => {
-    await page.goto('/');
-    // Wait for fonts to settle so text rendering is stable across runs.
+    await page.goto('/', { waitUntil: 'networkidle' });
     await page.evaluate(() => document.fonts.ready);
+    // Trigger lazy-loaded / IntersectionObserver-revealed sections by scrolling
+    // through the full page once before capturing. Without this the page height
+    // grows mid-screenshot (Playwright's "two consecutive stable screenshots"
+    // check then times out).
+    await page.evaluate(async () => {
+      const totalHeight = document.body.scrollHeight;
+      const step = window.innerHeight;
+      for (let y = 0; y < totalHeight; y += step) {
+        window.scrollTo(0, y);
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      window.scrollTo(0, 0);
+      await new Promise((r) => setTimeout(r, 100));
+    });
     await expect(page).toHaveScreenshot(`landing-${testInfo.project.name}.png`, {
       fullPage: true,
       maxDiffPixelRatio: 0.05,

@@ -94,7 +94,9 @@ test.describe('T10.4 — Data Display', () => {
 
     // Enter / Space also activates — confirm Space doesn't break state.
     await page.keyboard.press('ArrowRight');
+    await expect(page.getByTestId('tab-languages')).toBeFocused();
     await page.keyboard.press('Space');
+    await expect(page.getByTestId('tab-languages')).toHaveAttribute('data-state', 'active');
     expect(await readActiveTab(page)).toBe('languages');
   });
 
