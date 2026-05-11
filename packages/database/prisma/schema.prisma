@@ -292,7 +292,15 @@ model Menu {
   userId      String
 
   // Menu details
+  // `name` is kept in lockstep with `nameKa` for backward compatibility
+  // (legacy SEO fallbacks, audit logs, dashboard listings) — server-side
+  // writes mirror nameKa → name on every update. Will be removed in a
+  // follow-up release once all consumers read nameKa directly.
   name        String
+  // Multi-language menu names (T21.2)
+  nameKa      String     // Georgian (required)
+  nameEn      String?    // English (PRO)
+  nameRu      String?    // Russian (PRO)
   slug        String     @unique
   description String?    @db.Text
 
