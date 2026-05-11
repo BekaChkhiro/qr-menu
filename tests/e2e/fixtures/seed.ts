@@ -169,6 +169,10 @@ export interface SeedMenuOptions {
   /** Products per category. Total products = categoryCount × productCount. */
   productCount?: number;
   name?: string;
+  /** Optional EN translation for the menu name (T21.2). */
+  nameEn?: string | null;
+  /** Optional RU translation for the menu name (T21.2). */
+  nameRu?: string | null;
   slug?: string;
 }
 
@@ -178,11 +182,17 @@ export async function seedMenu(opts: SeedMenuOptions): Promise<Menu> {
   const categoryCount = opts.categoryCount ?? 3;
   const productCount = opts.productCount ?? 5;
   const status = opts.status ?? 'DRAFT';
+  const name = opts.name ?? 'Café Linville';
 
   const menu = await prismaTest.menu.create({
     data: {
       userId: opts.userId,
-      name: opts.name ?? 'Café Linville',
+      name,
+      // T21.2 — keep `name` and `nameKa` in lockstep at seed time so the
+      // multilingual public header has a real KA value to render.
+      nameKa: name,
+      nameEn: opts.nameEn ?? null,
+      nameRu: opts.nameRu ?? null,
       slug: opts.slug ?? `menu-${randomId()}`,
       description: null,
       status,
