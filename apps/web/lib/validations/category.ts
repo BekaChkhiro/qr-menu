@@ -39,8 +39,16 @@ const multiLangDescriptionSchema = {
 
 const categoryTypeValues = ['FOOD', 'DRINK', 'OTHER'] as const;
 
+// T21.7 — iconUrl is optional. Allow the empty string explicitly so the
+// admin form ("create with name only") submits cleanly without tripping the
+// URL validator. The API route normalises `''` → `null` before persisting.
+const optionalIconUrlSchema = z
+  .union([z.string().url(), z.literal('')])
+  .nullable()
+  .optional();
+
 const categoryExtras = {
-  iconUrl: z.string().url().nullable().optional(),
+  iconUrl: optionalIconUrlSchema,
   brandLabel: z.string().max(50).nullable().optional(),
   type: z.enum(categoryTypeValues).optional(),
 };

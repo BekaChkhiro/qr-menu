@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useState, type CSSProperties } from 'react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import { CategoryAvatar } from '@/components/shared/category-avatar';
 import {
   DndContext,
   closestCenter,
@@ -59,27 +59,25 @@ import {
   useReorderCategories,
 } from '@/hooks/use-categories';
 import { useUserPlan } from '@/hooks/use-user-plan';
-import type { Category, CategoryType } from '@/types/menu';
+import type { Category } from '@/types/menu';
 import type { CreateCategoryInput } from '@/lib/validations/category';
-
-// Type-based fallback when no iconUrl is set. Keeps the row visually anchored
-// without forcing users to upload an icon on creation.
-const TYPE_EMOJI: Record<CategoryType, string> = {
-  FOOD: '🍽️',
-  DRINK: '🥤',
-  OTHER: '📁',
-};
 
 interface CategoriesListProps {
   menuId: string;
   showAllergens?: boolean;
   totalMenuProducts?: number;
+  /**
+   * Hex color used by the letter-badge fallback shown when a category has no
+   * iconUrl (T21.7). When omitted the avatar falls back to a neutral chip.
+   */
+  accentColor?: string | null;
 }
 
 export function CategoriesList({
   menuId,
   showAllergens = false,
   totalMenuProducts = 0,
+  accentColor,
 }: CategoriesListProps) {
   const t = useTranslations('admin.categories');
   const tActions = useTranslations('actions');
@@ -290,6 +288,7 @@ export function CategoriesList({
                   isDuplicating={duplicateCategory.isPending}
                   showAllergens={showAllergens}
                   totalMenuProducts={totalMenuProducts}
+                  accentColor={accentColor}
                 />
               ))}
             </ul>
@@ -381,6 +380,7 @@ interface SortableCategoryItemProps {
   isDuplicating?: boolean;
   showAllergens?: boolean;
   totalMenuProducts?: number;
+  accentColor?: string | null;
 }
 
 function SortableCategoryItem({
@@ -395,6 +395,7 @@ function SortableCategoryItem({
   isDuplicating = false,
   showAllergens = false,
   totalMenuProducts = 0,
+  accentColor,
 }: SortableCategoryItemProps) {
   const t = useTranslations('admin.categories');
   const tA11y = useTranslations('common.accessibility');
@@ -411,7 +412,6 @@ function SortableCategoryItem({
 
   const productCount = category._count?.products ?? category.products?.length ?? 0;
   const displayName = category.nameKa;
-  const emoji = TYPE_EMOJI[category.type] ?? '🍴';
 
   return (
     <li
@@ -441,7 +441,13 @@ function SortableCategoryItem({
             <GripVertical className="h-[14px] w-[14px]" strokeWidth={1.5} aria-hidden="true" />
           </button>
 
-          <CategoryIcon category={category} emoji={emoji} />
+          <CategoryAvatar
+            iconUrl={category.iconUrl}
+            name={displayName}
+            accentColor={accentColor}
+            size={20}
+            testId="category-icon"
+          />
 
           <CollapsibleTrigger asChild>
             <button
@@ -559,30 +565,6 @@ function CategoryActionButton({
     >
       <Icon size={13} strokeWidth={1.5} aria-hidden="true" />
     </button>
-  );
-}
-
-function CategoryIcon({ category, emoji }: { category: Category; emoji: string }) {
-  if (category.iconUrl) {
-    return (
-      <span
-        className="relative h-5 w-5 shrink-0 overflow-hidden rounded-sm bg-chip"
-        data-testid="category-icon"
-        data-icon-kind="image"
-      >
-        <Image src={category.iconUrl} alt="" fill sizes="20px" className="object-cover" />
-      </span>
-    );
-  }
-  return (
-    <span
-      className="grid h-5 w-5 shrink-0 place-items-center text-[15px] leading-none"
-      aria-hidden="true"
-      data-testid="category-icon"
-      data-icon-kind="emoji"
-    >
-      {emoji}
-    </span>
   );
 }
 

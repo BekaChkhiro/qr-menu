@@ -5,6 +5,7 @@ import type { Locale } from '@/i18n/config';
 import type { MenuTemplate } from '@/types/menu';
 import { type PublicProduct, type PublicDisplaySettings } from './product-card';
 import { ProductCardRenderer } from './product-card-renderer';
+import { CategoryAvatar } from '@/components/shared/category-avatar';
 
 interface Category {
   id: string;
@@ -25,6 +26,11 @@ interface CategorySectionProps {
   index?: number;
   settings: PublicDisplaySettings;
   template?: MenuTemplate;
+  /**
+   * Hex color used to tint the category-avatar letter fallback when no
+   * `iconUrl` is set (T21.7). Should match the menu's `accentColor`.
+   */
+  accentColor?: string | null;
 }
 
 function getCategoryName(category: Category, locale: Locale): string {
@@ -55,6 +61,7 @@ export function CategorySection({
   index = 0,
   settings,
   template = 'CLASSIC',
+  accentColor,
 }: CategorySectionProps) {
   const name = getCategoryName(category, locale);
   const description = getCategoryDescription(category, locale);
@@ -122,8 +129,15 @@ export function CategorySection({
       ) : (
         // ── Classic / Compact: default header with count badge ──
         <div className={headerClass}>
-          <div className="flex items-baseline justify-between gap-3">
-            <div className="flex items-baseline gap-2 min-w-0">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <CategoryAvatar
+                iconUrl={category.iconUrl}
+                name={name}
+                accentColor={accentColor}
+                size={template === 'COMPACT' ? 22 : 28}
+                testId="public-category-avatar"
+              />
               {category.brandLabel && (
                 <span className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
                   {category.brandLabel}

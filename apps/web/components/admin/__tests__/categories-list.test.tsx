@@ -139,19 +139,23 @@ describe('CategoriesList', () => {
       expect(rows[2]).toHaveAttribute('data-category-id', 'cat-c');
     });
 
-    it('shows the type-based emoji when iconUrl is null', () => {
+    it('shows a letter-badge fallback when iconUrl is null (T21.7)', () => {
       categoriesFixture = [
-        makeCategory({ id: 'cat-food', type: 'FOOD', iconUrl: null }),
-        makeCategory({ id: 'cat-drink', type: 'DRINK', iconUrl: null }),
-        makeCategory({ id: 'cat-other', type: 'OTHER', iconUrl: null }),
+        makeCategory({ id: 'cat-food', nameKa: 'ცხელი კერძები', iconUrl: null }),
+        makeCategory({ id: 'cat-drink', nameKa: 'სასმელები', iconUrl: null }),
+        makeCategory({ id: 'cat-other', nameKa: 'სხვა', iconUrl: null }),
       ];
       render(<CategoriesList menuId="menu-1" />);
 
       const icons = screen.getAllByTestId('category-icon');
       expect(icons).toHaveLength(3);
       icons.forEach((icon) => {
-        expect(icon).toHaveAttribute('data-icon-kind', 'emoji');
+        expect(icon).toHaveAttribute('data-icon-kind', 'letter');
       });
+      // First Unicode glyph of nameKa, uppercased.
+      expect(icons[0].textContent).toBe('ც'.toUpperCase());
+      expect(icons[1].textContent).toBe('ს'.toUpperCase());
+      expect(icons[2].textContent).toBe('ს'.toUpperCase());
     });
 
     it('shows an image icon when iconUrl is set', () => {

@@ -218,6 +218,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
           layout={menuLayout}
           splitByType={splitByType}
           template={menuTemplate}
+          accentColor={menu.accentColor}
         />
       ) : (
         <main id="main-content" className="px-4 pb-8" tabIndex={-1}>

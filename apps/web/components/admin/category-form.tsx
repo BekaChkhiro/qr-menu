@@ -47,7 +47,7 @@ export function CategoryForm({ category, onSubmit, onCancel, isLoading }: Catego
       descriptionKa: category?.descriptionKa || '',
       descriptionEn: category?.descriptionEn || '',
       descriptionRu: category?.descriptionRu || '',
-      iconUrl: category?.iconUrl || '',
+      iconUrl: category?.iconUrl ?? null,
       brandLabel: category?.brandLabel || '',
       type: category?.type || 'OTHER',
     },
@@ -59,7 +59,11 @@ export function CategoryForm({ category, onSubmit, onCancel, isLoading }: Catego
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form
+        onSubmit={form.handleSubmit(handleSubmit)}
+        className="space-y-6"
+        data-testid="category-form"
+      >
         {/* Georgian Name - Required */}
         <FormField
           control={form.control}
@@ -70,7 +74,11 @@ export function CategoryForm({ category, onSubmit, onCancel, isLoading }: Catego
                 {t('nameKa')} <span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
-                <Input placeholder={t('nameKaPlaceholder')} {...field} />
+                <Input
+                  placeholder={t('nameKaPlaceholder')}
+                  data-testid="category-form-nameKa"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -209,13 +217,15 @@ export function CategoryForm({ category, onSubmit, onCancel, isLoading }: Catego
             <FormItem>
               <FormLabel>კატეგორიის ხატულა (optional)</FormLabel>
               <FormControl>
-                <ImageUpload
-                  value={field.value || null}
-                  onChange={(url) => field.onChange(url || '')}
-                  preset="logo"
-                  aspectRatio="square"
-                  enableCropper={false}
-                />
+                <div data-testid="category-form-icon">
+                  <ImageUpload
+                    value={field.value || null}
+                    onChange={(url) => field.onChange(url ?? null)}
+                    preset="logo"
+                    aspectRatio="square"
+                    enableCropper
+                  />
+                </div>
               </FormControl>
               <FormDescription>პატარა icon-ი კატეგორიის nav-ში</FormDescription>
               <FormMessage />
@@ -227,7 +237,7 @@ export function CategoryForm({ category, onSubmit, onCancel, isLoading }: Catego
           <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
             {tActions('cancel')}
           </Button>
-          <Button type="submit" disabled={isLoading}>
+          <Button type="submit" disabled={isLoading} data-testid="category-form-submit">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {category ? tActions('save') : tActions('create')}
           </Button>

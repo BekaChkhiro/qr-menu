@@ -36,6 +36,11 @@ interface MenuBodyProps {
   layout: MenuLayout;
   splitByType: boolean;
   template?: MenuTemplate;
+  /**
+   * Menu accent color (hex). Used by `CategoryAvatar` to tint the letter
+   * fallback when a category has no `iconUrl` (T21.7).
+   */
+  accentColor?: string | null;
 }
 
 function getName(cat: PublicCategory, locale: Locale): string {
@@ -58,6 +63,7 @@ export function MenuBody({
   layout,
   splitByType,
   template = 'CLASSIC',
+  accentColor,
 }: MenuBodyProps) {
   const [showGrid, setShowGrid] = useState(layout === 'CATEGORIES_FIRST');
   const [activeType, setActiveType] = useState<CategoryType | 'ALL'>('ALL');
@@ -212,6 +218,7 @@ export function MenuBody({
                   index={index}
                   settings={settings}
                   template={template}
+                  accentColor={accentColor}
                 />
               ))}
             </div>

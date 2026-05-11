@@ -126,7 +126,7 @@ export function ImageCropper({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl" data-testid="image-cropper">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CropIcon className="h-5 w-5" />
@@ -177,6 +177,7 @@ export function ImageCropper({
                 value={zoom}
                 onChange={(e) => setZoom(Number(e.target.value))}
                 className="h-9 w-32"
+                data-testid="image-cropper-zoom"
               />
             </div>
 
@@ -195,7 +196,11 @@ export function ImageCropper({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={processing || !croppedArea}>
+          <Button
+            onClick={handleConfirm}
+            disabled={processing || !croppedArea}
+            data-testid="image-cropper-confirm"
+          >
             {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Apply crop
           </Button>

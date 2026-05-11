@@ -150,10 +150,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
     const data = updateCategorySchema.parse(body);
 
+    // T21.7 — schema allows `''` for iconUrl; normalise to `null` before
+    // writing so the DB column never holds an empty string.
+    const updateData =
+      data.iconUrl === '' ? { ...data, iconUrl: null } : data;
+
     // Update category
     const category = await prisma.category.update({
       where: { id: categoryId },
-      data,
+      data: updateData,
       include: {
         _count: {
           select: { products: true },

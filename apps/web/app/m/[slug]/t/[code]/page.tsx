@@ -307,6 +307,7 @@ async function renderGuestMenu(args: RenderArgs) {
             layout={menuLayout}
             splitByType={splitByType}
             template={menuTemplate}
+            accentColor={menu.accentColor}
           />
         ) : (
           <main id="main-content" className="px-4 pb-8" tabIndex={-1}>

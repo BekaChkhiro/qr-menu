@@ -287,6 +287,7 @@ export default function MenuDetailPage({ params }: MenuDetailPageProps) {
                 menuId={id}
                 showAllergens={hasFeature('allergens')}
                 totalMenuProducts={totalMenuProducts}
+                accentColor={menu.accentColor}
               />
             </>
           )}

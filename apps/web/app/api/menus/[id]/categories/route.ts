@@ -144,6 +144,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
     const data = createCategorySchema.parse(body);
 
+    // T21.7 — schema allows `''` for iconUrl so the admin form can submit
+    // without an upload; normalise to `null` before persisting.
+    const normalisedIconUrl = data.iconUrl === '' ? null : data.iconUrl;
+
     // If sortOrder not provided, put at the end
     const sortOrder =
       data.sortOrder ??
@@ -153,6 +157,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const category = await prisma.category.create({
       data: {
         ...data,
+        iconUrl: normalisedIconUrl,
         sortOrder,
         menuId,
       },
