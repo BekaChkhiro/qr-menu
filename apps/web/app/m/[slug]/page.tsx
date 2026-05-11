@@ -3,7 +3,12 @@ import { notFound, redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { auth } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
-import { getPublicMenu, getPreviewMenu, type SerializedPublicMenu } from '@/lib/public-menu';
+import {
+  getPublicMenu,
+  getPreviewMenu,
+  pickLocalizedMenuName,
+  type SerializedPublicMenu,
+} from '@/lib/public-menu';
 import { getLocaleFromCookie, isValidLocale, LOCALE_COOKIE_NAME, type Locale } from '@/i18n/config';
 import { MenuHeader } from '@/components/public/menu-header';
 import { MenuInfoWidget } from '@/components/public/menu-info-widget';
@@ -25,20 +30,30 @@ interface PageProps {
 // Serialize Prisma data (Decimals/Dates → primitives) for client components
 type RawMenu = NonNullable<Awaited<ReturnType<typeof getPublicMenu>>>;
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { slug } = await params;
+  const { locale: localeParam } = await searchParams;
   const menu = await getPublicMenu(slug);
 
   if (!menu) {
     return { title: 'Menu Not Found' };
   }
 
+  // T21.2 — pick the title/OG locale from `?locale=` (admin preview) or
+  // the visitor's cookie, falling back to KA.
+  const cookieStore = await cookies();
+  const locale: Locale =
+    localeParam && isValidLocale(localeParam)
+      ? localeParam
+      : (getLocaleFromCookie(cookieStore.get(LOCALE_COOKIE_NAME)?.value) as Locale);
+  const displayName = pickLocalizedMenuName(menu, locale);
+
   return {
-    title: menu.name,
-    description: menu.description || `View the menu for ${menu.name}`,
+    title: displayName,
+    description: menu.description || `View the menu for ${displayName}`,
     openGraph: {
-      title: menu.name,
-      description: menu.description || `View the menu for ${menu.name}`,
+      title: displayName,
+      description: menu.description || `View the menu for ${displayName}`,
       type: 'website',
       ...(menu.logoUrl && { images: [{ url: menu.logoUrl }] }),
     },
@@ -156,7 +171,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
       {!isPreview && <ViewTracker menuId={menu.id} />}
 
       <MenuHeader
-        name={menu.name}
+        name={pickLocalizedMenuName(menu, locale)}
         description={menu.description}
         logoUrl={menu.logoUrl}
         locale={locale}

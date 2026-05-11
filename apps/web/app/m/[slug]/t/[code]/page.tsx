@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/db';
-import { getPublicMenu, type SerializedPublicMenu } from '@/lib/public-menu';
+import { getPublicMenu, pickLocalizedMenuName, type SerializedPublicMenu } from '@/lib/public-menu';
 import { TABLE_COOKIE_NAME, verifyTableToken } from '@/lib/auth/table-token';
 import { getLocaleFromCookie, LOCALE_COOKIE_NAME, type Locale } from '@/i18n/config';
 import { MenuHeader } from '@/components/public/menu-header';
@@ -256,7 +256,7 @@ async function renderGuestMenu(args: RenderArgs) {
         data-testid="public-table-guest-menu"
       >
         <MenuHeader
-          name={menu.name}
+          name={pickLocalizedMenuName(menu, args.locale)}
           description={menu.description}
           logoUrl={menu.logoUrl}
           locale={args.locale}
