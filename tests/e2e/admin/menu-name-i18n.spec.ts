@@ -10,17 +10,83 @@
 // has a language-tabbed name input (KA required, EN/RU PRO-gated); public
 // header resolves the active locale with KA fallback.
 //
-// Per Phase 21 constraint: no resetDb / no truncation. Seeds additive rows
-// keyed off Date.now() so re-runs don't collide. Cleans those rows up in
-// afterAll.
+// Phase 21 constraint: NO resetDb / NO TRUNCATE. The shared seed helpers
+// (`seedUser` / `seedMenu`) refuse to run against Neon because they exist
+// to support a wipe-and-reseed flow. This spec inserts its own additive
+// rows directly via `prismaTest` and cleans them up in `afterAll` so it
+// can run against the dev/Neon database without touching unrelated data.
 
 import { expect, test, type Page } from '@playwright/test';
+import bcrypt from 'bcryptjs';
 
 import { loginAs } from '../fixtures/auth';
-import { prismaTest, seedMenu, seedUser } from '../fixtures/seed';
+import { prismaTest } from '../fixtures/seed';
 
 const RUN_ID = `t21-2-${Date.now()}`;
 const cleanupUserIds: string[] = [];
+
+interface SeedArgs {
+  email: string;
+  plan: 'FREE' | 'STARTER' | 'PRO';
+  slug: string;
+  name?: string;
+  nameEn?: string | null;
+  nameRu?: string | null;
+}
+
+async function seedUserAndMenu(opts: SeedArgs) {
+  const user = await prismaTest.user.create({
+    data: {
+      email: opts.email.toLowerCase(),
+      name: 'Nino Kapanadze',
+      plan: opts.plan,
+      password: await bcrypt.hash('password-not-used', 10),
+      emailVerified: new Date(),
+    },
+  });
+  cleanupUserIds.push(user.id);
+
+  const name = opts.name ?? 'Café Linville';
+  const menu = await prismaTest.menu.create({
+    data: {
+      userId: user.id,
+      name,
+      // Mirror name → nameKa so the Phase-21 multilingual public header
+      // has a real KA value to render.
+      nameKa: name,
+      nameEn: opts.nameEn ?? null,
+      nameRu: opts.nameRu ?? null,
+      slug: opts.slug,
+      status: 'PUBLISHED',
+      publishedAt: new Date(),
+      enabledLanguages: ['KA', 'EN', 'RU'],
+    },
+  });
+
+  // One category + product so the public page renders normally and avoids the
+  // "menu is empty" branch.
+  const category = await prismaTest.category.create({
+    data: {
+      menuId: menu.id,
+      nameKa: 'სასმელები',
+      nameEn: 'Drinks',
+      nameRu: 'Напитки',
+      type: 'DRINK',
+      sortOrder: 0,
+    },
+  });
+  await prismaTest.product.create({
+    data: {
+      categoryId: category.id,
+      nameKa: 'თარხუნის ლიმონათი',
+      nameEn: 'Tarragon Lemonade',
+      price: 6.0,
+      sortOrder: 0,
+    },
+  });
+
+  return { user, menu };
+}
 
 async function openSettings(page: Page, menuId: string) {
   await page.goto(`/admin/menus/${menuId}?tab=settings`);
@@ -33,7 +99,8 @@ test.describe('T21.2 multilingual menu name', () => {
 
   test.afterAll(async () => {
     if (cleanupUserIds.length === 0) return;
-    // Cascade-deletes menus / categories / products / sessions.
+    // Cascade-deletes menus / categories / products / sessions for these users
+    // only — leaves the rest of the dev database untouched.
     await prismaTest.user
       .deleteMany({ where: { id: { in: cleanupUserIds } } })
       .catch(() => undefined);
@@ -47,22 +114,15 @@ test.describe('T21.2 multilingual menu name', () => {
       'Settings tab is desktop-only; mobile variant lands in T17.x.',
     );
 
-    const email = `menu-name-visual-${RUN_ID}@test.local`;
-    const user = await seedUser({ email, plan: 'PRO', name: 'Nino Kapanadze' });
-    cleanupUserIds.push(user.id);
-
-    const menu = await seedMenu({
-      userId: user.id,
-      status: 'PUBLISHED',
-      categoryCount: 1,
-      productCount: 1,
-      name: 'Café Linville',
+    const { menu } = await seedUserAndMenu({
+      email: `menu-name-visual-${RUN_ID}@test.local`,
+      plan: 'PRO',
+      slug: `linville-${RUN_ID}-vis`,
       nameEn: 'Café Linville',
       nameRu: 'Кафе Линвиль',
-      slug: `linville-${RUN_ID}-vis`,
     });
 
-    await loginAs(page, email);
+    await loginAs(page, `menu-name-visual-${RUN_ID}@test.local`);
     await openSettings(page, menu.id);
 
     await page.evaluate(() => document.fonts.ready);
@@ -84,15 +144,9 @@ test.describe('T21.2 multilingual menu name', () => {
     context,
   }) => {
     const email = `menu-name-pro-${RUN_ID}@test.local`;
-    const user = await seedUser({ email, plan: 'PRO', name: 'Nino Kapanadze' });
-    cleanupUserIds.push(user.id);
-
-    const menu = await seedMenu({
-      userId: user.id,
-      status: 'PUBLISHED',
-      categoryCount: 1,
-      productCount: 1,
-      name: 'Café Linville',
+    const { menu } = await seedUserAndMenu({
+      email,
+      plan: 'PRO',
       slug: `linville-${RUN_ID}-pro`,
     });
 
@@ -102,7 +156,7 @@ test.describe('T21.2 multilingual menu name', () => {
     await loginAs(page, email);
     await openSettings(page, menu.id);
 
-    // KA tab is the default and gets the existing seeded value.
+    // KA tab is the default and gets the seeded value.
     const inputKa = page.getByTestId('settings-menu-name-input-KA');
     await expect(inputKa).toHaveValue('Café Linville');
     await inputKa.fill('კაფე ლინვილი');
@@ -169,17 +223,11 @@ test.describe('T21.2 multilingual menu name', () => {
     page,
     context,
   }) => {
-    const email = `menu-name-fallback-${RUN_ID}@test.local`;
-    const user = await seedUser({ email, plan: 'PRO', name: 'Nino Kapanadze' });
-    cleanupUserIds.push(user.id);
-
-    const menu = await seedMenu({
-      userId: user.id,
-      status: 'PUBLISHED',
-      categoryCount: 1,
-      productCount: 1,
-      name: 'Café Linville KA-Only',
+    const { menu } = await seedUserAndMenu({
+      email: `menu-name-fallback-${RUN_ID}@test.local`,
+      plan: 'PRO',
       slug: `linville-${RUN_ID}-fb`,
+      name: 'Café Linville KA-Only',
     });
 
     await context.clearCookies();
@@ -194,19 +242,9 @@ test.describe('T21.2 multilingual menu name', () => {
     page,
   }) => {
     const email = `menu-name-starter-${RUN_ID}@test.local`;
-    const user = await seedUser({
+    const { menu } = await seedUserAndMenu({
       email,
       plan: 'STARTER',
-      name: 'Nino Kapanadze',
-    });
-    cleanupUserIds.push(user.id);
-
-    const menu = await seedMenu({
-      userId: user.id,
-      status: 'PUBLISHED',
-      categoryCount: 1,
-      productCount: 1,
-      name: 'Café Linville',
       slug: `linville-${RUN_ID}-starter`,
     });
 
