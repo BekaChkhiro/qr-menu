@@ -446,9 +446,9 @@
       },
       "schedule": {
         "label": "Schedule",
-        "helper": "Optional — automatically publish or unpublish on a date. Useful for seasonal menus.",
+        "helper": "Optional — automatically publish or unpublish on a date. Runs hourly, so the change may take up to an hour to apply.",
         "autoPublishTitle": "Auto-publish on a date",
-        "autoPublishBody": "Queue this menu to go live at a specific time.",
+        "autoPublishBody": "Queue this menu to go live at the scheduled time.",
         "autoUnpublishTitle": "Auto-unpublish on a date",
         "autoUnpublishBody": "Good for seasonal menus like \"Summer brunch\".",
         "save": "Save changes",

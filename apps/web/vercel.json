@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/tables-cleanup",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/schedule-menus",
+      "schedule": "0 * * * *"
     }
   ]
 }
