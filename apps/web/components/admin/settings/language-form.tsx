@@ -18,7 +18,7 @@ import { useProfile, useUpdateProfile } from '@/hooks/use-profile';
 import { useMenus } from '@/hooks/use-menus';
 import { useLocale } from '@/hooks/use-locale';
 import { locales, localeNames, type Locale } from '@/i18n/config';
-import { setLocale } from '@/lib/actions/locale';
+import { setUserLocale } from '@/lib/actions/locale';
 import { cn } from '@/lib/utils';
 
 import { useSettingsForm } from './settings-form-context';
@@ -86,7 +86,7 @@ export function LanguageForm() {
     async (locale: Locale) => {
       setInterfaceLang(locale);
       try {
-        await setLocale(locale);
+        await setUserLocale(locale);
         window.location.reload();
       } catch {
         toast.error(t('interfaceLang.error'));

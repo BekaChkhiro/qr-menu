@@ -60,6 +60,7 @@ export function MenuHeader({ name, description, logoUrl, locale, enabledLocales 
               currentLocale={locale}
               variant="compact"
               enabledLocales={enabledLocales}
+              triggerTestId="public-menu-language-switcher"
             />
           </div>
         </div>

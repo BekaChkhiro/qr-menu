@@ -145,6 +145,7 @@ model User {
   dateFormat    String?   // "DD.MM.YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD"
   currency      String?   @default("GEL") // Account currency: GEL, USD, EUR
   priceFormat   String?   @default("12.50 ₾") // Price display format
+  locale        Language? // Preferred UI language; overrides NEXT_LOCALE cookie when set
 
   // OAuth fields
   accounts      Account[]

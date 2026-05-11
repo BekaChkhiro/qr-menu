@@ -20,6 +20,7 @@ const USER_PROFILE_SELECT = {
   dateFormat: true,
   currency: true,
   priceFormat: true,
+  locale: true,
   image: true,
   plan: true,
   password: true,

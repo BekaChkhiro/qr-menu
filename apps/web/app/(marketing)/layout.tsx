@@ -1,7 +1,6 @@
-import { cookies } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { Header, Footer, SmoothScroll } from '@/components/marketing';
-import { getLocaleFromCookie, LOCALE_COOKIE_NAME } from '@/i18n/config';
+import { getServerLocale } from '@/i18n/request';
 import { auth } from '@/lib/auth/auth';
 
 export default async function MarketingLayout({
@@ -9,10 +8,7 @@ export default async function MarketingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Get locale
-  const cookieStore = await cookies();
-  const localeCookie = cookieStore.get(LOCALE_COOKIE_NAME)?.value;
-  const locale = getLocaleFromCookie(localeCookie);
+  const locale = await getServerLocale();
 
   // Get translations
   const t = await getTranslations('marketing');

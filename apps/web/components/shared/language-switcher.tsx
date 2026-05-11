@@ -17,7 +17,7 @@ import {
   localeFlags,
   type Locale,
 } from '@/i18n/config';
-import { setLocale } from '@/lib/actions/locale';
+import { setLocale, setUserLocale } from '@/lib/actions/locale';
 import { cn } from '@/lib/utils';
 
 interface LanguageSwitcherProps {
@@ -27,6 +27,13 @@ interface LanguageSwitcherProps {
   triggerTestId?: string;
   /** Restrict available locales (e.g. from menu.enabledLanguages). If omitted, all supported locales are shown. */
   enabledLocales?: Locale[];
+  /**
+   * When true, an authenticated user's choice is persisted to `User.locale`
+   * (admin/marketing contexts). When false (default), the change is cookie-only
+   * — used by visitor surfaces like the public menu so that previewing in
+   * another language does not overwrite the operator's stored preference.
+   */
+  persistToProfile?: boolean;
 }
 
 export function LanguageSwitcher({
@@ -35,6 +42,7 @@ export function LanguageSwitcher({
   className,
   triggerTestId,
   enabledLocales,
+  persistToProfile = false,
 }: LanguageSwitcherProps) {
   const router = useRouter();
   const t = useTranslations('common.language');
@@ -42,7 +50,11 @@ export function LanguageSwitcher({
 
   const handleLocaleChange = (locale: Locale) => {
     startTransition(async () => {
-      await setLocale(locale);
+      if (persistToProfile) {
+        await setUserLocale(locale);
+      } else {
+        await setLocale(locale);
+      }
       router.refresh();
     });
   };
@@ -102,6 +114,7 @@ export function LanguageSwitcher({
             key={locale}
             onClick={() => handleLocaleChange(locale)}
             aria-current={locale === currentLocale ? 'true' : undefined}
+            data-testid={`language-switcher-item-${locale}`}
             className={cn(
               'cursor-pointer gap-2 rounded-md px-2 py-[7px] text-[13px] text-text-default focus:bg-chip focus:text-text-default',
               locale === currentLocale &&

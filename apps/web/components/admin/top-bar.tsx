@@ -237,6 +237,7 @@ export function AdminTopBar({
           variant="compact"
           className="h-[30px] px-2 text-[12px]"
           triggerTestId="topbar-language-switcher"
+          persistToProfile
         />
 
         <button

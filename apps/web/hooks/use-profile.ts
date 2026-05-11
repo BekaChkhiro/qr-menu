@@ -16,6 +16,7 @@ export interface UserProfile {
   dateFormat: string | null;
   currency: string | null;
   priceFormat: string | null;
+  locale: 'KA' | 'EN' | 'RU' | null;
   image: string | null;
   plan: 'FREE' | 'STARTER' | 'PRO';
   hasPassword: boolean;

@@ -5,7 +5,7 @@ import Google from 'next-auth/providers/google';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
 import { loginSchema } from '@/lib/validations/auth';
-import type { Plan } from '@prisma/client';
+import type { Plan, Language } from '@prisma/client';
 import type { Adapter } from 'next-auth/adapters';
 import { authConfig } from './auth.config';
 
@@ -19,6 +19,7 @@ declare module 'next-auth' {
       phone?: string | null;
       timezone?: string | null;
       dateFormat?: string | null;
+      locale?: Language | null;
       sessionVersion?: number | null;
     } & DefaultSession['user'];
   }
@@ -30,6 +31,7 @@ declare module 'next-auth' {
     phone?: string | null;
     timezone?: string | null;
     dateFormat?: string | null;
+    locale?: Language | null;
     sessionVersion?: number | null;
   }
 }
@@ -87,6 +89,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           phone: user.phone,
           timezone: user.timezone,
           dateFormat: user.dateFormat,
+          locale: user.locale,
           sessionVersion: user.sessionVersion,
         };
       },
@@ -103,6 +106,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.phone = user.phone ?? null;
         token.timezone = user.timezone ?? null;
         token.dateFormat = user.dateFormat ?? null;
+        token.locale = user.locale ?? null;
         token.sessionVersion = user.sessionVersion ?? 0;
         token.picture = user.image ?? null;
         token.name = user.name ?? null;
@@ -129,6 +133,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (session.phone !== undefined) token.phone = session.phone;
         if (session.timezone !== undefined) token.timezone = session.timezone;
         if (session.dateFormat !== undefined) token.dateFormat = session.dateFormat;
+        if (session.locale !== undefined) token.locale = session.locale as Language | null;
         if (session.sessionVersion !== undefined) token.sessionVersion = session.sessionVersion;
         if (session.image !== undefined) token.picture = session.image;
         if (session.name !== undefined) token.name = session.name;
@@ -145,6 +150,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.phone = (token.phone as string | null | undefined) ?? null;
         session.user.timezone = (token.timezone as string | null | undefined) ?? null;
         session.user.dateFormat = (token.dateFormat as string | null | undefined) ?? null;
+        session.user.locale = (token.locale as Language | null | undefined) ?? null;
         session.user.sessionVersion = (token.sessionVersion as number | null | undefined) ?? null;
         // `token.picture` is the NextAuth-standard field for avatar url
         session.user.image = (token.picture as string | null | undefined) ?? session.user.image ?? null;

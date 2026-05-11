@@ -21,6 +21,7 @@ export const updateProfileSchema = z.object({
   image: z.string().url().optional().or(z.literal('')), // empty string = remove avatar
   currency: z.enum(['GEL', 'USD', 'EUR']).optional(),
   priceFormat: z.enum(['12.50 ₾', '₾12.50', '12,50 ₾']).optional(),
+  locale: z.enum(['KA', 'EN', 'RU']).nullable().optional(),
 });
 
 export const updatePasswordSchema = z

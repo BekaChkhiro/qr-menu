@@ -1,6 +1,7 @@
 import { getRequestConfig } from 'next-intl/server';
 import { cookies } from 'next/headers';
-import { defaultLocale, getLocaleFromCookie, LOCALE_COOKIE_NAME, type Locale } from './config';
+import { auth } from '@/lib/auth/auth';
+import { defaultLocale, getLocaleFromCookie, isValidLocale, LOCALE_COOKIE_NAME, type Locale } from './config';
 
 // Import all locale messages statically
 import kaCommon from '@/messages/ka/common.json';
@@ -33,21 +34,37 @@ const messages = {
 
 export type Messages = (typeof messages)['ka'];
 
-export default getRequestConfig(async () => {
-  // Get locale from cookie
+async function resolveLocale(): Promise<Locale> {
+  // Authenticated users' DB-stored locale takes precedence over the cookie so that
+  // a visitor-style language switch on /m/[slug] cannot override the admin preference.
+  try {
+    const session = await auth();
+    const userLocale = session?.user?.locale;
+    if (userLocale) {
+      const lower = userLocale.toLowerCase();
+      if (isValidLocale(lower)) return lower as Locale;
+    }
+  } catch {
+    // auth() can throw in contexts without a request scope (e.g. static generation); fall through.
+  }
+
   const cookieStore = await cookies();
   const localeCookie = cookieStore.get(LOCALE_COOKIE_NAME)?.value;
-  const locale = getLocaleFromCookie(localeCookie);
+  return getLocaleFromCookie(localeCookie);
+}
 
+export default getRequestConfig(async () => {
+  const locale = await resolveLocale();
   return {
     locale,
     messages: messages[locale],
   };
 });
 
-// Helper to get current locale on server
+// Helper to get current locale on server, applying the same precedence as the
+// next-intl request config (User.locale > cookie > defaultLocale).
 export async function getServerLocale(): Promise<Locale> {
-  const cookieStore = await cookies();
-  const localeCookie = cookieStore.get(LOCALE_COOKIE_NAME)?.value;
-  return getLocaleFromCookie(localeCookie);
+  return resolveLocale();
 }
+
+void defaultLocale;

@@ -151,7 +151,7 @@ export function Header({ locale, translations, user = null }: HeaderProps) {
 
           {/* Desktop Actions */}
           <div className="hidden lg:flex items-center gap-3">
-            <LanguageSwitcher currentLocale={locale} variant="compact" />
+            <LanguageSwitcher currentLocale={locale} variant="compact" persistToProfile />
             {isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -225,7 +225,7 @@ export function Header({ locale, translations, user = null }: HeaderProps) {
 
           {/* Mobile Menu Button */}
           <div className="flex lg:hidden items-center gap-2">
-            <LanguageSwitcher currentLocale={locale} variant="compact" />
+            <LanguageSwitcher currentLocale={locale} variant="compact" persistToProfile />
             <Button
               variant="ghost"
               size="icon"

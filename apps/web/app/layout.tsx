@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
-import { cookies } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { QueryProvider } from '@/lib/query/query-provider';
@@ -8,7 +7,7 @@ import { GoogleAnalytics } from '@/components/analytics/google-analytics';
 import { WebVitals } from '@/components/analytics/web-vitals';
 import { Toaster } from '@/components/ui/sonner';
 import { SkipLink, AnnouncerProvider } from '@/components/accessibility';
-import { getLocaleFromCookie, LOCALE_COOKIE_NAME } from '@/i18n/config';
+import { getServerLocale } from '@/i18n/request';
 import './globals.css';
 
 // Note: Inter supports discrete weights 100-900 in steps of 100 via Google Fonts.
@@ -38,10 +37,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Get locale from cookie
-  const cookieStore = await cookies();
-  const localeCookie = cookieStore.get(LOCALE_COOKIE_NAME)?.value;
-  const locale = getLocaleFromCookie(localeCookie);
+  const locale = await getServerLocale();
 
   // Get messages for the locale
   const messages = await getMessages();
