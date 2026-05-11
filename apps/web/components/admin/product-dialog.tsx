@@ -9,12 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Banner } from '@/components/ui/banner';
 import { cn } from '@/lib/utils';
-import { ProductForm, type ProductFormValues } from './product-form';
+import { ProductForm, type ProductFormValues, type LangStatuses } from './product-form';
 import { ProductDrawerVariationsTab } from './product-drawer-variations-tab';
 import { ProductDrawerAllergensTab } from './product-drawer-allergens-tab';
 import { AllergensLocked } from './product-drawer/allergens-locked';
 import { ArLocked } from './product-drawer/ar-locked';
 import { ProductDrawerArTab } from './product-drawer-ar-tab';
+import { LangTabsInline, type LangCode } from './product-drawer/lang-tabs-inline';
 import type { Product, Category } from '@/types/menu';
 
 const FORM_ID = 'product-drawer-form';
@@ -71,12 +72,44 @@ export function ProductDialog({
   const sheetRef = useRef<HTMLDivElement>(null);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
+  // T21.8 — single drawer-wide language scope drives every translatable field.
+  const [activeLang, setActiveLang] = useState<LangCode>('KA');
+  const [langStatuses, setLangStatuses] = useState<LangStatuses>(() => ({
+    name: {
+      KA: product?.nameKa ? 'filled' : 'empty',
+      EN: product?.nameEn ? 'filled' : 'empty',
+      RU: product?.nameRu ? 'filled' : 'empty',
+    },
+    description: {
+      KA: product?.descriptionKa ? 'filled' : 'empty',
+      EN: product?.descriptionEn ? 'filled' : 'empty',
+      RU: product?.descriptionRu ? 'filled' : 'empty',
+    },
+  }));
+
   useEffect(() => {
     if (open) {
       setActiveTab('basics');
       setSaveError(null);
+      setActiveLang('KA');
     }
   }, [open, product?.id]);
+
+  // Header dots reflect "is the language used at all" → OR across name + description.
+  const headerStatuses = {
+    KA:
+      langStatuses.name.KA === 'filled' || langStatuses.description.KA === 'filled'
+        ? 'filled'
+        : 'empty',
+    EN:
+      langStatuses.name.EN === 'filled' || langStatuses.description.EN === 'filled'
+        ? 'filled'
+        : 'empty',
+    RU:
+      langStatuses.name.RU === 'filled' || langStatuses.description.RU === 'filled'
+        ? 'filled'
+        : 'empty',
+  } as const;
 
   const handleSubmit = async (data: ProductFormValues) => {
     setSaveError(null);
@@ -211,6 +244,21 @@ export function ProductDialog({
           </SheetPrimitive.Close>
         </div>
 
+        {/* ── Drawer-wide language scope (T21.8) ───────────────────────── */}
+        <div
+          className="flex-shrink-0 border-b border-border-soft px-5 pt-2.5"
+          data-testid="product-drawer-lang-scope"
+          data-active-lang={activeLang}
+        >
+          <LangTabsInline
+            active={activeLang}
+            onChange={setActiveLang}
+            statuses={headerStatuses}
+            multilangUnlocked={multilangUnlocked}
+            data-testid="product-drawer-lang-tabs"
+          />
+        </div>
+
         {/* ── Tabs strip + body (Tabs root wraps trigger list & content) ── */}
         <Tabs
           value={activeTab}
@@ -309,9 +357,11 @@ export function ProductDialog({
                 onCancel={handleCancel}
                 isLoading={isLoading}
                 showAllergens={showAllergens}
-                multilangUnlocked={multilangUnlocked}
                 formId={FORM_ID}
                 hideActions
+                activeLang={activeLang}
+                onLangStatusesChange={setLangStatuses}
+                onForceLang={setActiveLang}
               />
             </TabsContent>
 
@@ -320,7 +370,11 @@ export function ProductDialog({
               className="m-0 p-6 focus-visible:outline-none"
             >
               {isEditing ? (
-                <ProductDrawerVariationsTab menuId={menuId} product={product} />
+                <ProductDrawerVariationsTab
+                  menuId={menuId}
+                  product={product}
+                  activeLang={activeLang}
+                />
               ) : (
                 <PlaceholderPanel
                   tab="variations"

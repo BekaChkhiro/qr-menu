@@ -38,16 +38,26 @@ import {
   useVariations,
 } from '@/hooks/use-variations';
 import { cn } from '@/lib/utils';
+import type { LangCode } from './product-drawer/lang-tabs-inline';
 import type { Product, ProductVariation } from '@/types/menu';
 
 interface ProductDrawerVariationsTabProps {
   menuId: string;
   product: Product;
+  /** Drawer-wide active language; falls back to KA when the locale is empty. */
+  activeLang?: LangCode;
+}
+
+function resolveLocalizedName(variation: ProductVariation, lang: LangCode) {
+  if (lang === 'EN') return variation.nameEn || variation.nameKa;
+  if (lang === 'RU') return variation.nameRu || variation.nameKa;
+  return variation.nameKa;
 }
 
 export function ProductDrawerVariationsTab({
   menuId,
   product,
+  activeLang = 'KA',
 }: ProductDrawerVariationsTabProps) {
   const t = useTranslations('admin.products.drawer.variationsTab');
   const basePrice = Number(product.price);
@@ -152,6 +162,7 @@ export function ProductDrawerVariationsTab({
                     menuId={menuId}
                     productId={product.id}
                     isLast={i === variations.length - 1}
+                    activeLang={activeLang}
                     onDelete={() => setVariationToDelete(variation)}
                   />
                 ))}
@@ -244,6 +255,7 @@ interface SortableVariationRowProps {
   menuId: string;
   productId: string;
   isLast: boolean;
+  activeLang: LangCode;
   onDelete: () => void;
 }
 
@@ -253,6 +265,7 @@ function SortableVariationRow({
   menuId,
   productId,
   isLast,
+  activeLang,
   onDelete,
 }: SortableVariationRowProps) {
   const t = useTranslations('admin.products.drawer.variationsTab');
@@ -308,8 +321,12 @@ function SortableVariationRow({
         <GripVertical className="h-[13px] w-[13px]" strokeWidth={1.5} />
       </button>
 
-      <span className="truncate text-[13px] font-medium text-text-default">
-        {variation.nameKa}
+      <span
+        className="truncate text-[13px] font-medium text-text-default"
+        data-testid="product-drawer-variations-row-name"
+        data-active-lang={activeLang}
+      >
+        {resolveLocalizedName(variation, activeLang)}
       </span>
 
       <span

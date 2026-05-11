@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { Loader2, Info, Clock } from 'lucide-react';
 import { z } from 'zod';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -17,10 +17,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { LangTabsInline, type LangCode } from './product-drawer/lang-tabs-inline';
+import type { LangCode } from './product-drawer/lang-tabs-inline';
 import { TagsInput } from './product-drawer/tags-input';
 import { ProductImageField } from './product-drawer/product-image-field';
 import type { Product, Category } from '@/types/menu';
+
+export interface LangStatuses {
+  name: Record<LangCode, 'filled' | 'empty'>;
+  description: Record<LangCode, 'filled' | 'empty'>;
+}
 
 // Form schema — descriptions max 500 per T14.2 spec
 const productFormSchema = z.object({
@@ -59,11 +64,16 @@ interface ProductFormProps {
   onCancel: () => void;
   isLoading?: boolean;
   showAllergens?: boolean;
-  multilangUnlocked?: boolean;
   /** When the form is submitted from a button outside its DOM (e.g. a sticky drawer footer). */
   formId?: string;
   /** Hide the in-form Cancel/Save row. The drawer renders its own footer actions. */
   hideActions?: boolean;
+  /** Drawer-wide active language. Both name and description fields read this. */
+  activeLang?: LangCode;
+  /** Fires with live filled/empty status for the drawer header indicator dots. */
+  onLangStatusesChange?: (statuses: LangStatuses) => void;
+  /** Fires when a KA validation error forces the drawer to swap back to KA on submit. */
+  onForceLang?: (lang: LangCode) => void;
 }
 
 export function ProductForm({
@@ -75,16 +85,14 @@ export function ProductForm({
   isLoading,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   showAllergens = false, // reserved for Allergens tab (T14.3)
-  multilangUnlocked = false,
   formId,
   hideActions = false,
+  activeLang = 'KA',
+  onLangStatusesChange,
+  onForceLang,
 }: ProductFormProps) {
   const t = useTranslations('admin.products.form');
   const tActions = useTranslations('actions');
-
-  // Active language tabs — independent for Name and Description
-  const [nameLang, setNameLang] = useState<LangCode>('KA');
-  const [descLang, setDescLang] = useState<LangCode>('KA');
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -146,22 +154,40 @@ export function ProductForm({
   // Discount toggle is derived from oldPrice having a value
   const [hasDiscount, setHasDiscount] = useState(() => !!(product?.oldPrice));
 
-  // Name/Description dot statuses for LangTabsInline
-  const nameStatuses = {
-    KA: (nameKa || '') !== '' ? 'filled' : 'empty',
-    EN: (nameEn || '') !== '' ? 'filled' : 'empty',
-    RU: (nameRu || '') !== '' ? 'filled' : 'empty',
-  } as const;
+  // Report live filled/empty statuses up to the drawer so the header switcher
+  // dots reflect "this language has some content" without a second source of truth.
+  useEffect(() => {
+    onLangStatusesChange?.({
+      name: {
+        KA: (nameKa || '') !== '' ? 'filled' : 'empty',
+        EN: (nameEn || '') !== '' ? 'filled' : 'empty',
+        RU: (nameRu || '') !== '' ? 'filled' : 'empty',
+      },
+      description: {
+        KA: (descriptionKa || '') !== '' ? 'filled' : 'empty',
+        EN: (descriptionEn || '') !== '' ? 'filled' : 'empty',
+        RU: (descriptionRu || '') !== '' ? 'filled' : 'empty',
+      },
+    });
+  }, [
+    nameKa,
+    nameEn,
+    nameRu,
+    descriptionKa,
+    descriptionEn,
+    descriptionRu,
+    onLangStatusesChange,
+  ]);
 
-  const descStatuses = {
-    KA: (descriptionKa || '') !== '' ? 'filled' : 'empty',
-    EN: (descriptionEn || '') !== '' ? 'filled' : 'empty',
-    RU: (descriptionRu || '') !== '' ? 'filled' : 'empty',
-  } as const;
-
-  // Active name field key
-  const nameFieldKey = nameLang === 'KA' ? 'nameKa' : nameLang === 'EN' ? 'nameEn' : 'nameRu';
-  const descFieldKey = descLang === 'KA' ? 'descriptionKa' : descLang === 'EN' ? 'descriptionEn' : 'descriptionRu';
+  // Active field keys derived from the drawer's single language scope.
+  const nameFieldKey =
+    activeLang === 'KA' ? 'nameKa' : activeLang === 'EN' ? 'nameEn' : 'nameRu';
+  const descFieldKey =
+    activeLang === 'KA'
+      ? 'descriptionKa'
+      : activeLang === 'EN'
+        ? 'descriptionEn'
+        : 'descriptionRu';
   const activeDescValue = watch(descFieldKey) || '';
 
   // Discount percentage pill
@@ -176,6 +202,14 @@ export function ProductForm({
     await onSubmit(data);
   };
 
+  const handleInvalid = (formErrors: typeof errors) => {
+    // KA is the only required translation; if it's missing, snap the drawer
+    // language back to KA so the user sees the error message in context.
+    if (formErrors.nameKa && activeLang !== 'KA') {
+      onForceLang?.('KA');
+    }
+  };
+
   const handleDiscountToggle = (checked: boolean) => {
     setHasDiscount(checked);
     if (!checked) {
@@ -187,7 +221,7 @@ export function ProductForm({
     <div
       data-testid="product-drawer-basics"
     >
-      <form id={formId} onSubmit={form.handleSubmit(handleSubmit)}>
+      <form id={formId} onSubmit={form.handleSubmit(handleSubmit, handleInvalid)}>
 
         {/* ── 1. Product image ──────────────────────────────────────────── */}
         <Controller
@@ -208,6 +242,8 @@ export function ProductForm({
         />
 
         {/* ── 2. Name ───────────────────────────────────────────────────── */}
+        {/* Language scope (KA/EN/RU) is owned by the parent drawer header — */}
+        {/* the form just renders the field for the active language. */}
         <div className="mb-[22px]">
           <div className="mb-2 flex items-baseline justify-between">
             <span className="text-[12px] font-semibold uppercase tracking-[0.1px] text-text-default">
@@ -215,13 +251,6 @@ export function ProductForm({
             </span>
             <span className="text-[11px] text-text-subtle">{t('basicsHintName')}</span>
           </div>
-          <LangTabsInline
-            active={nameLang}
-            onChange={setNameLang}
-            statuses={nameStatuses}
-            multilangUnlocked={multilangUnlocked}
-            data-testid="product-basics-name-tabs"
-          />
           <Controller
             control={form.control}
             name={nameFieldKey}
@@ -230,18 +259,19 @@ export function ProductForm({
                 {...field}
                 value={field.value || ''}
                 data-testid="product-basics-name-input"
+                data-active-lang={activeLang}
                 placeholder={
-                  nameLang === 'KA'
+                  activeLang === 'KA'
                     ? t('nameKaPlaceholder')
-                    : nameLang === 'EN'
+                    : activeLang === 'EN'
                     ? t('nameEnPlaceholder')
                     : t('nameRuPlaceholder')
                 }
-                className={cn(errors.nameKa && nameLang === 'KA' && 'border-danger ring-[3px] ring-danger-soft')}
+                className={cn(errors.nameKa && activeLang === 'KA' && 'border-danger ring-[3px] ring-danger-soft')}
               />
             )}
           />
-          {errors.nameKa && nameLang === 'KA' && (
+          {errors.nameKa && activeLang === 'KA' && (
             <p className="mt-1.5 flex items-center gap-1 text-[11.5px] text-danger">
               <Info className="h-[11px] w-[11px]" strokeWidth={1.8} aria-hidden="true" />
               {errors.nameKa.message}
@@ -256,13 +286,6 @@ export function ProductForm({
               {t('descriptionLabel')}
             </span>
           </div>
-          <LangTabsInline
-            active={descLang}
-            onChange={setDescLang}
-            statuses={descStatuses}
-            multilangUnlocked={multilangUnlocked}
-            data-testid="product-basics-description-tabs"
-          />
           <div className="relative">
             <Controller
               control={form.control}
@@ -272,11 +295,12 @@ export function ProductForm({
                   {...field}
                   value={field.value || ''}
                   data-testid="product-basics-description-textarea"
+                  data-active-lang={activeLang}
                   maxLength={500}
                   placeholder={
-                    descLang === 'KA'
+                    activeLang === 'KA'
                       ? t('descriptionKaPlaceholder')
-                      : descLang === 'EN'
+                      : activeLang === 'EN'
                       ? t('descriptionEnPlaceholder')
                       : t('descriptionRuPlaceholder')
                   }

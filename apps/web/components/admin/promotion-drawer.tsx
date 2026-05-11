@@ -132,8 +132,8 @@ export function PromotionDrawer({
   const isEditing = !!promotion;
   const [activeTab, setActiveTab] = useState<DrawerTab>('details');
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [titleLang, setTitleLang] = useState<LangCode>('KA');
-  const [descLang, setDescLang] = useState<LangCode>('KA');
+  // T21.8 — single drawer-wide language scope; title + description switch together.
+  const [activeLang, setActiveLang] = useState<LangCode>('KA');
 
   const { data: categories } = useCategories(menuId);
 
@@ -164,8 +164,7 @@ export function PromotionDrawer({
     if (open) {
       setActiveTab('details');
       setSaveError(null);
-      setTitleLang('KA');
-      setDescLang('KA');
+      setActiveLang('KA');
 
       const tr = promotion?.timeRestrictions;
       form.reset({
@@ -211,25 +210,41 @@ export function PromotionDrawer({
   const applyTo = form.watch('applyTo');
   const timeEnabled = form.watch('timeRestrictions.enabled');
   const timeDays = form.watch('timeRestrictions.days');
-  const descriptionKa = form.watch('descriptionKa') || '';
 
-  const titleStatuses = useMemo(
+  // Header dots: language is "filled" once either its title or description has content.
+  const titleKaWatch = form.watch('titleKa');
+  const titleEnWatch = form.watch('titleEn');
+  const titleRuWatch = form.watch('titleRu');
+  const descKaWatch = form.watch('descriptionKa');
+  const descEnWatch = form.watch('descriptionEn');
+  const descRuWatch = form.watch('descriptionRu');
+
+  const langStatuses = useMemo(
     () => ({
-      KA: form.watch('titleKa') ? ('filled' as const) : ('empty' as const),
-      EN: form.watch('titleEn') ? ('filled' as const) : ('empty' as const),
-      RU: form.watch('titleRu') ? ('filled' as const) : ('empty' as const),
+      KA: titleKaWatch || descKaWatch ? ('filled' as const) : ('empty' as const),
+      EN: titleEnWatch || descEnWatch ? ('filled' as const) : ('empty' as const),
+      RU: titleRuWatch || descRuWatch ? ('filled' as const) : ('empty' as const),
     }),
-    [form.watch('titleKa'), form.watch('titleEn'), form.watch('titleRu')]
+    [
+      titleKaWatch,
+      titleEnWatch,
+      titleRuWatch,
+      descKaWatch,
+      descEnWatch,
+      descRuWatch,
+    ],
   );
 
-  const descStatuses = useMemo(
-    () => ({
-      KA: form.watch('descriptionKa') ? ('filled' as const) : ('empty' as const),
-      EN: form.watch('descriptionEn') ? ('filled' as const) : ('empty' as const),
-      RU: form.watch('descriptionRu') ? ('filled' as const) : ('empty' as const),
-    }),
-    [form.watch('descriptionKa'), form.watch('descriptionEn'), form.watch('descriptionRu')]
-  );
+  const titleFieldKey =
+    activeLang === 'KA' ? 'titleKa' : activeLang === 'EN' ? 'titleEn' : 'titleRu';
+  const descFieldKey =
+    activeLang === 'KA'
+      ? 'descriptionKa'
+      : activeLang === 'EN'
+        ? 'descriptionEn'
+        : 'descriptionRu';
+  const activeDescription =
+    (form.watch(descFieldKey) as string | null | undefined) || '';
 
   const title = isEditing ? t('editTitle') : t('addTitle');
   const subtitle = isEditing ? t('editSubtitle', { title: promotion.titleKa }) : t('addSubtitle');
@@ -281,6 +296,21 @@ export function PromotionDrawer({
           </SheetPrimitive.Close>
         </div>
 
+        {/* ── Drawer-wide language scope (T21.8) ───────────────────────── */}
+        <div
+          className="flex-shrink-0 border-b border-border-soft px-5 pt-2.5"
+          data-testid="promotion-drawer-lang-scope"
+          data-active-lang={activeLang}
+        >
+          <LangTabsInline
+            active={activeLang}
+            onChange={setActiveLang}
+            statuses={langStatuses}
+            multilangUnlocked={multilangUnlocked}
+            data-testid="promotion-drawer-lang-tabs"
+          />
+        </div>
+
         {/* ── Tabs ─────────────────────────────────────────────────────── */}
         <Tabs
           value={activeTab}
@@ -320,86 +350,50 @@ export function PromotionDrawer({
             <form id={FORM_ID} onSubmit={form.handleSubmit(handleSubmit)}>
               {/* ── Details tab ───────────────────────────────────────── */}
               <TabsContent value="details" className="m-0 space-y-6 p-6 focus-visible:outline-none">
-                {/* Title (multi-lang) */}
+                {/* Title — single input, language driven by the drawer header (T21.8) */}
                 <div data-testid="promotion-drawer-title-field">
                   <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
                     {t('fields.titleLabel')}
                   </div>
-                  <LangTabsInline
-                    active={titleLang}
-                    onChange={setTitleLang}
-                    statuses={titleStatuses}
-                    multilangUnlocked={multilangUnlocked}
-                    data-testid="promotion-title-lang-tabs"
+                  <Input
+                    {...form.register(titleFieldKey)}
+                    placeholder={
+                      activeLang === 'KA'
+                        ? t('fields.titleKaPlaceholder')
+                        : activeLang === 'EN'
+                          ? t('fields.titleEnPlaceholder')
+                          : t('fields.titleRuPlaceholder')
+                    }
+                    data-testid="promotion-title-input"
+                    data-active-lang={activeLang}
                   />
-                  {titleLang === 'KA' && (
-                    <Input
-                      {...form.register('titleKa')}
-                      placeholder={t('fields.titleKaPlaceholder')}
-                      data-testid="promotion-title-ka-input"
-                    />
-                  )}
-                  {titleLang === 'EN' && (
-                    <Input
-                      {...form.register('titleEn')}
-                      placeholder={t('fields.titleEnPlaceholder')}
-                      data-testid="promotion-title-en-input"
-                    />
-                  )}
-                  {titleLang === 'RU' && (
-                    <Input
-                      {...form.register('titleRu')}
-                      placeholder={t('fields.titleRuPlaceholder')}
-                      data-testid="promotion-title-ru-input"
-                    />
-                  )}
-                  {form.formState.errors.titleKa && (
+                  {form.formState.errors.titleKa && activeLang === 'KA' && (
                     <p className="mt-1.5 text-[12px] text-danger">{form.formState.errors.titleKa.message}</p>
                   )}
                 </div>
 
-                {/* Description (multi-lang) */}
+                {/* Description — single textarea, language driven by the drawer header (T21.8) */}
                 <div data-testid="promotion-drawer-description-field">
                   <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
                     {t('fields.descriptionLabel')}
                   </div>
-                  <LangTabsInline
-                    active={descLang}
-                    onChange={setDescLang}
-                    statuses={descStatuses}
-                    multilangUnlocked={multilangUnlocked}
-                    data-testid="promotion-description-lang-tabs"
+                  <Textarea
+                    {...form.register(descFieldKey)}
+                    rows={3}
+                    className="resize-none"
+                    placeholder={
+                      activeLang === 'KA'
+                        ? t('fields.descriptionKaPlaceholder')
+                        : activeLang === 'EN'
+                          ? t('fields.descriptionEnPlaceholder')
+                          : t('fields.descriptionRuPlaceholder')
+                    }
+                    data-testid="promotion-description-input"
+                    data-active-lang={activeLang}
                   />
-                  {descLang === 'KA' && (
-                    <Textarea
-                      {...form.register('descriptionKa')}
-                      rows={3}
-                      className="resize-none"
-                      placeholder={t('fields.descriptionKaPlaceholder')}
-                      data-testid="promotion-description-ka-input"
-                    />
-                  )}
-                  {descLang === 'EN' && (
-                    <Textarea
-                      {...form.register('descriptionEn')}
-                      rows={3}
-                      className="resize-none"
-                      placeholder={t('fields.descriptionEnPlaceholder')}
-                      data-testid="promotion-description-en-input"
-                    />
-                  )}
-                  {descLang === 'RU' && (
-                    <Textarea
-                      {...form.register('descriptionRu')}
-                      rows={3}
-                      className="resize-none"
-                      placeholder={t('fields.descriptionRuPlaceholder')}
-                      data-testid="promotion-description-ru-input"
-                    />
-                  )}
                   <div className="mt-1 flex justify-end">
                     <span className="font-mono text-[11px] text-text-subtle tabular-nums">
-                      {descriptionKa.length} / 160
+                      {activeDescription.length} / 160
                     </span>
                   </div>
                 </div>

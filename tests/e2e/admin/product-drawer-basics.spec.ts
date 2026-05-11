@@ -221,17 +221,17 @@ test.describe('product drawer — basics tab (T14.2)', () => {
     await openEditDrawerForFirstProduct(page);
 
     // EN tab should be locked
-    const enTab = page.getByTestId('product-basics-name-tab-EN');
+    const enTab = page.getByTestId('product-drawer-lang-tab-EN');
     await expect(enTab).toHaveAttribute('data-locked', 'true');
     await expect(enTab.locator('svg')).toBeVisible(); // lock icon
 
     // RU tab should be locked
-    const ruTab = page.getByTestId('product-basics-name-tab-RU');
+    const ruTab = page.getByTestId('product-drawer-lang-tab-RU');
     await expect(ruTab).toHaveAttribute('data-locked', 'true');
     await expect(ruTab.locator('svg')).toBeVisible();
 
     // KA tab should NOT be locked
-    const kaTab = page.getByTestId('product-basics-name-tab-KA');
+    const kaTab = page.getByTestId('product-drawer-lang-tab-KA');
     await expect(kaTab).toHaveAttribute('data-locked', 'false');
   });
 
@@ -242,10 +242,10 @@ test.describe('product drawer — basics tab (T14.2)', () => {
     await openEditDrawerForFirstProduct(page);
 
     // Both EN and RU should be unlocked
-    const enTab = page.getByTestId('product-basics-name-tab-EN');
+    const enTab = page.getByTestId('product-drawer-lang-tab-EN');
     await expect(enTab).toHaveAttribute('data-locked', 'false');
 
-    const ruTab = page.getByTestId('product-basics-name-tab-RU');
+    const ruTab = page.getByTestId('product-drawer-lang-tab-RU');
     await expect(ruTab).toHaveAttribute('data-locked', 'false');
 
     // Note the current KA value
@@ -262,7 +262,7 @@ test.describe('product drawer — basics tab (T14.2)', () => {
     await nameInput.fill('Adjarian Khachapuri');
 
     // Switch back to KA — value should be preserved
-    await page.getByTestId('product-basics-name-tab-KA').click();
+    await page.getByTestId('product-drawer-lang-tab-KA').click();
     await expect(page.getByTestId('product-basics-name-input')).toHaveValue(kaValue);
   });
 
