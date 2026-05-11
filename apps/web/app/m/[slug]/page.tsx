@@ -14,10 +14,7 @@ import { MenuFooter } from '@/components/public/menu-footer';
 import { ViewTracker } from '@/components/public/view-tracker';
 import { MenuPasswordGate } from '@/components/public/menu-password-gate';
 import { CreateTableLauncher } from '@/components/public/create-table-launcher';
-import {
-  menuPassCookieName,
-  verifyMenuPassToken,
-} from '@/lib/menu-visibility';
+import { menuPassCookieName, verifyMenuPassToken } from '@/lib/menu-visibility';
 import { TABLE_COOKIE_NAME, verifyTableToken } from '@/lib/auth/table-token';
 
 interface PageProps {
@@ -78,12 +75,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
   if (!isPreview && rawMenu.passwordHash) {
     const token = cookieStore.get(menuPassCookieName(rawMenu.id))?.value;
     if (!verifyMenuPassToken(rawMenu.id, token)) {
-      return (
-        <MenuPasswordGate
-          slug={rawMenu.slug}
-          menuName={rawMenu.name}
-        />
-      );
+      return <MenuPasswordGate slug={rawMenu.slug} menuName={rawMenu.name} />;
     }
   }
 
@@ -100,11 +92,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         where: { id: tableToken.tableId },
         select: { code: true, status: true, menuId: true },
       });
-      if (
-        boundTable &&
-        boundTable.menuId === rawMenu.id &&
-        boundTable.status === 'OPEN'
-      ) {
+      if (boundTable && boundTable.menuId === rawMenu.id && boundTable.status === 'OPEN') {
         const target = tableToken.isHost
           ? `/m/${slug}/t/${boundTable.code}/host`
           : `/m/${slug}/t/${boundTable.code}`;
@@ -156,12 +144,14 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
   return (
     <div
       className="min-h-screen bg-background"
-      style={{
-        '--primary-color': menu.primaryColor || '#000000',
-        '--accent-color': menu.accentColor || '#666666',
-        ...(menu.headingFont ? { '--heading-font': `"${menu.headingFont}"` } : {}),
-        ...(menu.bodyFont ? { '--body-font': `"${menu.bodyFont}"` } : {}),
-      } as React.CSSProperties}
+      style={
+        {
+          '--primary-color': menu.primaryColor || '#000000',
+          '--accent-color': menu.accentColor || '#666666',
+          ...(menu.headingFont ? { '--heading-font': `"${menu.headingFont}"` } : {}),
+          ...(menu.bodyFont ? { '--body-font': `"${menu.bodyFont}"` } : {}),
+        } as React.CSSProperties
+      }
     >
       {!isPreview && <ViewTracker menuId={menu.id} />}
 
@@ -170,11 +160,9 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         description={menu.description}
         logoUrl={menu.logoUrl}
         locale={locale}
-        enabledLocales={
-          menu.enabledLanguages
-            ?.map((l) => l.toLowerCase())
-            .filter((l): l is Locale => l === 'ka' || l === 'en' || l === 'ru')
-        }
+        enabledLocales={menu.enabledLanguages
+          ?.map((l) => l.toLowerCase())
+          .filter((l): l is Locale => l === 'ka' || l === 'en' || l === 'ru')}
       />
 
       {hasInfo && (
@@ -191,20 +179,16 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         />
       )}
 
-      {hasPromotions && (
-        <PromotionCarousel promotions={menu.promotions} locale={locale} />
-      )}
+      {hasPromotions && <PromotionCarousel promotions={menu.promotions} locale={locale} />}
 
       {featuredProducts.length > 0 && (
-        <FeaturedCarousel
-          products={featuredProducts}
-          locale={locale}
-          settings={displaySettings}
-        />
+        <FeaturedCarousel products={featuredProducts} locale={locale} settings={displaySettings} />
       )}
 
       {hasCategories ? (
         <MenuBody
+          menuId={menu.id}
+          trackViews={!isPreview}
           categories={categoriesWithProducts}
           locale={locale}
           settings={displaySettings}
@@ -220,8 +204,8 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
                 {locale === 'ka'
                   ? 'მენიუ ცარიელია'
                   : locale === 'ru'
-                  ? 'Меню пусто'
-                  : 'Menu is empty'}
+                    ? 'Меню пусто'
+                    : 'Menu is empty'}
               </p>
             </div>
           </div>
@@ -243,4 +227,3 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
     </div>
   );
 }
-

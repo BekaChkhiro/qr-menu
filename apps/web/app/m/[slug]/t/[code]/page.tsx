@@ -2,19 +2,9 @@ import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/db';
-import {
-  getPublicMenu,
-  type SerializedPublicMenu,
-} from '@/lib/public-menu';
-import {
-  TABLE_COOKIE_NAME,
-  verifyTableToken,
-} from '@/lib/auth/table-token';
-import {
-  getLocaleFromCookie,
-  LOCALE_COOKIE_NAME,
-  type Locale,
-} from '@/i18n/config';
+import { getPublicMenu, type SerializedPublicMenu } from '@/lib/public-menu';
+import { TABLE_COOKIE_NAME, verifyTableToken } from '@/lib/auth/table-token';
+import { getLocaleFromCookie, LOCALE_COOKIE_NAME, type Locale } from '@/i18n/config';
 import { MenuHeader } from '@/components/public/menu-header';
 import { MenuInfoWidget } from '@/components/public/menu-info-widget';
 import { MenuBody } from '@/components/public/menu-body';
@@ -22,14 +12,8 @@ import { PromotionCarousel } from '@/components/public/promotion-carousel';
 import { FeaturedCarousel } from '@/components/public/featured-carousel';
 import { MenuFooter } from '@/components/public/menu-footer';
 import { JoinTableForm } from '@/components/public/join-table-form';
-import {
-  TableModeProvider,
-  type TableSelection,
-} from '@/components/public/table-mode-provider';
-import {
-  TableGuestTray,
-  type TrayProductInfo,
-} from '@/components/public/table-guest-tray';
+import { TableModeProvider, type TableSelection } from '@/components/public/table-mode-provider';
+import { TableGuestTray, type TrayProductInfo } from '@/components/public/table-guest-tray';
 
 interface PageProps {
   params: Promise<{ slug: string; code: string }>;
@@ -98,9 +82,7 @@ export default async function TableEntryPage({ params }: PageProps) {
   const cookieStore = await cookies();
   const tokenRaw = cookieStore.get(TABLE_COOKIE_NAME)?.value;
   const token = verifyTableToken(tokenRaw);
-  const locale: Locale = getLocaleFromCookie(
-    cookieStore.get(LOCALE_COOKIE_NAME)?.value,
-  );
+  const locale: Locale = getLocaleFromCookie(cookieStore.get(LOCALE_COOKIE_NAME)?.value);
 
   // Auto-close-on-read parity with GET /api/public/tables/[code] — keeps the UI
   // coherent if the visitor lands after the window passed.
@@ -134,14 +116,7 @@ export default async function TableEntryPage({ params }: PageProps) {
       // If the table is no longer OPEN, fall through and show the join form so
       // the visitor sees a coherent reason instead of a "ghost" guest menu.
       if (effectiveStatus !== 'OPEN') {
-        return (
-          <JoinTableForm
-            slug={slug}
-            code={code}
-            menuName={table.menu.name}
-            locale={locale}
-          />
-        );
+        return <JoinTableForm slug={slug} code={code} menuName={table.menu.name} locale={locale} />;
       }
 
       return await renderGuestMenu({
@@ -160,14 +135,7 @@ export default async function TableEntryPage({ params }: PageProps) {
   }
 
   // No matching cookie → render the join form.
-  return (
-    <JoinTableForm
-      slug={slug}
-      code={code}
-      menuName={table.menu.name}
-      locale={locale}
-    />
-  );
+  return <JoinTableForm slug={slug} code={code} menuName={table.menu.name} locale={locale} />;
 }
 
 interface RenderArgs {
@@ -190,9 +158,7 @@ async function renderGuestMenu(args: RenderArgs) {
   // Strip server-only fields.
   const { passwordHash: _omitPasswordHash, ...rawMenuPublic } = rawMenu;
   void _omitPasswordHash;
-  const menu = JSON.parse(
-    JSON.stringify(rawMenuPublic),
-  ) as SerializedPublicMenu;
+  const menu = JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu;
 
   // This guest's selections — needed to seed the tray + tray totals on first
   // paint (no client fetch round-trip).
@@ -218,9 +184,7 @@ async function renderGuestMenu(args: RenderArgs) {
     createdAt: s.createdAt.toISOString(),
   }));
 
-  const categoriesWithProducts = menu.categories.filter(
-    (c) => c.products.length > 0,
-  );
+  const categoriesWithProducts = menu.categories.filter((c) => c.products.length > 0);
 
   const trayProducts: TrayProductInfo[] = categoriesWithProducts.flatMap((c) =>
     c.products.map((p) => ({
@@ -237,21 +201,17 @@ async function renderGuestMenu(args: RenderArgs) {
         nameRu: v.nameRu,
         price: v.price,
       })),
-    })),
+    }))
   );
 
   const hasPromotions = menu.promotions.length > 0;
   const hasCategories = categoriesWithProducts.length > 0;
-  const hasInfo = Boolean(
-    menu.address || menu.phone || menu.wifiSsid || menu.wcDirection,
-  );
+  const hasInfo = Boolean(menu.address || menu.phone || menu.wifiSsid || menu.wcDirection);
 
   const featuredProducts = categoriesWithProducts
     .flatMap((c) => c.products)
     .filter((p) =>
-      p.ribbons?.some(
-        (r) => r === 'POPULAR' || r === 'CHEF_CHOICE' || r === 'DAILY_DISH',
-      ),
+      p.ribbons?.some((r) => r === 'POPULAR' || r === 'CHEF_CHOICE' || r === 'DAILY_DISH')
     )
     .slice(0, 8);
 
@@ -289,12 +249,8 @@ async function renderGuestMenu(args: RenderArgs) {
           {
             '--primary-color': menu.primaryColor || '#000000',
             '--accent-color': menu.accentColor || '#666666',
-            ...(menu.headingFont
-              ? { '--heading-font': `"${menu.headingFont}"` }
-              : {}),
-            ...(menu.bodyFont
-              ? { '--body-font': `"${menu.bodyFont}"` }
-              : {}),
+            ...(menu.headingFont ? { '--heading-font': `"${menu.headingFont}"` } : {}),
+            ...(menu.bodyFont ? { '--body-font': `"${menu.bodyFont}"` } : {}),
           } as React.CSSProperties
         }
         data-testid="public-table-guest-menu"
@@ -304,13 +260,9 @@ async function renderGuestMenu(args: RenderArgs) {
           description={menu.description}
           logoUrl={menu.logoUrl}
           locale={args.locale}
-          enabledLocales={
-            menu.enabledLanguages
-              ?.map((l) => l.toLowerCase())
-              .filter(
-                (l): l is Locale => l === 'ka' || l === 'en' || l === 'ru',
-              )
-          }
+          enabledLocales={menu.enabledLanguages
+            ?.map((l) => l.toLowerCase())
+            .filter((l): l is Locale => l === 'ka' || l === 'en' || l === 'ru')}
         />
 
         {hasInfo && (
@@ -327,9 +279,7 @@ async function renderGuestMenu(args: RenderArgs) {
           />
         )}
 
-        {hasPromotions && (
-          <PromotionCarousel promotions={menu.promotions} locale={args.locale} />
-        )}
+        {hasPromotions && <PromotionCarousel promotions={menu.promotions} locale={args.locale} />}
 
         {featuredProducts.length > 0 && (
           <FeaturedCarousel
@@ -341,6 +291,8 @@ async function renderGuestMenu(args: RenderArgs) {
 
         {hasCategories ? (
           <MenuBody
+            menuId={menu.id}
+            trackViews
             categories={categoriesWithProducts}
             locale={args.locale}
             settings={displaySettings}
@@ -369,7 +321,7 @@ async function renderGuestMenu(args: RenderArgs) {
           currencySymbol={currencySymbol}
           allergenMode={displaySettings.allergenDisplay}
           hasAllergens={categoriesWithProducts.some((c) =>
-            c.products.some((p) => p.allergens.length > 0),
+            c.products.some((p) => p.allergens.length > 0)
           )}
         />
       </div>

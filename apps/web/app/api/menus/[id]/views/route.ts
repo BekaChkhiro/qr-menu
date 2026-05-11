@@ -1,11 +1,6 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
-import {
-  handleApiError,
-  createSuccessResponse,
-  createErrorResponse,
-  ERROR_CODES,
-} from '@/lib/api';
+import { handleApiError, createSuccessResponse, createErrorResponse, ERROR_CODES } from '@/lib/api';
 import { headers } from 'next/headers';
 import { cacheGet, cacheSet, cacheDelete, CACHE_KEYS } from '@/lib/cache/redis';
 import { trackViewSchema } from '@/lib/validations';
@@ -14,13 +9,30 @@ import { trackViewSchema } from '@/lib/validations';
 const VIEW_DEBOUNCE_SECONDS = 15 * 60;
 
 // Generate a unique key for debouncing based on menu + IP + user agent hash
-function getViewDebounceKey(menuId: string, ipAddress?: string, userAgent?: string): string {
+function getViewDebounceKey(
+  menuId: string,
+  ipAddress?: string,
+  userAgent?: string,
+  categoryId?: string
+): string {
   // Create a simple hash from user agent to keep key short
-  const uaHash = userAgent
-    ? Buffer.from(userAgent).toString('base64').slice(0, 16)
-    : 'unknown';
+  const uaHash = userAgent ? Buffer.from(userAgent).toString('base64').slice(0, 16) : 'unknown';
   const ip = ipAddress || 'unknown';
-  return `view:debounce:${menuId}:${ip}:${uaHash}`;
+  const scope = categoryId ? `category:${categoryId}` : 'menu';
+  return `view:debounce:${menuId}:${scope}:${ip}:${uaHash}`;
+}
+
+function readGeoHeader(headersList: Headers, names: string[]): string | undefined {
+  for (const name of names) {
+    const value = headersList.get(name);
+    if (!value) continue;
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
+  }
+  return undefined;
 }
 
 interface RouteParams {
@@ -44,11 +56,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!menu) {
-      return createErrorResponse(
-        ERROR_CODES.MENU_NOT_FOUND,
-        'Menu not found',
-        404
-      );
+      return createErrorResponse(ERROR_CODES.MENU_NOT_FOUND, 'Menu not found', 404);
     }
 
     // Only track views for published menus
@@ -91,9 +99,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const forwardedFor = headersList.get('x-forwarded-for');
     const realIp = headersList.get('x-real-ip');
     const ipAddress = forwardedFor?.split(',')[0]?.trim() || realIp || undefined;
+    const city = readGeoHeader(headersList, ['x-vercel-ip-city', 'cf-ipcity', 'x-appengine-city']);
+    const country = readGeoHeader(headersList, [
+      'x-vercel-ip-country',
+      'cf-ipcountry',
+      'x-appengine-country',
+    ]);
 
     // Check for debounce - prevent duplicate views from same user within time window
-    const debounceKey = getViewDebounceKey(id, ipAddress, userAgent);
+    const debounceKey = getViewDebounceKey(id, ipAddress, userAgent, categoryId);
     const recentView = await cacheGet<boolean>(debounceKey);
 
     if (recentView) {
@@ -141,6 +155,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         categoryId,
         userAgent,
         ipAddress,
+        city,
+        country,
         device,
         browser,
       },

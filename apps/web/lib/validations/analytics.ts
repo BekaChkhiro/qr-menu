@@ -86,6 +86,19 @@ export const topCategorySchema = z.object({
   percentage: z.number(),
 });
 
+export const heatmapCellSchema = z.object({
+  day: z.number().int().min(0).max(6),
+  hour: z.number().int().min(0).max(23),
+  count: z.number(),
+});
+
+export const geographyRowSchema = z.object({
+  city: z.string(),
+  country: z.string().nullable(),
+  count: z.number(),
+  percentage: z.number(),
+});
+
 // Full analytics response schema
 export const menuAnalyticsSchema = z.object({
   overview: analyticsOverviewSchema,
@@ -95,6 +108,8 @@ export const menuAnalyticsSchema = z.object({
   deviceBreakdown: z.array(deviceBreakdownSchema),
   browserBreakdown: z.array(browserBreakdownSchema),
   topCategories: z.array(topCategorySchema),
+  heatmap: z.array(heatmapCellSchema),
+  geography: z.array(geographyRowSchema),
 });
 
 export type TrackViewInput = z.infer<typeof trackViewSchema>;
@@ -108,4 +123,6 @@ export type AnalyticsKpis = z.infer<typeof analyticsKpisSchema>;
 export type PeakHour = z.infer<typeof peakHourSchema>;
 export type ChartEvent = z.infer<typeof chartEventSchema>;
 export type TopCategory = z.infer<typeof topCategorySchema>;
+export type HeatmapCell = z.infer<typeof heatmapCellSchema>;
+export type GeographyRow = z.infer<typeof geographyRowSchema>;
 export type MenuAnalytics = z.infer<typeof menuAnalyticsSchema>;

@@ -13,6 +13,8 @@ interface Category {
 }
 
 interface CategoryNavProps {
+  menuId: string;
+  trackViews: boolean;
   categories: Category[];
   locale: Locale;
 }
@@ -28,10 +30,8 @@ function getCategoryName(category: Category, locale: Locale): string {
   }
 }
 
-export function CategoryNav({ categories, locale }: CategoryNavProps) {
-  const [activeCategory, setActiveCategory] = useState<string | null>(
-    categories[0]?.id || null
-  );
+export function CategoryNav({ menuId, trackViews, categories, locale }: CategoryNavProps) {
+  const [activeCategory, setActiveCategory] = useState<string | null>(categories[0]?.id || null);
   const navRef = useRef<HTMLDivElement>(null);
   const isScrollingRef = useRef(false);
 
@@ -73,6 +73,9 @@ export function CategoryNav({ categories, locale }: CategoryNavProps) {
       });
 
       setActiveCategory(categoryId);
+      if (trackViews) {
+        void trackCategoryView(menuId, categoryId);
+      }
 
       // Reset scrolling flag after animation completes
       setTimeout(() => {
@@ -84,9 +87,7 @@ export function CategoryNav({ categories, locale }: CategoryNavProps) {
   // Scroll active button into view in the nav
   useEffect(() => {
     if (activeCategory && navRef.current) {
-      const activeButton = navRef.current.querySelector(
-        `[data-category-id="${activeCategory}"]`
-      );
+      const activeButton = navRef.current.querySelector(`[data-category-id="${activeCategory}"]`);
       if (activeButton) {
         activeButton.scrollIntoView({
           behavior: 'smooth',
@@ -143,4 +144,16 @@ export function CategoryNav({ categories, locale }: CategoryNavProps) {
       </div>
     </nav>
   );
+}
+
+async function trackCategoryView(menuId: string, categoryId: string): Promise<void> {
+  try {
+    await fetch(`/api/menus/${menuId}/views`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoryId }),
+    });
+  } catch (error) {
+    console.error('Failed to track category view:', error);
+  }
 }

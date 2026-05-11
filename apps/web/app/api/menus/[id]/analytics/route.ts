@@ -2,12 +2,7 @@ import { NextRequest } from 'next/server';
 import { ActivityType, Prisma } from '@prisma/client';
 import { auth } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
-import {
-  handleApiError,
-  createSuccessResponse,
-  createErrorResponse,
-  ERROR_CODES,
-} from '@/lib/api';
+import { handleApiError, createSuccessResponse, createErrorResponse, ERROR_CODES } from '@/lib/api';
 import { analyticsQuerySchema } from '@/lib/validations';
 import {
   startOfDay,
@@ -49,11 +44,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!menu) {
-      return createErrorResponse(
-        ERROR_CODES.MENU_NOT_FOUND,
-        'Menu not found',
-        404
-      );
+      return createErrorResponse(ERROR_CODES.MENU_NOT_FOUND, 'Menu not found', 404);
     }
 
     if (menu.userId !== session.user.id) {
@@ -91,55 +82,52 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         startDate = queryParams.startDate
           ? startOfDay(queryParams.startDate)
           : startOfDay(subDays(now, 29));
-        endDate = queryParams.endDate
-          ? endOfDay(queryParams.endDate)
-          : endOfDay(now);
+        endDate = queryParams.endDate ? endOfDay(queryParams.endDate) : endOfDay(now);
         break;
       default:
         startDate = startOfDay(subDays(now, 29));
     }
 
     // Get overview statistics
-    const [totalViews, viewsToday, viewsThisWeek, viewsThisMonth] =
-      await Promise.all([
-        // Total views (all time)
-        prisma.menuView.count({
-          where: { menuId: id },
-        }),
+    const [totalViews, viewsToday, viewsThisWeek, viewsThisMonth] = await Promise.all([
+      // Total views (all time)
+      prisma.menuView.count({
+        where: { menuId: id },
+      }),
 
-        // Views today
-        prisma.menuView.count({
-          where: {
-            menuId: id,
-            viewedAt: {
-              gte: startOfDay(now),
-              lte: endOfDay(now),
-            },
+      // Views today
+      prisma.menuView.count({
+        where: {
+          menuId: id,
+          viewedAt: {
+            gte: startOfDay(now),
+            lte: endOfDay(now),
           },
-        }),
+        },
+      }),
 
-        // Views this week
-        prisma.menuView.count({
-          where: {
-            menuId: id,
-            viewedAt: {
-              gte: startOfWeek(now, { weekStartsOn: 1 }),
-              lte: endOfDay(now),
-            },
+      // Views this week
+      prisma.menuView.count({
+        where: {
+          menuId: id,
+          viewedAt: {
+            gte: startOfWeek(now, { weekStartsOn: 1 }),
+            lte: endOfDay(now),
           },
-        }),
+        },
+      }),
 
-        // Views this month
-        prisma.menuView.count({
-          where: {
-            menuId: id,
-            viewedAt: {
-              gte: startOfMonth(now),
-              lte: endOfDay(now),
-            },
+      // Views this month
+      prisma.menuView.count({
+        where: {
+          menuId: id,
+          viewedAt: {
+            gte: startOfMonth(now),
+            lte: endOfDay(now),
           },
-        }),
-      ]);
+        },
+      }),
+    ]);
 
     // Get daily views for the selected period
     const dailyViewsRaw = await prisma.menuView.groupBy({
@@ -204,9 +192,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       device: item.device || 'Unknown',
       count: item._count.id,
       percentage:
-        totalViewsInRange > 0
-          ? Math.round((item._count.id / totalViewsInRange) * 1000) / 10
-          : 0,
+        totalViewsInRange > 0 ? Math.round((item._count.id / totalViewsInRange) * 1000) / 10 : 0,
     }));
 
     // Get browser breakdown
@@ -234,9 +220,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       browser: item.browser || 'Unknown',
       count: item._count.id,
       percentage:
-        totalViewsInRange > 0
-          ? Math.round((item._count.id / totalViewsInRange) * 1000) / 10
-          : 0,
+        totalViewsInRange > 0 ? Math.round((item._count.id / totalViewsInRange) * 1000) / 10 : 0,
     }));
 
     // ── T15.3 Top categories ──────────────────────────────────────────────
@@ -271,22 +255,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Percentage denominator is total categorized views in the period, not
     // total menu views — keeps bar lengths meaningful when only a subset of
     // traffic is attributed.
-    const totalCategorizedViews = topCategoriesRaw.reduce(
-      (sum, row) => sum + row._count.id,
-      0,
-    );
+    const totalCategorizedViews = topCategoriesRaw.reduce((sum, row) => sum + row._count.id, 0);
 
     const topCategories = topCategoriesRaw
       .map((row) => {
-        const cat = row.categoryId
-          ? topCategoryById.get(row.categoryId)
-          : undefined;
+        const cat = row.categoryId ? topCategoryById.get(row.categoryId) : undefined;
         if (!row.categoryId || !cat) return null;
         const count = row._count.id;
         const percentage =
-          totalCategorizedViews > 0
-            ? Math.round((count / totalCategorizedViews) * 1000) / 10
-            : 0;
+          totalCategorizedViews > 0 ? Math.round((count / totalCategorizedViews) * 1000) / 10 : 0;
         return {
           categoryId: row.categoryId,
           nameKa: cat.nameKa,
@@ -297,6 +274,48 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         };
       })
       .filter((v): v is NonNullable<typeof v> => v !== null);
+
+    // Real hourly heatmap: Monday=0 ... Sunday=6, hour=0 ... 23.
+    type HeatmapRow = { day: number; hour: number; count: bigint };
+    const heatmapRaw = await prisma.$queryRaw<HeatmapRow[]>(Prisma.sql`
+      SELECT ((CAST(EXTRACT(DOW FROM "viewedAt") AS INTEGER) + 6) % 7) AS day,
+             CAST(EXTRACT(HOUR FROM "viewedAt") AS INTEGER) AS hour,
+             COUNT(*) AS count
+      FROM "menu_views"
+      WHERE "menuId" = ${id}
+        AND "viewedAt" >= ${startDate}
+        AND "viewedAt" <= ${endDate}
+      GROUP BY day, hour
+      ORDER BY day ASC, hour ASC
+    `);
+    const heatmap = heatmapRaw.map((row) => ({
+      day: row.day,
+      hour: row.hour,
+      count: Number(row.count),
+    }));
+
+    const geographyRaw = await prisma.menuView.groupBy({
+      by: ['city', 'country'],
+      where: {
+        menuId: id,
+        city: { not: null },
+        viewedAt: { gte: startDate, lte: endDate },
+      },
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 5,
+    });
+    const totalGeographyViews = geographyRaw.reduce((sum, row) => sum + row._count.id, 0);
+    const geography = geographyRaw.map((row) => {
+      const count = row._count.id;
+      return {
+        city: row.city ?? 'Unknown',
+        country: row.country,
+        count,
+        percentage:
+          totalGeographyViews > 0 ? Math.round((count / totalGeographyViews) * 1000) / 10 : 0,
+      };
+    });
 
     // ── T15.1 KPI row aggregates ──────────────────────────────────────────
     // Previous equal-length window for delta calculation.
@@ -353,7 +372,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       uniqueByDay.set(format(row.day, 'yyyy-MM-dd'), Number(row.count));
     }
     const uniqueScansDaily = allDates.map(
-      (date) => uniqueByDay.get(format(date, 'yyyy-MM-dd')) ?? 0,
+      (date) => uniqueByDay.get(format(date, 'yyyy-MM-dd')) ?? 0
     );
 
     // Peak hour aggregation. `viewedAt` is stored as `timestamp` (no tz) with
@@ -435,6 +454,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       deviceBreakdown,
       browserBreakdown,
       topCategories,
+      heatmap,
+      geography,
       period: {
         start: format(startDate, 'yyyy-MM-dd'),
         end: format(endDate, 'yyyy-MM-dd'),

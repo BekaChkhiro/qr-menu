@@ -720,6 +720,7 @@
         "geography": {
           "title": "Views by city",
           "comingSoon": "customer geography detection lands with unique-scan tracking",
+          "empty": "No city data yet",
           "cities": {
             "tbilisi": "Tbilisi",
             "batumi": "Batumi",
@@ -731,6 +732,7 @@
         "trafficSource": {
           "title": "Traffic source",
           "comingSoon": "we'll attribute scans to tent cards, posters, and shared links",
+          "empty": "Source attribution is not collected yet",
           "barAriaLabel": "Traffic source share: 78% QR code, 15% direct URL, 7% social",
           "qrLocationsHeading": "Most scanned QR locations",
           "legend": {
@@ -750,7 +752,8 @@
           "title": "Top products",
           "previewBadge": "Preview",
           "previewTooltip": "Ranked by price as a placeholder. Per-product view tracking ships with the analytics data pipeline.",
-          "empty": "Add products to this menu to see how they'd rank.",
+          "comingSoon": "per-product view tracking is not collected yet",
+          "empty": "Product-level analytics will appear here once tracking is available.",
           "uncategorized": "Uncategorized"
         }
       },

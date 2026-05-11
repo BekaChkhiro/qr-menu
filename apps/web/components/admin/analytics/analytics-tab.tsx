@@ -4,14 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { toast } from '@/components/ui/toast';
-import {
-  BarChart3,
-  Check,
-  Copy,
-  Download,
-  QrCode,
-  Sparkles,
-} from 'lucide-react';
+import { BarChart3, Check, Copy, Download, QrCode, Sparkles } from 'lucide-react';
 
 import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
@@ -35,11 +28,7 @@ interface AnalyticsTabProps {
   hasAnalytics: boolean;
 }
 
-export function AnalyticsTab({
-  menuId,
-  menuSlug,
-  hasAnalytics,
-}: AnalyticsTabProps) {
+export function AnalyticsTab({ menuId, menuSlug, hasAnalytics }: AnalyticsTabProps) {
   const { data, isLoading } = useMenuAnalytics(menuId, { period: '30d' });
 
   if (!hasAnalytics) {
@@ -70,19 +59,16 @@ function AnalyticsTabContent({ menuId }: { menuId: string }) {
 
       <ViewsOverTimeChart menuId={menuId} hasAnalytics />
 
-      <div
-        data-testid="editor-analytics-row-3"
-        className="grid gap-4 lg:grid-cols-[2fr_1fr]"
-      >
+      <div data-testid="editor-analytics-row-3" className="grid gap-4 lg:grid-cols-[2fr_1fr]">
         <TopCategoriesCard menuId={menuId} hasAnalytics />
         <DeviceBreakdownCard menuId={menuId} hasAnalytics />
       </div>
 
-      <HeatmapPreviewCard hasAnalytics />
+      <HeatmapPreviewCard menuId={menuId} hasAnalytics />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <TopProductsPreviewCard menuId={menuId} hasAnalytics />
-        <GeographyPreviewCard hasAnalytics />
+        <GeographyPreviewCard menuId={menuId} hasAnalytics />
       </div>
 
       <TrafficSourcePreviewCard hasAnalytics />
@@ -96,11 +82,7 @@ function AnalyticsTabFreeLocked({ menuId }: { menuId: string }) {
   const t = useTranslations('admin.editor.analytics.locked');
 
   return (
-    <div
-      data-testid="editor-analytics-tab"
-      data-plan-locked="true"
-      className="relative"
-    >
+    <div data-testid="editor-analytics-tab" data-plan-locked="true" className="relative">
       {/* Blurred ghost layout — rendered for visual texture under the overlay. */}
       <div
         aria-hidden="true"
@@ -112,10 +94,10 @@ function AnalyticsTabFreeLocked({ menuId }: { menuId: string }) {
           <TopCategoriesCard menuId={menuId} hasAnalytics />
           <DeviceBreakdownCard menuId={menuId} hasAnalytics />
         </div>
-        <HeatmapPreviewCard hasAnalytics />
+        <HeatmapPreviewCard menuId={menuId} hasAnalytics />
         <div className="grid gap-4 lg:grid-cols-2">
           <TopProductsPreviewCard menuId={menuId} hasAnalytics />
-          <GeographyPreviewCard hasAnalytics />
+          <GeographyPreviewCard menuId={menuId} hasAnalytics />
         </div>
         <TrafficSourcePreviewCard hasAnalytics />
       </div>
@@ -151,10 +133,7 @@ function AnalyticsTabFreeLocked({ menuId }: { menuId: string }) {
 
           <ul className="mt-5 flex flex-col gap-2 text-left">
             {(['a', 'b', 'c'] as const).map((key) => (
-              <li
-                key={key}
-                className="flex items-center gap-2.5 text-[13px] text-text-default"
-              >
+              <li key={key} className="flex items-center gap-2.5 text-[13px] text-text-default">
                 <span
                   aria-hidden="true"
                   className="inline-flex size-[18px] shrink-0 items-center justify-center rounded-[5px] bg-success-soft text-success"
@@ -184,13 +163,7 @@ function AnalyticsTabFreeLocked({ menuId }: { menuId: string }) {
 
 // ─── Empty state (PRO, 0 views) ────────────────────────────────────────────
 
-function AnalyticsTabEmpty({
-  menuId,
-  menuSlug,
-}: {
-  menuId: string;
-  menuSlug: string;
-}) {
+function AnalyticsTabEmpty({ menuId, menuSlug }: { menuId: string; menuSlug: string }) {
   const t = useTranslations('admin.editor.analytics');
   const tEmpty = useTranslations('admin.editor.analytics.empty');
   const [copying, setCopying] = useState(false);
@@ -217,11 +190,7 @@ function AnalyticsTabEmpty({
   const noDataCaption = tEmpty('noDataCaption');
 
   return (
-    <div
-      data-testid="editor-analytics-tab"
-      data-empty="true"
-      className="space-y-4"
-    >
+    <div data-testid="editor-analytics-tab" data-empty="true" className="space-y-4">
       <section
         data-testid="editor-analytics-empty-card"
         className="rounded-[14px] border border-border bg-card px-6 py-12 text-center"
@@ -322,4 +291,3 @@ function QrRippleIllustration() {
     </div>
   );
 }
-

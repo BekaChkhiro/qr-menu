@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import Image from 'next/image';
 import { Utensils, CupSoda, LayoutGrid } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -29,6 +28,8 @@ interface PublicCategory {
 }
 
 interface MenuBodyProps {
+  menuId: string;
+  trackViews: boolean;
   categories: PublicCategory[];
   locale: Locale;
   settings: PublicDisplaySettings;
@@ -49,6 +50,8 @@ function getName(cat: PublicCategory, locale: Locale): string {
 }
 
 export function MenuBody({
+  menuId,
+  trackViews,
   categories,
   locale,
   settings,
@@ -76,6 +79,9 @@ export function MenuBody({
 
   const jumpToCategory = (categoryId: string) => {
     setShowGrid(false);
+    if (trackViews) {
+      void trackCategoryView(menuId, categoryId);
+    }
     // Wait for section to render then scroll
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -115,12 +121,7 @@ export function MenuBody({
               >
                 {cat.iconUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={cat.iconUrl}
-                    alt=""
-                    className="h-16 w-16 object-contain"
-                    aria-hidden
-                  />
+                  <img src={cat.iconUrl} alt="" className="h-16 w-16 object-contain" aria-hidden />
                 ) : (
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-3xl">
                     {cat.type === 'FOOD' ? '🍽️' : cat.type === 'DRINK' ? '🥤' : '📋'}
@@ -132,9 +133,7 @@ export function MenuBody({
                       {cat.brandLabel}
                     </div>
                   )}
-                  <div className="line-clamp-2 text-sm font-medium">
-                    {getName(cat, locale)}
-                  </div>
+                  <div className="line-clamp-2 text-sm font-medium">{getName(cat, locale)}</div>
                   <div className="mt-0.5 text-xs text-muted-foreground">
                     {cat.products.length}{' '}
                     {locale === 'ka' ? 'პროდუქტი' : locale === 'ru' ? 'продукт' : 'items'}
@@ -153,8 +152,8 @@ export function MenuBody({
               {locale === 'ka'
                 ? 'სრული მენიუს ნახვა →'
                 : locale === 'ru'
-                ? 'Смотреть полное меню →'
-                : 'View full menu →'}
+                  ? 'Смотреть полное меню →'
+                  : 'View full menu →'}
             </button>
           </div>
         </div>
@@ -181,7 +180,12 @@ export function MenuBody({
       )}
 
       {filteredCategories.length > 0 && (
-        <CategoryNav categories={filteredCategories} locale={locale} />
+        <CategoryNav
+          menuId={menuId}
+          trackViews={trackViews}
+          categories={filteredCategories}
+          locale={locale}
+        />
       )}
 
       {layout === 'CATEGORIES_FIRST' && (
@@ -216,14 +220,26 @@ export function MenuBody({
               {locale === 'ka'
                 ? 'ამ კატეგორიაში პროდუქტები არ არის'
                 : locale === 'ru'
-                ? 'В этой категории нет продуктов'
-                : 'No products in this category'}
+                  ? 'В этой категории нет продуктов'
+                  : 'No products in this category'}
             </div>
           )}
         </div>
       </main>
     </>
   );
+}
+
+async function trackCategoryView(menuId: string, categoryId: string): Promise<void> {
+  try {
+    await fetch(`/api/menus/${menuId}/views`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoryId }),
+    });
+  } catch (error) {
+    console.error('Failed to track category view:', error);
+  }
 }
 
 interface FoodsDrinksTabsProps {
