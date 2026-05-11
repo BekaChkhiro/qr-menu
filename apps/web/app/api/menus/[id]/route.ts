@@ -162,15 +162,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // the persisted fields here.
     const { visibility, password, ...patch } = data;
     const updatePayload: Record<string, unknown> = { ...patch };
-    let visibilityChanged = false;
 
     if (visibility === 'PUBLISHED') {
       updatePayload.status = 'PUBLISHED';
       updatePayload.passwordHash = null;
-      if (existingMenu.passwordHash) visibilityChanged = true;
       if (existingMenu.status !== 'PUBLISHED') {
         updatePayload.publishedAt = new Date();
-        visibilityChanged = true;
       }
     } else if (visibility === 'PASSWORD_PROTECTED') {
       if (!password && !existingMenu.passwordHash) {
@@ -183,18 +180,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       updatePayload.status = 'PUBLISHED';
       if (password) {
         updatePayload.passwordHash = await bcrypt.hash(password, 10);
-        visibilityChanged = true;
       }
       if (existingMenu.status !== 'PUBLISHED') {
         updatePayload.publishedAt = new Date();
-        visibilityChanged = true;
       }
     } else if (visibility === 'PRIVATE_DRAFT') {
       updatePayload.status = 'DRAFT';
       updatePayload.passwordHash = null;
-      if (existingMenu.status !== 'DRAFT' || existingMenu.passwordHash) {
-        visibilityChanged = true;
-      }
     }
 
     const menu = await prisma.menu.update({
@@ -214,9 +206,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (data.slug && data.slug !== existingMenu.slug) {
       await invalidateMenuCache(id, existingMenu.slug);
     }
-    if (visibilityChanged || data.slug) {
-      await invalidateMenuCache(id, menu.slug);
-    }
+    await invalidateMenuCache(id, menu.slug);
 
     const safeMenu = sanitizeMenuResponse(menu);
 

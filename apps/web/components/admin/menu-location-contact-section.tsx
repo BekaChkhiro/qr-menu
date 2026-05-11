@@ -2,17 +2,30 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { Loader2, MapPin, Phone, Wifi, DoorClosed } from 'lucide-react';
+import { DoorClosed, ExternalLink, Loader2, MapPin, Phone, Wifi } from 'lucide-react';
 import { toast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ImageUpload } from '@/components/admin/image-upload';
 import { useUpdateMenu } from '@/hooks/use-menus';
+import type { UpdateMenuInput } from '@/lib/validations/menu';
 import type { MenuWithDetails } from '@/types/menu';
 
 interface MenuLocationContactSectionProps {
   menu: MenuWithDetails;
+}
+
+function coordinateToInputValue(value: number | string | null | undefined): string {
+  return value == null ? '' : String(value);
+}
+
+function parseCoordinate(value: string, min: number, max: number): number | null | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed) || parsed < min || parsed > max) return undefined;
+  return parsed;
 }
 
 export function MenuLocationContactSection({ menu }: MenuLocationContactSectionProps) {
@@ -25,6 +38,8 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
   const initialWifiPassword = menu.wifiPassword || '';
   const initialWcDirection = menu.wcDirection || '';
   const initialWcImageUrl = menu.wcImageUrl || '';
+  const initialLocationLat = coordinateToInputValue(menu.locationLat);
+  const initialLocationLng = coordinateToInputValue(menu.locationLng);
 
   const [address, setAddress] = useState(initialAddress);
   const [phone, setPhone] = useState(initialPhone);
@@ -32,6 +47,9 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
   const [wifiPassword, setWifiPassword] = useState(initialWifiPassword);
   const [wcDirection, setWcDirection] = useState(initialWcDirection);
   const [wcImageUrl, setWcImageUrl] = useState(initialWcImageUrl);
+  const [locationLat, setLocationLat] = useState(initialLocationLat);
+  const [locationLng, setLocationLng] = useState(initialLocationLng);
+  const [coordinatesError, setCoordinatesError] = useState<string | null>(null);
 
   const lastSyncedRef = useRef({
     address: initialAddress,
@@ -40,6 +58,8 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
     wifiPassword: initialWifiPassword,
     wcDirection: initialWcDirection,
     wcImageUrl: initialWcImageUrl,
+    locationLat: initialLocationLat,
+    locationLng: initialLocationLng,
   });
 
   useEffect(() => {
@@ -50,6 +70,8 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
       wifiPassword: menu.wifiPassword || '',
       wcDirection: menu.wcDirection || '',
       wcImageUrl: menu.wcImageUrl || '',
+      locationLat: coordinateToInputValue(menu.locationLat),
+      locationLng: coordinateToInputValue(menu.locationLng),
     };
     const prev = lastSyncedRef.current;
     if (
@@ -58,7 +80,9 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
       prev.wifiSsid !== next.wifiSsid ||
       prev.wifiPassword !== next.wifiPassword ||
       prev.wcDirection !== next.wcDirection ||
-      prev.wcImageUrl !== next.wcImageUrl
+      prev.wcImageUrl !== next.wcImageUrl ||
+      prev.locationLat !== next.locationLat ||
+      prev.locationLng !== next.locationLng
     ) {
       setAddress(next.address);
       setPhone(next.phone);
@@ -66,6 +90,9 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
       setWifiPassword(next.wifiPassword);
       setWcDirection(next.wcDirection);
       setWcImageUrl(next.wcImageUrl);
+      setLocationLat(next.locationLat);
+      setLocationLng(next.locationLng);
+      setCoordinatesError(null);
       lastSyncedRef.current = next;
     }
   }, [
@@ -75,6 +102,8 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
     menu.wifiPassword,
     menu.wcDirection,
     menu.wcImageUrl,
+    menu.locationLat,
+    menu.locationLng,
   ]);
 
   const dirty = useMemo(
@@ -84,7 +113,9 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
       wifiSsid !== initialWifiSsid ||
       wifiPassword !== initialWifiPassword ||
       wcDirection !== initialWcDirection ||
-      wcImageUrl !== initialWcImageUrl,
+      wcImageUrl !== initialWcImageUrl ||
+      locationLat !== initialLocationLat ||
+      locationLng !== initialLocationLng,
     [
       address,
       phone,
@@ -92,12 +123,16 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
       wifiPassword,
       wcDirection,
       wcImageUrl,
+      locationLat,
+      locationLng,
       initialAddress,
       initialPhone,
       initialWifiSsid,
       initialWifiPassword,
       initialWcDirection,
       initialWcImageUrl,
+      initialLocationLat,
+      initialLocationLng,
     ]
   );
 
@@ -108,6 +143,9 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
     setWifiPassword(initialWifiPassword);
     setWcDirection(initialWcDirection);
     setWcImageUrl(initialWcImageUrl);
+    setLocationLat(initialLocationLat);
+    setLocationLng(initialLocationLng);
+    setCoordinatesError(null);
   }, [
     initialAddress,
     initialPhone,
@@ -115,16 +153,30 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
     initialWifiPassword,
     initialWcDirection,
     initialWcImageUrl,
+    initialLocationLat,
+    initialLocationLng,
   ]);
 
   const handleSave = async () => {
-    const payload: Record<string, string | null> = {};
+    const parsedLat = parseCoordinate(locationLat, -90, 90);
+    const parsedLng = parseCoordinate(locationLng, -180, 180);
+
+    if (parsedLat === undefined || parsedLng === undefined) {
+      setCoordinatesError(t('coordinatesInvalid'));
+      return;
+    }
+
+    setCoordinatesError(null);
+
+    const payload: Partial<UpdateMenuInput> = {};
     if (address !== initialAddress) payload.address = address || null;
     if (phone !== initialPhone) payload.phone = phone || null;
     if (wifiSsid !== initialWifiSsid) payload.wifiSsid = wifiSsid || null;
     if (wifiPassword !== initialWifiPassword) payload.wifiPassword = wifiPassword || null;
     if (wcDirection !== initialWcDirection) payload.wcDirection = wcDirection || null;
     if (wcImageUrl !== initialWcImageUrl) payload.wcImageUrl = wcImageUrl || null;
+    if (locationLat !== initialLocationLat) payload.locationLat = parsedLat;
+    if (locationLng !== initialLocationLng) payload.locationLng = parsedLng;
 
     try {
       await updateMenu.mutateAsync(payload);
@@ -136,6 +188,8 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
         wifiPassword: wifiPassword || '',
         wcDirection: wcDirection || '',
         wcImageUrl: wcImageUrl || '',
+        locationLat: parsedLat == null ? '' : String(parsedLat),
+        locationLng: parsedLng == null ? '' : String(parsedLng),
       };
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('saveFailed'));
@@ -143,6 +197,9 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
   };
 
   const saving = updateMenu.isPending;
+  const pickFromMapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    address || initialAddress || ''
+  )}`;
 
   return (
     <section
@@ -189,6 +246,92 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
           maxLength={50}
           className="h-[40px] text-[13px]"
         />
+      </div>
+
+      {/* Map coordinates */}
+      <div
+        data-testid="settings-location-coordinates"
+        className="rounded-[12px] border border-border-soft bg-bg p-4"
+      >
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="flex items-center gap-1.5 text-[12.5px] font-semibold text-text-default">
+              <MapPin size={13} strokeWidth={1.5} aria-hidden="true" className="text-text-muted" />
+              {t('coordinatesLabel')}
+            </div>
+            <p className="mt-1 text-[11.5px] leading-[1.45] text-text-subtle">
+              {t('coordinatesHint')}
+            </p>
+          </div>
+          <a
+            href={pickFromMapsHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="settings-location-pick-maps"
+            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-accent hover:underline"
+          >
+            {t('pickFromGoogleMaps')}
+            <ExternalLink size={12} strokeWidth={1.5} aria-hidden="true" />
+          </a>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label
+              htmlFor="settings-location-lat"
+              className="mb-1.5 block text-[12.5px] font-semibold text-text-default"
+            >
+              {t('latitudeLabel')}
+            </label>
+            <Input
+              id="settings-location-lat"
+              data-testid="settings-location-lat"
+              type="number"
+              inputMode="decimal"
+              min={-90}
+              max={90}
+              step="0.000001"
+              value={locationLat}
+              onChange={(e) => {
+                setLocationLat(e.target.value);
+                if (coordinatesError) setCoordinatesError(null);
+              }}
+              placeholder="41.7151"
+              className="h-[40px] text-[13px]"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="settings-location-lng"
+              className="mb-1.5 block text-[12.5px] font-semibold text-text-default"
+            >
+              {t('longitudeLabel')}
+            </label>
+            <Input
+              id="settings-location-lng"
+              data-testid="settings-location-lng"
+              type="number"
+              inputMode="decimal"
+              min={-180}
+              max={180}
+              step="0.000001"
+              value={locationLng}
+              onChange={(e) => {
+                setLocationLng(e.target.value);
+                if (coordinatesError) setCoordinatesError(null);
+              }}
+              placeholder="44.8271"
+              className="h-[40px] text-[13px]"
+            />
+          </div>
+        </div>
+        {coordinatesError && (
+          <p
+            data-testid="settings-location-coordinates-error"
+            className="mt-2 text-[12px] font-medium text-danger"
+          >
+            {coordinatesError}
+          </p>
+        )}
       </div>
 
       {/* Wi-Fi (SSID + password) */}
