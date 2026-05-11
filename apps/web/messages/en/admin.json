@@ -383,6 +383,21 @@
       "comingSoon": "Coming soon"
     },
     "settings": {
+      "menuName": {
+        "label": "Menu name",
+        "helper": "Shown in the public menu header. Translated names appear when visitors switch language.",
+        "placeholderKa": "Café Linville",
+        "placeholderEn": "Café Linville",
+        "placeholderRu": "Кафе Линвиль",
+        "ariaLabelKa": "Menu name (Georgian)",
+        "ariaLabelEn": "Menu name (English)",
+        "ariaLabelRu": "Menu name (Russian)",
+        "lockedHelper": "Translated names are a PRO feature. Upgrade to unlock English & Russian.",
+        "errors": {
+          "required": "Menu name is required",
+          "tooLong": "Menu name must be less than 100 characters"
+        }
+      },
       "url": {
         "label": "Menu URL",
         "helper": "The public address for this menu. Used in the QR code.",

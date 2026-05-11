@@ -18,6 +18,12 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useUpdateMenu } from '@/hooks/use-menus';
+import { useUserPlan } from '@/hooks/use-user-plan';
+import {
+  LangTabsInline,
+  type LangCode,
+  type DotStatus,
+} from '@/components/admin/product-drawer/lang-tabs-inline';
 import type { MenuWithDetails } from '@/types/menu';
 import type { MenuVisibility } from '@/lib/validations';
 
@@ -157,11 +163,16 @@ export interface MenuUrlVisibilitySectionProps {
   menu: MenuWithDetails;
 }
 
+type NameErrorKey = 'required' | 'tooLong';
+const NAME_MAX = 100;
+
 export function MenuUrlVisibilitySection({
   menu,
 }: MenuUrlVisibilitySectionProps) {
   const t = useTranslations('admin.editor.settings');
   const updateMenu = useUpdateMenu(menu.id);
+  const { hasFeature } = useUserPlan();
+  const multilangUnlocked = hasFeature('multilingual');
 
   const initialVisibility = useMemo(() => deriveVisibility(menu), [menu]);
 
@@ -175,33 +186,96 @@ export function MenuUrlVisibilitySection({
     'required' | 'tooShort' | null
   >(null);
 
+  // T21.2 — multilingual name state. Tracks all three values; the input below
+  // displays only the active tab's value but all three persist together.
+  const [nameKa, setNameKa] = useState(menu.nameKa ?? menu.name ?? '');
+  const [nameEn, setNameEn] = useState(menu.nameEn ?? '');
+  const [nameRu, setNameRu] = useState(menu.nameRu ?? '');
+  const [activeLang, setActiveLang] = useState<LangCode>('KA');
+  const [nameError, setNameError] = useState<{
+    lang: LangCode;
+    key: NameErrorKey;
+  } | null>(null);
+
   // Sync local state when the menu refetches (e.g., other tab made changes).
   const lastSyncedRef = useRef<{
     slug: string;
     visibility: MenuVisibility;
-  }>({ slug: menu.slug, visibility: initialVisibility });
+    nameKa: string;
+    nameEn: string | null;
+    nameRu: string | null;
+  }>({
+    slug: menu.slug,
+    visibility: initialVisibility,
+    nameKa: menu.nameKa ?? menu.name ?? '',
+    nameEn: menu.nameEn ?? null,
+    nameRu: menu.nameRu ?? null,
+  });
 
   useEffect(() => {
+    const remoteNameKa = menu.nameKa ?? menu.name ?? '';
+    const remoteNameEn = menu.nameEn ?? null;
+    const remoteNameRu = menu.nameRu ?? null;
     if (
       lastSyncedRef.current.slug !== menu.slug ||
-      lastSyncedRef.current.visibility !== initialVisibility
+      lastSyncedRef.current.visibility !== initialVisibility ||
+      lastSyncedRef.current.nameKa !== remoteNameKa ||
+      lastSyncedRef.current.nameEn !== remoteNameEn ||
+      lastSyncedRef.current.nameRu !== remoteNameRu
     ) {
       setSlug(menu.slug);
       setVisibility(initialVisibility);
       setPassword('');
+      setNameKa(remoteNameKa);
+      setNameEn(remoteNameEn ?? '');
+      setNameRu(remoteNameRu ?? '');
+      setNameError(null);
       lastSyncedRef.current = {
         slug: menu.slug,
         visibility: initialVisibility,
+        nameKa: remoteNameKa,
+        nameEn: remoteNameEn,
+        nameRu: remoteNameRu,
       };
     }
-  }, [menu.slug, initialVisibility]);
+  }, [menu.slug, menu.nameKa, menu.nameEn, menu.nameRu, menu.name, initialVisibility]);
 
   // Derived flags
   const slugDirty = slug !== menu.slug;
   const visibilityDirty = visibility !== initialVisibility;
   const passwordDirty =
     visibility === 'PASSWORD_PROTECTED' && password.length > 0;
-  const dirty = slugDirty || visibilityDirty || passwordDirty;
+  const initialNameKa = menu.nameKa ?? menu.name ?? '';
+  const nameKaDirty = nameKa !== initialNameKa;
+  const nameEnDirty = (menu.nameEn ?? '') !== nameEn;
+  const nameRuDirty = (menu.nameRu ?? '') !== nameRu;
+  const nameDirty = nameKaDirty || nameEnDirty || nameRuDirty;
+  const dirty = slugDirty || visibilityDirty || passwordDirty || nameDirty;
+
+  const nameStatuses: Record<LangCode, DotStatus> = {
+    KA: nameKa.trim().length > 0 ? 'filled' : 'empty',
+    EN: nameEn.trim().length > 0 ? 'filled' : 'empty',
+    RU: nameRu.trim().length > 0 ? 'filled' : 'empty',
+  };
+  const activeNameValue = activeLang === 'KA' ? nameKa : activeLang === 'EN' ? nameEn : nameRu;
+  const setActiveNameValue = (value: string) => {
+    if (activeLang === 'KA') setNameKa(value);
+    else if (activeLang === 'EN') setNameEn(value);
+    else setNameRu(value);
+    if (nameError && nameError.lang === activeLang) setNameError(null);
+  };
+  const namePlaceholder =
+    activeLang === 'KA'
+      ? t('menuName.placeholderKa')
+      : activeLang === 'EN'
+        ? t('menuName.placeholderEn')
+        : t('menuName.placeholderRu');
+  const nameAriaLabel =
+    activeLang === 'KA'
+      ? t('menuName.ariaLabelKa')
+      : activeLang === 'EN'
+        ? t('menuName.ariaLabelEn')
+        : t('menuName.ariaLabelRu');
 
   // Public URL preview
   const { origin, host } = useMemo(() => {
@@ -250,12 +324,39 @@ export function MenuUrlVisibilitySection({
     setPassword('');
     setSlugError(null);
     setPasswordError(null);
+    setNameKa(menu.nameKa ?? menu.name ?? '');
+    setNameEn(menu.nameEn ?? '');
+    setNameRu(menu.nameRu ?? '');
+    setNameError(null);
   };
 
   const handleSave = async () => {
     const slugErr = validateSlug(slug);
     if (slugErr) {
       setSlugError(slugErr);
+      return;
+    }
+
+    // T21.2 — validate menu name. KA required; all three capped at 100 chars.
+    const trimmedKa = nameKa.trim();
+    if (trimmedKa.length === 0) {
+      setNameError({ lang: 'KA', key: 'required' });
+      setActiveLang('KA');
+      return;
+    }
+    if (trimmedKa.length > NAME_MAX) {
+      setNameError({ lang: 'KA', key: 'tooLong' });
+      setActiveLang('KA');
+      return;
+    }
+    if (nameEn.trim().length > NAME_MAX) {
+      setNameError({ lang: 'EN', key: 'tooLong' });
+      setActiveLang('EN');
+      return;
+    }
+    if (nameRu.trim().length > NAME_MAX) {
+      setNameError({ lang: 'RU', key: 'tooLong' });
+      setActiveLang('RU');
       return;
     }
 
@@ -273,6 +374,12 @@ export function MenuUrlVisibilitySection({
     if (visibilityDirty) payload.visibility = visibility;
     if (passwordDirty) payload.password = password;
 
+    // T21.2 — only send the name fields the operator actually changed. Server
+    // mirrors `nameKa` → legacy `name` automatically.
+    if (nameKaDirty) payload.nameKa = trimmedKa;
+    if (nameEnDirty) payload.nameEn = nameEn.trim() ? nameEn.trim() : null;
+    if (nameRuDirty) payload.nameRu = nameRu.trim() ? nameRu.trim() : null;
+
     // Also send visibility if password is being rotated but visibility didn't
     // change — the server uses visibility to decide whether to hash.
     if (passwordDirty && !('visibility' in payload)) {
@@ -283,7 +390,13 @@ export function MenuUrlVisibilitySection({
       await updateMenu.mutateAsync(payload as never);
       toast.success(t('actions.saved'));
       setPassword('');
-      lastSyncedRef.current = { slug, visibility };
+      lastSyncedRef.current = {
+        slug,
+        visibility,
+        nameKa: trimmedKa,
+        nameEn: nameEn.trim() ? nameEn.trim() : null,
+        nameRu: nameRu.trim() ? nameRu.trim() : null,
+      };
     } catch (err) {
       const apiError = err as { message?: string; code?: string };
       if (apiError?.code === 'SLUG_EXISTS') {
@@ -305,6 +418,52 @@ export function MenuUrlVisibilitySection({
       aria-labelledby="settings-url-heading"
       className="flex flex-col gap-8"
     >
+      {/* ── Menu name (T21.2) ────────────────────────────────────────── */}
+      <div data-testid="settings-menu-name">
+        <SectionHeader
+          label={t('menuName.label')}
+          helper={t('menuName.helper')}
+        />
+        <LangTabsInline
+          active={activeLang}
+          onChange={setActiveLang}
+          statuses={nameStatuses}
+          multilangUnlocked={multilangUnlocked}
+          data-testid="settings-menu-name-tabs"
+        />
+        <Input
+          data-testid={`settings-menu-name-input-${activeLang}`}
+          value={activeNameValue}
+          onChange={(e) => setActiveNameValue(e.target.value)}
+          placeholder={namePlaceholder}
+          aria-label={nameAriaLabel}
+          aria-invalid={nameError?.lang === activeLang ? 'true' : 'false'}
+          maxLength={NAME_MAX}
+          className={cn(
+            'h-[40px] bg-card text-[13px]',
+            nameError?.lang === activeLang &&
+              'border-danger focus-visible:shadow-[0_0_0_3px_rgba(220,38,38,0.08)]',
+          )}
+        />
+        {nameError && nameError.lang === activeLang && (
+          <p
+            data-testid="settings-menu-name-error"
+            role="alert"
+            className="mt-2 text-[12.5px] text-danger"
+          >
+            {t(`menuName.errors.${nameError.key}`)}
+          </p>
+        )}
+        {!multilangUnlocked && (
+          <p
+            data-testid="settings-menu-name-locked-helper"
+            className="mt-2 text-[12px] leading-[1.45] text-text-muted"
+          >
+            {t('menuName.lockedHelper')}
+          </p>
+        )}
+      </div>
+
       {/* ── Menu URL ─────────────────────────────────────────────────── */}
       <div>
         <SectionHeader label={t('url.label')} helper={t('url.helper')} />
