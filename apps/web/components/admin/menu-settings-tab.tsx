@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { MenuUrlVisibilitySection } from '@/components/admin/menu-url-visibility-section';
+import { MenuDescriptionSection } from '@/components/admin/menu-description-section';
 import { ScheduleSection } from '@/components/admin/schedule-section';
 import { SeoSection } from '@/components/admin/seo-section';
 import { SharePreviewCard } from '@/components/admin/share-preview-card';
@@ -90,6 +91,14 @@ export function MenuSettingsTab({ menu }: MenuSettingsTabProps) {
           ) : (
             <SharedTableLocked />
           )}
+        </Section>
+
+        {/* Description (T20.9) — fallback for SEO meta-description */}
+        <Section
+          label={t('description.label')}
+          helper={t('description.helper')}
+        >
+          <MenuDescriptionSection menu={menu} />
         </Section>
 
         {/* SEO */}

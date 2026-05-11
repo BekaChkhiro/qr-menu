@@ -457,6 +457,18 @@
         "saved": "Schedule saved",
         "saveFailed": "Could not save schedule"
       },
+      "description": {
+        "label": "Description",
+        "helper": "Short summary of what this menu offers — used as the SEO meta-description fallback when none is set.",
+        "fieldLabel": "Menu description",
+        "hint": "Up to 500 characters. Plain text only.",
+        "placeholder": "Small-batch coffee, khachapuri, and seasonal brunch on Rustaveli Avenue.",
+        "save": "Save changes",
+        "saving": "Saving…",
+        "discard": "Discard",
+        "saved": "Description saved",
+        "saveFailed": "Could not save description"
+      },
       "seo": {
         "label": "SEO & sharing",
         "helper": "How this menu previews when shared on WhatsApp, Instagram or Facebook.",
