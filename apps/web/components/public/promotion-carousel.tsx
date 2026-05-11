@@ -89,7 +89,7 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
             <div
               key={promo.id}
               data-promo-slide
-              className="relative aspect-[16/9] w-[70%] shrink-0 snap-center overflow-hidden rounded-2xl bg-muted shadow-sm"
+              className="relative aspect-[16/9] w-[70%] shrink-0 snap-center overflow-hidden rounded-[var(--menu-radius-card)] bg-muted shadow-sm"
               role="listitem"
             >
               {promo.imageUrl && (

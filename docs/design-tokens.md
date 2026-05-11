@@ -249,6 +249,32 @@ Urgent promotions (≤1 day remaining) override accent with orange; the override
 
 When `bg-[var(--menu-primary)]` carries foreground text, pair it with `text-white` rather than `text-primary-foreground` — the menu primary is user-defined and white maximises contrast across the picker palette.
 
+## Public Menu Corner Radius (`cornerRadius`)
+
+`Menu.cornerRadius` (0-24, default 12) is emitted alongside the color vars on the public root:
+
+```css
+:root {
+  --menu-radius-card: <menu.cornerRadius>px;  /* default: 12px */
+}
+```
+
+Branded card surfaces consume it via `rounded-[var(--menu-radius-card)]` so all major cards on a single menu share the same radius.
+
+### Surfaces driven by `--menu-radius-card`
+
+| Surface | File |
+|---|---|
+| Product card BORDERED / ELEVATED / MINIMAL variants | `components/public/product-card.tsx` |
+| Magazine product card | `components/public/product-card-magazine.tsx` |
+| Featured carousel item | `components/public/featured-carousel.tsx` |
+| Promotion carousel slide | `components/public/promotion-carousel.tsx` |
+| Promotion banner | `components/public/promotion-banner.tsx` |
+| Compact-template category container | `components/public/category-section.tsx` |
+| Categories-first quick-jump card | `components/public/menu-body.tsx` |
+
+The `FLAT` product card variant intentionally stays `rounded-none` — flat list visuals should not bend to the slider.
+
 ## Canonical Design Reference
 
 The full Claude Design handoff bundle is committed to the repo at **`qr-menu-design/`** (root level, not `apps/web/`). Structure:

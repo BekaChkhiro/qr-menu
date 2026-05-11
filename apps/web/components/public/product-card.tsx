@@ -47,10 +47,10 @@ const cardStyleClasses: Record<
   NonNullable<PublicDisplaySettings['productCardStyle']>,
   string
 > = {
-  BORDERED: 'border border-border/70 rounded-2xl',
-  ELEVATED: 'border border-border/40 rounded-2xl shadow-sm',
+  BORDERED: 'border border-border/70 rounded-[var(--menu-radius-card)]',
+  ELEVATED: 'border border-border/40 rounded-[var(--menu-radius-card)] shadow-sm',
   FLAT: 'border-b border-border/60 rounded-none',
-  MINIMAL: 'border-0 rounded-lg bg-transparent shadow-none',
+  MINIMAL: 'border-0 rounded-[var(--menu-radius-card)] bg-transparent shadow-none',
 };
 
 const touchEffectClasses: Record<
@@ -160,7 +160,10 @@ export function ProductCard({ product, locale, settings }: ProductCardProps) {
   const effectClass = touchEffectClasses[settings.productTouchEffect || 'SCALE'];
 
   return (
-    <Card className={cn('overflow-hidden bg-card', cardClass, effectClass)}>
+    <Card
+      data-testid="public-product-card"
+      className={cn('overflow-hidden bg-card', cardClass, effectClass)}
+    >
       <CardContent className="p-0">
         <article className="flex gap-4 p-4" aria-label={name}>
           {/* ── Image column ── */}

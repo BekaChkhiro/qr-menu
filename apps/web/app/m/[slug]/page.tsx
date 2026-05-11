@@ -163,6 +163,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         {
           '--menu-primary': menu.primaryColor || '#000000',
           '--menu-accent': menu.accentColor || '#666666',
+          '--menu-radius-card': `${menu.cornerRadius ?? 12}px`,
           ...(menu.headingFont ? { '--heading-font': `"${menu.headingFont}"` } : {}),
           ...(menu.bodyFont ? { '--body-font': `"${menu.bodyFont}"` } : {}),
         } as React.CSSProperties

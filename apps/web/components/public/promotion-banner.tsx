@@ -82,7 +82,7 @@ export function PromotionBanner({ promotion, locale }: PromotionBannerProps) {
   return (
     <Card
       className={cn(
-        'overflow-hidden border-[color-mix(in_srgb,var(--menu-primary)_30%,transparent)] animate-slide-in-left',
+        'overflow-hidden rounded-[var(--menu-radius-card)] border-[color-mix(in_srgb,var(--menu-primary)_30%,transparent)] animate-slide-in-left',
         'bg-gradient-to-r from-[color-mix(in_srgb,var(--menu-primary)_10%,transparent)] via-[color-mix(in_srgb,var(--menu-primary)_5%,transparent)] to-transparent',
         isUrgent && 'border-orange-400/50 from-orange-500/15 via-orange-500/5'
       )}

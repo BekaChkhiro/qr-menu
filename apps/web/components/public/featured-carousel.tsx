@@ -65,7 +65,7 @@ export function FeaturedCarousel({ products, locale, settings }: FeaturedCarouse
                 const el = document.getElementById(`product-${product.id}`);
                 el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
               }}
-              className="group flex w-[170px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-shadow hover:shadow-md"
+              className="group flex w-[170px] shrink-0 snap-start flex-col overflow-hidden rounded-[var(--menu-radius-card)] border bg-card shadow-sm transition-shadow hover:shadow-md"
             >
               <div className="relative aspect-square bg-muted">
                 {product.imageUrl ? (

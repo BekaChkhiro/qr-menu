@@ -18,6 +18,7 @@ export const publicMenuSelect = {
   currencySymbol: true,
   headingFont: true,
   bodyFont: true,
+  cornerRadius: true,
   enabledLanguages: true,
   allergenDisplay: true,
   caloriesDisplay: true,
@@ -174,6 +175,7 @@ export interface SerializedPublicMenu {
   currencySymbol: string | null;
   headingFont: string | null;
   bodyFont: string | null;
+  cornerRadius: number | null;
   enabledLanguages: string[];
   allergenDisplay: 'TEXT' | 'ICON' | 'WARNING';
   caloriesDisplay: 'DIRECT' | 'FLIP_REVEAL' | 'HIDDEN';

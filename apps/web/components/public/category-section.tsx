@@ -83,7 +83,7 @@ export function CategorySection({
     template === 'MAGAZINE'
       ? 'space-y-6'
       : template === 'COMPACT'
-      ? 'rounded-xl bg-card ring-1 ring-border/60 overflow-hidden px-3'
+      ? 'rounded-[var(--menu-radius-card)] bg-card ring-1 ring-border/60 overflow-hidden px-3'
       : 'space-y-3';
 
   const sectionTopPadding =

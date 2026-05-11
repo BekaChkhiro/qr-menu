@@ -71,7 +71,7 @@ export function ProductCardMagazine({ product, locale, settings }: Props) {
       id={`product-${product.id}`}
       data-testid="public-product-card-magazine"
       className={cn(
-        'group relative overflow-hidden rounded-2xl bg-card ring-1 ring-border/60',
+        'group relative overflow-hidden rounded-[var(--menu-radius-card)] bg-card ring-1 ring-border/60',
         effectClass
       )}
       aria-label={name}

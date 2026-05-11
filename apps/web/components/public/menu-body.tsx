@@ -117,7 +117,7 @@ export function MenuBody({
                 key={cat.id}
                 type="button"
                 onClick={() => jumpToCategory(cat.id)}
-                className="group flex flex-col items-center justify-center gap-2 rounded-2xl border bg-card p-4 text-center transition-all hover:border-[var(--menu-primary)] hover:shadow-lg active:scale-95"
+                className="group flex flex-col items-center justify-center gap-2 rounded-[var(--menu-radius-card)] border bg-card p-4 text-center transition-all hover:border-[var(--menu-primary)] hover:shadow-lg active:scale-95"
               >
                 {cat.iconUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
