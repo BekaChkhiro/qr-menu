@@ -74,4 +74,16 @@ test.describe('editor settings tab · legacy form removed (T20.6)', () => {
     await expect(page.getByTestId('settings-url-visibility')).toBeVisible();
     await expect(page.getByTestId('settings-advanced')).toBeVisible();
   });
+
+  test('functional: legacy /admin/menus/[id]/edit route is gone (T20.8)', async ({
+    page,
+  }) => {
+    const { menu } = await seedAndOpenSettings(page);
+
+    const response = await page.goto(`/admin/menus/${menu.id}/edit`, {
+      waitUntil: 'domcontentloaded',
+    });
+
+    expect(response?.status()).toBe(404);
+  });
 });
