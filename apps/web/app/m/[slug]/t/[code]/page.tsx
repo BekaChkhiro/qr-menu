@@ -267,6 +267,8 @@ async function renderGuestMenu(args: RenderArgs) {
           name={pickLocalizedMenuName(menu, args.locale)}
           description={menu.description}
           logoUrl={menu.logoUrl}
+          logoSize={menu.logoSize}
+          logoAlignment={menu.logoAlignment}
           locale={args.locale}
           enabledLocales={menu.enabledLanguages
             ?.map((l) => l.toLowerCase())

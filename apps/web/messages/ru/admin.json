@@ -876,7 +876,19 @@
     "branding": {
       "logo": {
         "label": "Логотип",
-        "hint": "PNG, SVG · до 2 МБ"
+        "hint": "PNG, SVG · до 2 МБ",
+        "size": {
+          "label": "Размер логотипа",
+          "small": "Маленький",
+          "medium": "Средний",
+          "large": "Большой"
+        },
+        "alignment": {
+          "label": "Выравнивание",
+          "left": "Слева",
+          "center": "По центру",
+          "right": "Справа"
+        }
       },
       "cover": {
         "label": "Обложка"

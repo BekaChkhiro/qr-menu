@@ -8,6 +8,8 @@ export type MenuLayout = 'LINEAR' | 'CATEGORIES_FIRST';
 export type MenuTemplate = 'CLASSIC' | 'MAGAZINE' | 'COMPACT';
 export type ProductCardStyle = 'FLAT' | 'BORDERED' | 'ELEVATED' | 'MINIMAL';
 export type ProductTouchEffect = 'NONE' | 'SCALE' | 'GLOW' | 'GRADIENT';
+export type LogoSize = 'SMALL' | 'MEDIUM' | 'LARGE';
+export type LogoAlignment = 'LEFT' | 'CENTER' | 'RIGHT';
 
 export type Allergen =
   | 'GLUTEN'
@@ -51,6 +53,8 @@ export interface Menu {
   status: MenuStatus;
   publishedAt: string | null;
   logoUrl: string | null;
+  logoSize: LogoSize;
+  logoAlignment: LogoAlignment;
   coverImageUrl: string | null;
   primaryColor: string | null;
   accentColor: string | null;

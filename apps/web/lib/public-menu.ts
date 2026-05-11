@@ -13,6 +13,8 @@ export const publicMenuSelect = {
   slug: true,
   description: true,
   logoUrl: true,
+  logoSize: true,
+  logoAlignment: true,
   primaryColor: true,
   accentColor: true,
   currencySymbol: true,
@@ -170,6 +172,8 @@ export interface SerializedPublicMenu {
   slug: string;
   description: string | null;
   logoUrl: string | null;
+  logoSize: 'SMALL' | 'MEDIUM' | 'LARGE';
+  logoAlignment: 'LEFT' | 'CENTER' | 'RIGHT';
   primaryColor: string | null;
   accentColor: string | null;
   currencySymbol: string | null;

@@ -26,6 +26,8 @@ const menuLayoutValues = ['LINEAR', 'CATEGORIES_FIRST'] as const;
 const menuTemplateValues = ['CLASSIC', 'MAGAZINE', 'COMPACT'] as const;
 const productCardStyleValues = ['FLAT', 'BORDERED', 'ELEVATED', 'MINIMAL'] as const;
 const productTouchEffectValues = ['NONE', 'SCALE', 'GLOW', 'GRADIENT'] as const;
+const logoSizeValues = ['SMALL', 'MEDIUM', 'LARGE'] as const;
+const logoAlignmentValues = ['LEFT', 'CENTER', 'RIGHT'] as const;
 
 // T15.13 — Visibility is a derived field that the Settings tab writes alongside
 // `status` and `passwordHash` in a single PATCH. The server maps:
@@ -104,6 +106,8 @@ export const updateMenuSchema = z.object({
 
   // Branding
   logoUrl: z.string().url('Invalid logo URL').nullable().optional(),
+  logoSize: z.enum(logoSizeValues).optional(),
+  logoAlignment: z.enum(logoAlignmentValues).optional(),
   coverImageUrl: z.string().url('Invalid cover image URL').nullable().optional(),
   primaryColor: hexColorOptional,
   accentColor: hexColorOptional,

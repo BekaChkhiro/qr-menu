@@ -876,7 +876,19 @@
     "branding": {
       "logo": {
         "label": "Logo",
-        "hint": "PNG, SVG · up to 2 MB"
+        "hint": "PNG, SVG · up to 2 MB",
+        "size": {
+          "label": "Logo size",
+          "small": "Small",
+          "medium": "Medium",
+          "large": "Large"
+        },
+        "alignment": {
+          "label": "Alignment",
+          "left": "Left",
+          "center": "Center",
+          "right": "Right"
+        }
       },
       "cover": {
         "label": "Cover image"

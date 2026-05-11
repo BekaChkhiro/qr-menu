@@ -876,7 +876,19 @@
     "branding": {
       "logo": {
         "label": "ლოგო",
-        "hint": "PNG, SVG · მაქს. 2 MB"
+        "hint": "PNG, SVG · მაქს. 2 MB",
+        "size": {
+          "label": "ლოგოს ზომა",
+          "small": "პატარა",
+          "medium": "საშუალო",
+          "large": "დიდი"
+        },
+        "alignment": {
+          "label": "გასწორება",
+          "left": "მარცხნივ",
+          "center": "ცენტრში",
+          "right": "მარჯვნივ"
+        }
       },
       "cover": {
         "label": "ყდის ფოტო"

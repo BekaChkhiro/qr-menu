@@ -182,6 +182,8 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         name={pickLocalizedMenuName(menu, locale)}
         description={menu.description}
         logoUrl={menu.logoUrl}
+        logoSize={menu.logoSize}
+        logoAlignment={menu.logoAlignment}
         locale={locale}
         enabledLocales={menu.enabledLanguages
           ?.map((l) => l.toLowerCase())

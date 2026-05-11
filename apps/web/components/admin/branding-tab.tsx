@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { toast } from '@/components/ui/toast';
 import { Check, Loader2, Lock, Type } from 'lucide-react';
 
+import { Segmented, SegmentedItem } from '@/components/ui/segmented';
 import { Slider } from '@/components/ui/slider';
 import {
   Select,
@@ -18,7 +19,12 @@ import { Switch } from '@/components/ui/switch';
 import { ImageUpload } from '@/components/admin/image-upload';
 import { useUpdateMenu } from '@/hooks/use-menus';
 import { cn } from '@/lib/utils';
-import type { Menu, MenuWithDetails } from '@/types/menu';
+import type {
+  LogoAlignment,
+  LogoSize,
+  Menu,
+  MenuWithDetails,
+} from '@/types/menu';
 
 // ── Design source: qr-menu-design/components/menu-editor.jsx:318-467 ─────────
 // Palette matches the 8 swatches in BrandingLeftColumn (line 320).
@@ -120,6 +126,12 @@ export function BrandingTab({ menu, hasCustomBranding }: BrandingTabProps) {
   const [splitByType, setSplitByType] = useState<boolean>(
     Boolean(menu.splitByType),
   );
+  const [logoSize, setLogoSize] = useState<LogoSize>(
+    (menu.logoSize as LogoSize | undefined) ?? 'MEDIUM',
+  );
+  const [logoAlignment, setLogoAlignment] = useState<LogoAlignment>(
+    (menu.logoAlignment as LogoAlignment | undefined) ?? 'CENTER',
+  );
 
   // Keep local state in sync if the menu is refetched externally (pusher).
   const prevMenuIdRef = useRef(menu.id);
@@ -140,6 +152,10 @@ export function BrandingTab({ menu, hasCustomBranding }: BrandingTabProps) {
         (menu.productTouchEffect as ProductTouchEffect | undefined) ?? 'SCALE',
       );
       setSplitByType(Boolean(menu.splitByType));
+      setLogoSize((menu.logoSize as LogoSize | undefined) ?? 'MEDIUM');
+      setLogoAlignment(
+        (menu.logoAlignment as LogoAlignment | undefined) ?? 'CENTER',
+      );
     }
   }, [
     menu.id,
@@ -153,6 +169,8 @@ export function BrandingTab({ menu, hasCustomBranding }: BrandingTabProps) {
     menu.productCardStyle,
     menu.productTouchEffect,
     menu.splitByType,
+    menu.logoSize,
+    menu.logoAlignment,
   ]);
 
   const save = async (patch: Parameters<typeof updateMenu.mutateAsync>[0]) => {
@@ -208,6 +226,20 @@ export function BrandingTab({ menu, hasCustomBranding }: BrandingTabProps) {
 
   const handleLogoChange = (url: string | null) => {
     void save({ logoUrl: url });
+  };
+
+  const handleLogoSizeChange = (next: string) => {
+    const value = next as LogoSize;
+    if (value === logoSize) return;
+    setLogoSize(value);
+    void save({ logoSize: value });
+  };
+
+  const handleLogoAlignmentChange = (next: string) => {
+    const value = next as LogoAlignment;
+    if (value === logoAlignment) return;
+    setLogoAlignment(value);
+    void save({ logoAlignment: value });
   };
 
   const handleCoverChange = (url: string | null) => {
@@ -274,6 +306,70 @@ export function BrandingTab({ menu, hasCustomBranding }: BrandingTabProps) {
               <p className="mt-2 text-[10.5px] text-text-subtle">
                 {t('logo.hint')}
               </p>
+
+              {/* T21.4 — Size + Alignment segmented controls */}
+              <div className="mt-3 flex flex-col gap-3">
+                <div>
+                  <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.4px] text-text-muted">
+                    {t('logo.size.label')}
+                  </div>
+                  <Segmented
+                    data-testid="branding-logo-size"
+                    value={logoSize}
+                    onValueChange={handleLogoSizeChange}
+                    ariaLabel={t('logo.size.label')}
+                  >
+                    <SegmentedItem
+                      value="SMALL"
+                      data-testid="branding-logo-size-small"
+                    >
+                      {t('logo.size.small')}
+                    </SegmentedItem>
+                    <SegmentedItem
+                      value="MEDIUM"
+                      data-testid="branding-logo-size-medium"
+                    >
+                      {t('logo.size.medium')}
+                    </SegmentedItem>
+                    <SegmentedItem
+                      value="LARGE"
+                      data-testid="branding-logo-size-large"
+                    >
+                      {t('logo.size.large')}
+                    </SegmentedItem>
+                  </Segmented>
+                </div>
+                <div>
+                  <div className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.4px] text-text-muted">
+                    {t('logo.alignment.label')}
+                  </div>
+                  <Segmented
+                    data-testid="branding-logo-alignment"
+                    value={logoAlignment}
+                    onValueChange={handleLogoAlignmentChange}
+                    ariaLabel={t('logo.alignment.label')}
+                  >
+                    <SegmentedItem
+                      value="LEFT"
+                      data-testid="branding-logo-alignment-left"
+                    >
+                      {t('logo.alignment.left')}
+                    </SegmentedItem>
+                    <SegmentedItem
+                      value="CENTER"
+                      data-testid="branding-logo-alignment-center"
+                    >
+                      {t('logo.alignment.center')}
+                    </SegmentedItem>
+                    <SegmentedItem
+                      value="RIGHT"
+                      data-testid="branding-logo-alignment-right"
+                    >
+                      {t('logo.alignment.right')}
+                    </SegmentedItem>
+                  </Segmented>
+                </div>
+              </div>
             </BrandingSection>
 
             {/* ── Cover image ──────────────────────────────────────────── */}

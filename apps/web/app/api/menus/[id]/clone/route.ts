@@ -126,6 +126,8 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
           status: 'DRAFT',
           // Branding
           logoUrl: menuToClone.logoUrl,
+          logoSize: menuToClone.logoSize,
+          logoAlignment: menuToClone.logoAlignment,
           coverImageUrl: menuToClone.coverImageUrl,
           primaryColor: menuToClone.primaryColor,
           accentColor: menuToClone.accentColor,
