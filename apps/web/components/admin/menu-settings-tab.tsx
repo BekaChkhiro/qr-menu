@@ -2,10 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { Clock } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import { MenuUrlVisibilitySection } from '@/components/admin/menu-url-visibility-section';
-import { MenuSettingsForm } from '@/components/admin/menu-settings-form';
 import { ScheduleSection } from '@/components/admin/schedule-section';
 import { SeoSection } from '@/components/admin/seo-section';
 import { SharePreviewCard } from '@/components/admin/share-preview-card';
@@ -117,22 +114,6 @@ export function MenuSettingsTab({ menu }: MenuSettingsTabProps) {
         <Section label={t('advanced.label')} helper={t('advanced.helper')}>
           <MenuAdvancedSection menu={menu} />
         </Section>
-
-        {/* Legacy settings form (Layout, Branding, Typography, Languages, Display, Location) */}
-        <Card className="rounded-[12px]">
-          <CardContent className="space-y-6 px-6 pt-6">
-            <MenuSettingsForm menu={menu} />
-            {menu.createdAt && (
-              <div className="border-t border-border-soft pt-4">
-                <p className="flex items-center gap-1 text-[12px] text-text-subtle">
-                  <Clock size={12} strokeWidth={1.5} aria-hidden="true" />
-                  {t('createdAt')}:{' '}
-                  {new Date(menu.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       {/* Right rail: live share preview */}
