@@ -14,6 +14,7 @@ import { MenuFooter } from '@/components/public/menu-footer';
 import { JoinTableForm } from '@/components/public/join-table-form';
 import { TableModeProvider, type TableSelection } from '@/components/public/table-mode-provider';
 import { TableGuestTray, type TrayProductInfo } from '@/components/public/table-guest-tray';
+import { getGoogleFontHref, toFontFamilyStack } from '@/lib/public-menu-fonts';
 
 interface PageProps {
   params: Promise<{ slug: string; code: string }>;
@@ -231,6 +232,10 @@ async function renderGuestMenu(args: RenderArgs) {
   const menuLayout = menu.menuLayout || 'LINEAR';
   const menuTemplate = menu.menuTemplate || 'CLASSIC';
 
+  const fontHref = getGoogleFontHref(menu.headingFont) ?? getGoogleFontHref(menu.bodyFont);
+  const headingStack = toFontFamilyStack(menu.headingFont);
+  const bodyStack = toFontFamilyStack(menu.bodyFont);
+
   return (
     <TableModeProvider
       code={args.code}
@@ -244,18 +249,20 @@ async function renderGuestMenu(args: RenderArgs) {
       copy={PROVIDER_COPY[args.locale]}
     >
       <div
+        data-public-menu-root
         className="min-h-screen bg-background pb-24"
         style={
           {
             '--menu-primary': menu.primaryColor || '#000000',
             '--menu-accent': menu.accentColor || '#666666',
             '--menu-radius-card': `${menu.cornerRadius ?? 12}px`,
-            ...(menu.headingFont ? { '--heading-font': `"${menu.headingFont}"` } : {}),
-            ...(menu.bodyFont ? { '--body-font': `"${menu.bodyFont}"` } : {}),
+            ...(headingStack ? { '--heading-font': headingStack } : {}),
+            ...(bodyStack ? { '--body-font': bodyStack } : {}),
           } as React.CSSProperties
         }
         data-testid="public-table-guest-menu"
       >
+        {fontHref && <link rel="stylesheet" href={fontHref} />}
         <MenuHeader
           name={pickLocalizedMenuName(menu, args.locale)}
           description={menu.description}

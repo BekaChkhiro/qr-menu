@@ -452,3 +452,20 @@ html.lenis, html.lenis body {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset;
   }
 }
+
+/* T21.6 — Public menu typography. The Branding tab is the canonical owner
+   of font choice and writes the same value to Menu.headingFont and
+   Menu.bodyFont. The public menu pages set `--heading-font` / `--body-font`
+   on the root wrapper; these rules apply them to body text and all heading
+   levels so any of the 5 presets actually renders on /m/[slug]. */
+[data-public-menu-root] {
+  font-family: var(--body-font, inherit);
+}
+[data-public-menu-root] h1,
+[data-public-menu-root] h2,
+[data-public-menu-root] h3,
+[data-public-menu-root] h4,
+[data-public-menu-root] h5,
+[data-public-menu-root] h6 {
+  font-family: var(--heading-font, var(--body-font, inherit));
+}

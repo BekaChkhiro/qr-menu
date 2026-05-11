@@ -21,6 +21,7 @@ import { MenuPasswordGate } from '@/components/public/menu-password-gate';
 import { CreateTableLauncher } from '@/components/public/create-table-launcher';
 import { menuPassCookieName, verifyMenuPassToken } from '@/lib/menu-visibility';
 import { TABLE_COOKIE_NAME, verifyTableToken } from '@/lib/auth/table-token';
+import { getGoogleFontHref, toFontFamilyStack } from '@/lib/public-menu-fonts';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -156,19 +157,25 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
   const menuLayout = menu.menuLayout || 'LINEAR';
   const menuTemplate = menu.menuTemplate || 'CLASSIC';
 
+  const fontHref = getGoogleFontHref(menu.headingFont) ?? getGoogleFontHref(menu.bodyFont);
+  const headingStack = toFontFamilyStack(menu.headingFont);
+  const bodyStack = toFontFamilyStack(menu.bodyFont);
+
   return (
     <div
+      data-public-menu-root
       className="min-h-screen bg-background"
       style={
         {
           '--menu-primary': menu.primaryColor || '#000000',
           '--menu-accent': menu.accentColor || '#666666',
           '--menu-radius-card': `${menu.cornerRadius ?? 12}px`,
-          ...(menu.headingFont ? { '--heading-font': `"${menu.headingFont}"` } : {}),
-          ...(menu.bodyFont ? { '--body-font': `"${menu.bodyFont}"` } : {}),
+          ...(headingStack ? { '--heading-font': headingStack } : {}),
+          ...(bodyStack ? { '--body-font': bodyStack } : {}),
         } as React.CSSProperties
       }
     >
+      {fontHref && <link rel="stylesheet" href={fontHref} />}
       {!isPreview && <ViewTracker menuId={menu.id} />}
 
       <MenuHeader
