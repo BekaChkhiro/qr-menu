@@ -2422,17 +2422,406 @@ After Phase 20: legacy `MenuSettingsForm` is deleted, legacy `/admin/menus/[id]/
 
 ---
 
+### Phase 21: Bug Fixes & Broken Feature Repair
+
+**Goal**: Repair existing redesign features that are visually shipped but functionally broken or unfinished — branding/typography controls that don't apply, multilingual fields that don't sync, broken default values, and required fields that should be optional. This phase audits and fixes the gap between "the UI shows the control" and "the control actually changes the public menu".
+
+**Constraints (do not violate)**:
+- No new editor tabs. No new schema migrations unless explicitly noted in a task.
+- Every fix must include a Playwright test that asserts the fix at the **public menu** level (not just admin UI state) — operators care that `/m/{slug}` changes.
+- Tests must hit the real API + DB and verify the public menu re-renders with the new value (no hard-coded mocks).
+- **DO NOT reset, truncate, or wipe the database during testing.** No `db:reset`, no `prisma migrate reset`, no `TRUNCATE`, no `resetDb()` helper, no e2e spec that calls a reset RPC. Specs must seed their own additive rows and clean up only those rows in `afterAll`.
+
+#### T21.1: Admin Panel Language Persistence
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 1 hour
+- **Dependencies**: —
+- **Bug**: When a user changes language on the public menu (`/m/[slug]`) and navigates back to `/admin/*`, the admin panel reverts to default (Georgian). Language preference is not persisted across the public ↔ admin boundary for authenticated users.
+- **Fix**:
+  - Add `User.locale` column (Prisma migration, `Language?` nullable enum default null)
+  - When an authenticated user switches language anywhere in the app, PATCH `/api/user/profile` with `{ locale }` and update next-intl cookie in the same request
+  - On admin layout mount, hydrate locale from `session.user.locale ?? cookie ?? "ka"`
+  - Public menu language switch remains visitor-scoped (cookie only, no DB write for unauthenticated visitors)
+- **Playwright test**: `tests/e2e/admin/locale-persistence.spec.ts`
+  - Functional: login → switch admin to EN → reload `/admin/dashboard` → assert UI in EN. Visit `/m/{slug}` → switch to RU → return to `/admin/dashboard` → admin still EN (visitor public switch does NOT override the authenticated preference).
+
+#### T21.2: Cafe & Menu Name Multilingual Fields
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2 hours
+- **Dependencies**: —
+- **Bug**: `Menu.name` is a single-language string. Switching language on `/m/[slug]` does not translate the menu name displayed in the public header.
+- **Fix**:
+  - Schema: add `Menu.nameKa`, `Menu.nameEn`, `Menu.nameRu` columns; migrate existing `name` → `nameKa`; keep `name` as a generated read-through to `nameKa` for one release for backwards compat, then drop in a follow-up task
+  - Settings → URL & Visibility section: convert the menu name input into a language-tabbed input (KA required, EN/RU plan-gated to PRO per CLAUDE.md rule)
+  - Public menu header: render `nameKa|nameEn|nameRu` based on active locale with Georgian fallback
+- **Playwright test**: `tests/e2e/admin/menu-name-i18n.spec.ts`
+  - Visual: `menu-name-langs.png`
+  - Functional: PRO user enters all three names → PATCH succeeds → public `/m/{slug}?lang=en` header reads English name, `?lang=ru` reads Russian, no query param reads Georgian.
+
+#### T21.3: Branding Colors Apply to Public Menu
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2 hours
+- **Dependencies**: —
+- **Bug**: Changing `primaryColor` / `accentColor` in Branding tab updates the DB but does not visibly change the public menu. CSS custom properties are not wired through, or default Tailwind classes override them.
+- **Fix**:
+  - Audit `/m/[slug]/layout.tsx`: emit `<style>` block with `:root { --menu-primary: {menu.primaryColor}; --menu-accent: {menu.accentColor} }`
+  - Replace hard-coded color utility classes in public components (`ProductCard*`, section headers, CTAs, promo banners) with `bg-[var(--menu-primary)]` / `text-[var(--menu-accent)]` etc.
+  - Document in `docs/design-tokens.md` exactly which surfaces respond to `primaryColor` vs `accentColor`
+- **Playwright test**: `tests/e2e/public/branding-colors.spec.ts`
+  - Functional: PATCH menu with `primaryColor=#ff0000` → reload `/m/{slug}` → assert `getComputedStyle(document.documentElement).getPropertyValue('--menu-primary')` is `#ff0000`, assert at least one rendered button/header has computed `background-color: rgb(255, 0, 0)`.
+
+#### T21.4: Logo Size, Centering & Display Controls
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2.5 hours
+- **Dependencies**: T21.3
+- **Bug**: Logo renders too small, off-center, no operator controls.
+- **Fix**:
+  - Schema: `Menu.logoSize` (enum `SMALL`|`MEDIUM`|`LARGE`, default `MEDIUM`), `Menu.logoAlignment` (enum `LEFT`|`CENTER`|`RIGHT`, default `CENTER`)
+  - Branding tab Logo card: add Size segmented control + Alignment segmented control under the existing logo uploader
+  - Public header: respect both (`h-12 | h-20 | h-32` for sizes; `justify-start | justify-center | justify-end` for alignment)
+- **Playwright test**: `tests/e2e/admin/logo-display.spec.ts`
+  - Visual: `branding-logo-controls.png`
+  - Functional: set LARGE + CENTER → assert public header logo `<img>` computed height ≥ 128px and parent container has `justify-content: center`.
+
+#### T21.5: Border Radius & Shadows Apply to Public Menu
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 1 hour
+- **Dependencies**: T21.3
+- **Bug**: `Menu.cornerRadius` persists to DB but product cards on public menu always render the same radius. Shadows similarly unaffected by any setting.
+- **Fix**:
+  - Emit `--menu-radius-card: {cornerRadius}px` CSS var in public layout
+  - Replace hard-coded `rounded-xl` / `rounded-2xl` with `rounded-[var(--menu-radius-card)]` in `ProductCardClassic`, `ProductCardMagazine`, `ProductCardCompact`, category section cards, promo cards
+- **Playwright test**: `tests/e2e/public/branding-radius.spec.ts`
+  - Functional: set `cornerRadius=24` → reload public menu → product card computed `border-radius` is `24px`; set to `4` → computed `4px`.
+
+#### T21.6: Typography Preset Coherence (Branding ↔ Settings)
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2 hours
+- **Dependencies**: T20.5
+- **Bug**: Two font controls exist — Branding tab's single-font picker (writes both `headingFont` and `bodyFont` to the same value) and a Settings → Typography preset (separate heading + body). Selecting in one does not reflect in the other. Selecting "Customize" + different heading/body fonts in the Typography preset does not change the rendered font on the public menu.
+- **Fix**:
+  - **Decision**: Branding tab is the canonical owner of font choice. Remove the duplicate Typography preset UI from Settings entirely.
+  - If Settings → Typography card still exists post-Phase 20, replace its content with a read-only summary ("Current font: {preset name}. Edit in Branding tab →") with a link button that switches to the Branding tab.
+  - Verify that selecting any of the 5 presets in Branding actually changes `font-family` on headings AND body text on `/m/{slug}` (the public CSS must read both `Menu.headingFont` and `Menu.bodyFont`, which Phase 20 keeps equal).
+- **Playwright test**: `tests/e2e/admin/typography-coherence.spec.ts`
+  - Functional: change Branding font preset to `Playfair Display` → reload public menu → assert computed `font-family` on `h1` and `p` both contain "Playfair Display". Settings → Typography card displays the same preset name.
+
+#### T21.7: Category Icon Optional + Crop/Zoom
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2 hours
+- **Dependencies**: —
+- **Bug**: Category creation form treats `iconUrl` as required — Save button stays disabled until an icon is uploaded. Uploader has no zoom/crop control.
+- **Fix**:
+  - Make `iconUrl` optional in `createCategorySchema` and `updateCategorySchema`
+  - Enable Save when only `nameKa` is filled
+  - Fallback when no icon: render a circular badge with the first letter of `nameKa` on a tinted background (use `accentColor` at 10% opacity); used in admin list AND public category section header
+  - Add a crop/zoom step in the ImageUpload component for category icons: square aspect, drag to reposition, scale slider 1x–3x. Use `react-easy-crop` (add to deps if missing) or Cloudinary `c_thumb,g_face` server-side transformation with client-side preview
+- **Playwright test**: `tests/e2e/admin/category-icon-optional.spec.ts`
+  - Functional: create category with only name → POST succeeds → admin list row shows letter badge, no broken-image icon. Edit category → upload image → crop dialog opens → drag + scale → confirm → saved URL contains crop transform params (Cloudinary `c_fill,g_face,w_200,h_200` or equivalent).
+
+#### T21.8: Multilingual Form Sync (Product, Promotion)
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2 hours
+- **Dependencies**: —
+- **Bug**: In product / promotion drawers, the language switch is per-field — switching the title to EN does not switch the description to EN simultaneously. Operators expect drawer-wide language scope.
+- **Fix**:
+  - Lift language state to the parent drawer (single source of truth)
+  - All translatable fields read from `formData[\`${field}${ActiveLocale}\`]` (e.g. `nameKa`, `nameEn`, `descKa`, `descEn`)
+  - Add a single language switcher in the drawer header: segmented control KA · EN · RU with PRO lock on EN/RU per plan (matches T21.2 UX)
+  - Remove any per-field language pickers — language toggle exists only once per drawer
+- **Playwright test**: `tests/e2e/admin/product-form-lang-sync.spec.ts`
+  - Functional: open product drawer (PRO user) → header switcher → click EN → title input value, description value, and variation name inputs all switch to their EN values simultaneously in a single render frame.
+
+#### T21.9: Promotion Form — Default Value Bug
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 0.5 hour
+- **Dependencies**: —
+- **Bug**: When opening "New Promotion" form, the scan/discount numeric input is pre-filled with `260` instead of empty.
+- **Fix**: Locate the offending default value in `promotion-drawer.tsx` (likely a stray test value in `defaultValues` or a fallback `?? 260`). Replace with empty string / `undefined`. Verify Zod schema permits empty initial state and Save is disabled until required fields are filled.
+- **Playwright test**: `tests/e2e/admin/promotion-new-empty.spec.ts`
+  - Functional: open "New promotion" drawer → assert all numeric inputs have empty `value`, only placeholder text visible. Save button is disabled.
+
+#### T21.10: Promotion Upload Performance
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2.5 hours
+- **Dependencies**: T21.9
+- **Bug**: Saving a promotion with an image takes 10+ seconds because the form submit handler uploads to Cloudinary inline before persisting the DB row. UI is blocked during upload.
+- **Fix**:
+  - Decouple upload from save: trigger `POST /api/upload` immediately on file select (not on form submit)
+  - Show optimistic preview from `URL.createObjectURL(file)` while upload is in flight
+  - Spinner badge + progress percentage (XHR `progress` event or Cloudinary unsigned widget callback)
+  - Submit only stores the resulting Cloudinary URL → form save becomes a fast DB write (<500ms)
+  - Disable Save while upload is in flight; show "Uploading image…" copy on Save button
+- **Playwright test**: `tests/e2e/admin/promotion-upload-async.spec.ts`
+  - Functional: select image → preview `<img>` appears within 500ms with blob URL → progress bar visible → hidden `imageUrl` input populated with Cloudinary URL before user clicks Save → Save click resolves PATCH in <1000ms.
+
+#### T21.11: Public Menu Category as Section Header (Large Image)
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2 hours
+- **Dependencies**: T21.7
+- **Bug**: Category images currently only appear inside the horizontal scroll category-pill nav. Once scrolled into a category section, the category image disappears entirely.
+- **Fix**:
+  - In `/m/[slug]` category section template, render an inline section header containing the category image as a full-width banner (~120-180px tall on mobile, ~240px on desktop) with the category name overlay
+  - Pill scroll nav stays for quick navigation; the section header becomes the visual anchor
+  - Apply existing rounded-card design tokens (12px radius per CLAUDE.md), `text-on-image` legibility (gradient overlay bottom-up)
+  - When no `iconUrl`: fall back to a tinted gradient background using `accentColor` + centered initial (matches T21.7 fallback)
+- **Playwright test**: `tests/e2e/public/category-section-header.spec.ts`
+  - Visual: `public-category-header.png`
+  - Functional: category with image → section starts with an `<img>` element matching the iconUrl inside a labeled section; height ≥ 120px on mobile viewport.
+
+---
+
+### Phase 22: UX Refinement — Promotions, QR, Settings, Public Menu
+
+**Goal**: Round off the editor tabs with quality-of-life improvements identified during real-user review of the shipped redesign — promotion authoring workflow, QR clarity, public menu card interactions, and Settings tab consistency. None of these are bugs (Phase 21 handles those); these are missing affordances and polish.
+
+**Constraints (do not violate)**:
+- No new editor tabs. No new top-level routes.
+- Every visible change ships with a Playwright test (visual + functional).
+- Plan-gating respected per `lib/auth/permissions.ts` — never introduce a new plan tier.
+
+#### T22.1: Promotion — Duplicate Action
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 0.5 hour
+- **Dependencies**: T15.8
+- **Description**: Add "Duplicate" item to the promotion list row action menu. Clones the promotion with title suffix " (Copy)", `active=false` (so the duplicate doesn't immediately conflict), new `id`. POST `/api/menus/:id/promotions/:promoId/duplicate` (server-side clone preserves image references via Cloudinary URL copy, not re-upload).
+- **Playwright test**: `tests/e2e/admin/promotion-duplicate.spec.ts`
+  - Functional: list → row action → "Duplicate" → new row appears with `(Copy)` suffix and inactive badge. Original row unchanged. DB has 2 promotion rows with distinct ids and identical `imageUrl`.
+
+#### T22.2: Promotion Card — Hover Title Reveal
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 0.5 hour
+- **Dependencies**: T15.8
+- **Description**: On the promotion list cards, the title is currently hidden behind/under the image. Either (a) show the title always as a small badge at the top of the image, OR (b) reveal the full title on hover with a translucent dark overlay. Pick (a) for accessibility — hover-only interactions fail on touch devices.
+- **Playwright test**: `tests/e2e/admin/promotion-title-badge.spec.ts`
+  - Visual: `promotion-list-card-with-title.png`
+  - Functional: promotion card renders a visible text element matching the title regardless of hover state.
+
+#### T22.3: Promotion Without Image — Fallback Variant
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 1 hour
+- **Dependencies**: T15.8
+- **Description**: When `Promotion.imageUrl` is null, render a fallback card: linear gradient using `accentColor` (top-left) → `primaryColor` (bottom-right), title centered, type icon top-right. No broken-image icon. Same fallback rendered in public menu promo carousel.
+- **Playwright test**: `tests/e2e/admin/promotion-no-image.spec.ts`
+  - Visual: `promotion-card-no-image.png`
+  - Functional: create promotion without image → admin list card renders gradient (no `<img>` tag inside the card), public carousel renders the same gradient.
+
+#### T22.4: Promotion Type Badge in List
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 1 hour
+- **Dependencies**: T22.7
+- **Description**: After T22.7 introduces three promotion types (banner / discount / gift), the list row shows a colored badge per type so operators distinguish them at a glance — "Banner" (neutral grey), "Discount" (`accentColor` background), "Gift" (success-green background). Badge position: top-left over the image (or fallback gradient from T22.3).
+- **Playwright test**: extends T22.7 spec
+  - Visual: `promotion-list-three-types.png` showing one of each type.
+
+#### T22.5: Promotion — "Selected Products" Picker
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2.5 hours
+- **Dependencies**: T22.7
+- **Description**: When promotion scope is "selected products", open a multi-select picker dialog with: product search input (filters by KA name), category filter chip row, checkbox list grouped by category, sticky footer with "X products selected · Apply / Cancel". Persist selection in `Promotion.productIds String[]` (add column if missing). Public menu discount evaluation reads this array.
+- **Playwright test**: `tests/e2e/admin/promotion-selected-products.spec.ts`
+  - Functional: create discount → set scope = "selected products" → picker opens → search "ხაჭაპური" → check 3 results → Apply → drawer closes with chip showing "3 products selected" → Save → DB `productIds` has those 3 IDs → public menu: discount applies only on those 3, others show original price.
+
+#### T22.6: Promotion Schedule — No Time + Weekday Filter
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2 hours
+- **Dependencies**: T15.8
+- **Description**:
+  - Add "Always active (no end)" toggle in the schedule section → clears `endsAt`, the field becomes read-only
+  - Add "Days of week" multi-select (chip row Mon–Sun) → persist as `Promotion.activeWeekdays Int[]` (Prisma migration, e.g. `[5,6]` = Sat+Sun). Empty array = every day.
+  - Public menu evaluation: promotion active if `(now between startsAt/endsAt OR endsAt is null)` AND `(activeWeekdays.length === 0 OR activeWeekdays.includes(now.getDay()))`
+- **Playwright test**: `tests/e2e/admin/promotion-schedule.spec.ts`
+  - Functional: create promotion with `activeWeekdays=[5,6]` → mock public render with Playwright clock at a Tuesday → not visible in promo carousel; clock advanced to Saturday → visible.
+
+#### T22.7: Promotion Type Split (Banner / Discount / Gift)
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 3 hours
+- **Dependencies**: T15.8
+- **Description**: The promotion drawer currently shows all fields regardless of type. Split into three flows with a Step 0 type selector:
+  - **Banner** — image + title + description + optional CTA link (e.g. "Order now" URL). No discount math. Pure announcement.
+  - **Discount** — `discountType` (PERCENT|AMOUNT) + value + scope (all / category-id / selected products via T22.5) + optional minimum spend
+  - **Gift** — "Buy product X get product Y free" with two product pickers
+  - Schema: ensure `Promotion.type` enum has `BANNER`|`DISCOUNT`|`GIFT`. Step 0 = three large radio cards (mirroring `pd-basics-new` pattern). Step 1+ = conditional form per type.
+- **Playwright test**: `tests/e2e/admin/promotion-type-split.spec.ts`
+  - Visual: 3 baselines, one per type drawer state.
+  - Functional: each type opens correct field set; saving each persists correctly typed payload (DB row has matching `type` enum + only relevant fields populated, others null).
+
+#### T22.8: Discount & Gift Bottom Fields Refinement
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2 hours
+- **Dependencies**: T22.7
+- **Description**: Polish the conditional sections for Discount and Gift. Inline validation: percent ≤ 100, amount > 0, gift X and Y must be different products. Live preview card: "Save 25% on Coffee category (min spend ₾15)" or "Buy ხაჭაპური აჭარული, get ჩურჩხელა free". Error states for impossible configs are blocking (Save disabled).
+- **Playwright test**: extends T22.7
+  - Functional: invalid configs (discount=150%, gift X=Y) blocked with inline error message; valid config shows live preview text matching expected format.
+
+#### T22.9: Product Card — Tap to Expand on Public Menu
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2.5 hours
+- **Dependencies**: —
+- **Description**: On public menu, tapping a product card reveals expanded view in-place (accordion-style, with `+` or chevron icon rotating to `−` / pointing down). Expanded view shows description, variation list, allergens, nutrition (when enabled). Tap again or tap another card → collapses. Replaces the current modal/drawer for cards that have details. Modal stays as a fallback for products with images requiring fullscreen view (configurable per template).
+- **Playwright test**: `tests/e2e/public/product-card-expand.spec.ts`
+  - Visual: card collapsed + expanded baselines.
+  - Functional: tap card → CSS height animates from `Xpx` to `Ypx` where Y > X → description text visible in DOM → tap again → collapses (height returns to X).
+
+#### T22.10: Allergens / Dietary Marks as Icons
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 1.5 hours
+- **Dependencies**: T20.3
+- **Description**: When `Menu.allergenDisplay = ICON`, convert allergen pill text labels (Gluten, Dairy, Nuts, ...) to icon set. Use lucide where it matches (Wheat for gluten, Milk for dairy, Egg for eggs, Fish for seafood) and custom SVG for the rest. Add `<title>` element inside SVG + hover/long-press tooltip showing the allergen name in the active locale.
+- **Playwright test**: `tests/e2e/public/allergens-icons.spec.ts`
+  - Functional: allergenDisplay=ICON → public card shows `<svg>` elements with `aria-label` matching allergen name; hover icon → tooltip text matches localized allergen name.
+
+#### T22.11: QR Size Labels with Use-Case Hints
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 0.5 hour
+- **Dependencies**: T15.10
+- **Description**: QR tab: rename the S / M / L size radios to "Table tent (200px)" · "Counter (400px)" · "Poster (800px)" with a small dimensional hint and a tooltip ("Best for: table tents, menus printed on small cards. Scan distance up to 30cm.").
+- **Playwright test**: `tests/e2e/admin/qr-size-labels.spec.ts`
+  - Visual baseline only.
+
+#### T22.12: QR Color Palette Presets
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 1 hour
+- **Dependencies**: T15.10
+- **Description**: Add a row of 6 preset color combinations above the freeform foreground/background color picker: Black/White, Brand/White (primaryColor + white), Brown/Cream (#5D4037 + #FFF8DC), Navy/Mint (#0D47A1 + #E0F2F1), Burgundy/Gold (#7B1F2B + #FFD700), Forest/Sand (#2E5339 + #F4E9D8). Click preset → fills both color inputs.
+- **Playwright test**: `tests/e2e/admin/qr-color-presets.spec.ts`
+  - Functional: click "Brown/Cream" preset → foreground input value updates to `#5D4037`, background to `#FFF8DC` → QR preview re-renders with new colors.
+
+#### T22.13: Settings — Share Image Tooltip
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 0.25 hour
+- **Dependencies**: T15.14
+- **Description**: Add an info icon next to the "Share image" / Open Graph image field in the SEO settings card with tooltip text: "Used as the preview thumbnail when your menu link is shared on WhatsApp, Facebook, Telegram, or any platform that reads Open Graph metadata. Recommended size: 1200×630px."
+- **Playwright test**: extends T15.14 spec
+  - Functional: hover info icon → tooltip contains "WhatsApp" and "Open Graph".
+
+#### T22.14: Public Menu — Foods/Drinks Split Sticky Tabs
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2 hours
+- **Dependencies**: T20.2
+- **Description**: When `Menu.splitByType=true`, render Food / Drinks as sticky segmented tabs at the top of the menu (right below the header, above the category pill nav). Scrolling auto-highlights the active section via IntersectionObserver. Tapping a tab smooth-scrolls to the first category of that type.
+- **Playwright test**: `tests/e2e/public/foods-drinks-split.spec.ts`
+  - Visual: `public-foods-drinks-tabs.png`
+  - Functional: enable splitByType → public menu renders two segmented tabs sticky at top → scroll into drinks section → "Drinks" tab gets `aria-selected="true"` and active style → tap "Foods" → page scrolls to first food category.
+
+#### T22.15: Popular Items Module — Settings Toggle
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Estimated**: 2 hours
+- **Dependencies**: T20.3
+- **Description**: Schema: add `Menu.showPopularItems Boolean @default(true)`. Settings → Display sub-card adds a toggle "Show popular items section". When true AND the menu has ≥3 products with `MenuView` analytics entries, public menu renders a "Popular" horizontal carousel at the top with the top 6 viewed products in the last 30 days.
+- **Playwright test**: `tests/e2e/admin/popular-items-toggle.spec.ts`
+  - Functional: toggle off → save → public menu does not render Popular section; toggle on + seed analytics rows → reload → Popular carousel visible with top items in view-count order.
+
+#### T22.16: Display Functions — Inline Explanations
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 1 hour
+- **Dependencies**: T20.3
+- **Description**: For each toggle/select in the Content tab's Display sub-card (Allergen display, Calories display, Show nutrition, Show discount), add an info icon with a tooltip explaining what it changes on the public menu, plus a 2-line example mockup ("TEXT mode: 'Contains: Gluten, Dairy'" vs "ICON mode: 🌾 🥛").
+- **Playwright test**: `tests/e2e/admin/display-explanations.spec.ts`
+  - Functional: hover each info icon → tooltip visible with localized example text matching the option.
+
+#### T22.17: Settings → Team — Plan-Gating UI
+- [ ] **Status**: TODO
+- **Complexity**: Low
+- **Estimated**: 1 hour
+- **Dependencies**: T16.5
+- **Description**: Team section currently shows the same content for all plans. FREE/STARTER users see locked-state card (mirroring `settings-team-locked` artboard from `qr-menu-design/components/settings-artboards-b.jsx`) with "Upgrade to PRO to invite team members" headline + CTA button linking to `/pricing`. PRO users see the actual team management UI from T16.5.
+- **Playwright test**: `tests/e2e/admin/team-plan-gating.spec.ts`
+  - Visual: `settings-team-locked-starter.png`
+  - Functional: login as STARTER user → Team section shows locked card → CTA button href = `/pricing`. Login as PRO user → Team section shows actual member list UI from T16.5.
+
+---
+
+### Phase 23: Analytics Tab — Deep Review & Implementation
+
+**Goal**: Operator review flagged "analytics" generally as needing work but without specifying which metrics are broken. This phase starts with a discovery task that produces a written audit, then ships concrete fixes informed by that audit. The four follow-up tasks (T23.2–T23.5) are deliberately left with TBD complexity/estimates until T23.1 is complete.
+
+**Constraints (do not violate)**:
+- No raw `MenuView` table mutations during testing.
+- Analytics queries must be plan-gated: FREE sees locked state (artboard `an-locked`), STARTER sees aggregate totals only, PRO sees full breakdown (geography, device, traffic, time-series).
+- Date range filter must use a real query parameter (`?from=...&to=...`) — not client-only filtering of pre-fetched data.
+
+#### T23.1: Analytics — Discovery & Gap Analysis
+- [ ] **Status**: TODO
+- **Complexity**: Low (research only, no code changes)
+- **Estimated**: 1 hour
+- **Dependencies**: —
+- **Description**: Audit the current Analytics tab against the design artboards (`an-full`, `an-range`, `an-locked`, `an-empty` from `qr-menu-design/components/analytics-page.jsx`). Produce `docs/analytics-audit.md` answering each row:
+  - **KPI cards** (Total Views, Unique Visitors, Avg Session, Bounce Rate): which read real DB data vs hard-coded placeholder?
+  - **Date range picker**: does it actually filter the query? Or is it cosmetic?
+  - **Time-series chart**: real data? aggregation level (hourly / daily / weekly)?
+  - **Geography heatmap**: do we have country/city data per `MenuView` row? If not, what's missing (IP → geo enrichment)?
+  - **Device breakdown** (mobile / tablet / desktop): user-agent parsing wired up?
+  - **Traffic sources** (direct / QR scan / social): are we recording the `?utm_*` or `?from=qr` params? Are they queried in aggregation?
+  - **Empty state**: behavior when zero `MenuView` rows for this menu?
+  - **Plan-gating**: does FREE actually see the locked card? Does STARTER see the full board (and should it)?
+  - **Performance**: how does the query scale at 100k / 1M MenuView rows? Are there indexes? Should we precompute daily rollups?
+- **Deliverable**: `docs/analytics-audit.md` with a status table (Working ✅ / Partial ⚠️ / Broken ❌ / Missing ❓) per row + a prioritized fix list. After this lands, T23.2–T23.5 get filled in with concrete tasks and estimates.
+
+#### T23.2: Analytics — Real Data Wire-Up
+- [ ] **Status**: BLOCKED on T23.1
+- **Complexity**: TBD
+- **Estimated**: TBD
+- **Description**: Replace placeholder KPI cards with real aggregations from `MenuView` table. Specifics defined in `docs/analytics-audit.md` from T23.1.
+
+#### T23.3: Analytics — Date Range Filter
+- [ ] **Status**: BLOCKED on T23.1
+- **Complexity**: TBD
+- **Estimated**: TBD
+- **Description**: Wire the date range picker to a real `?from=...&to=...` query param that filters all charts and KPI cards. Presets (Today, 7 days, 30 days, 90 days, Custom). Specifics defined by T23.1 audit.
+
+#### T23.4: Analytics — Top Products & Traffic Source Breakdown
+- [ ] **Status**: BLOCKED on T23.1
+- **Complexity**: TBD
+- **Estimated**: TBD
+- **Description**: Two specific charts called out in the design: top products by views (table) and traffic source pie (QR scan / direct / social). Both require additional fields on `MenuView` if missing (referrer, utm_source, productId for product-view events). Schema migration may be needed; T23.1 audit decides.
+
+#### T23.5: Analytics — Empty State + Plan-Gating
+- [ ] **Status**: BLOCKED on T23.1
+- **Complexity**: TBD
+- **Estimated**: TBD
+- **Description**: Implement the `an-empty` artboard (when a menu has no analytics yet — show "Share your QR to start collecting data" CTA + screenshot of QR) and verify the `an-locked` plan-gate works correctly for FREE users. STARTER vs PRO scope defined by T23.1 audit (do STARTER users see the full board, or only aggregate KPIs?).
+
+---
+
 ## 📊 Progress Tracking
 
 ### Overall Progress
-- **Total Tasks**: 120
-- **Completed**: 81
+- **Total Tasks**: 163
+- **Completed**: 82
 - **In Progress**: 2
-- **Blocked**: 0
-- **Progress**: 68%
+- **Blocked**: 4 (T23.2–T23.5 wait on T23.1 audit)
+- **Progress**: 50%
 
 ```
-Progress: 🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜ 68%
+Progress: 🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜ 50%
 ```
 
 ### Phase Breakdown
@@ -2454,6 +2843,10 @@ Progress: 🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜ 68%
 - **Phase 17 - Mobile Responsive + Polish**: 0/8 (0%)
 - **Phase 18 - AR / 3D Models for Products**: 0/8 (0%)
 - **Phase 19 - Shared Table Sessions**: 0/10 (0%)
+- **Phase 20 - Editor Field Redistribution & Cleanup**: 1/10 (10%) — note: per recent commits (5d509dc, 929eb12, 67682f9, 18a1cb6, 94292fa), T20.6/T20.7/T20.8/T20.9/T20.10 are shipped; checkboxes in the phase body need an audit pass to flip from TODO → done
+- **Phase 21 - Bug Fixes & Broken Feature Repair**: 0/11 (0%)
+- **Phase 22 - UX Refinement (Promotions/QR/Settings/Public)**: 0/17 (0%)
+- **Phase 23 - Analytics Tab Deep Review**: 0/5 (0%) — 4 tasks blocked on T23.1 discovery audit
 
 ### Current Focus
 🎯 **Status**: T15.15 done ✅ — Menu Settings Tab · Advanced (Clone/Archive/Delete) shipped. **Phase 15 is now 11/15 (73%)**. Overall 81/102 = 79%. WIP now 1 (T15.15 in progress → done). Summary of what shipped in T14.6: inline Zod errors on `nameKa`/`price`/`categoryId` were already wired by T14.2 (red border + ring-danger-soft + Info icon + helper), so T14.6's delta is focused on the two states that weren't covered yet — save-in-flight (footer Save button: `data-saving="true"` + Loader2 spinner + "Saving…" via existing `isLoading` prop) and save-failure (new banner at the top of the scrollable drawer body via `<Banner tone="error" dismissible title="Couldn't save product" description={serverMessage} />`). Three surgical changes: (1) `apps/web/components/admin/product-dialog.tsx` added `saveError: string | null` state + `Banner` import + try/catch around `onSubmit(data)` so the drawer only closes on success (fixes a data-loss bug where the drawer closed even on failed saves), plus reset `saveError` alongside `activeTab` in the on-`open` useEffect so every re-open starts clean; (2) `apps/web/components/admin/products-list.tsx` `handleCreate` / `handleUpdate` now re-throw errors (removed redundant `toast.error` + removed explicit `setIsCreateOpen(false)` / `setProductToEdit(null)` since the dialog's own `onOpenChange(false)` routes to the same setters on success); (3) `apps/web/components/admin/product-form.tsx` unchanged — the T14.2 inline errors already satisfy the "red border + helper" requirement. Banner copy uses new EN/KA/RU keys `admin.products.drawer.saveErrorTitle` ("Couldn't save product" / "პროდუქტი ვერ შეინახა" / "Не удалось сохранить продукт") + `saveErrorDefault` fallback. Testids: `product-drawer-save-error` (banner container), preserved `product-drawer-save` with `data-saving` for the in-flight state, preserved `product-basics-price-error` + name-input `ring-danger-soft` class for Zod inline errors. Playwright spec `tests/e2e/admin/product-drawer-error-saving.spec.ts` ships 10 enumerated tests (5 desktop + 5 mobile-skipped) — 2 visual baselines (`product-drawer-error-desktop.png` taken after a mocked 500 response `{ success:false, error:{ message:'Database write timed out — please retry.' } }`, `product-drawer-saving-desktop.png` taken with the PATCH route delayed 1500ms so the Save button shows spinner + "Saving…" mid-flight) + 3 functional: (a) empty-name submit → `ring-danger-soft` on name input, drawer stays open, NO save-error banner (Zod short-circuits before any API call); (b) valid edit submit → observe `data-saving="true"` in-flight → PATCH returns 200 → sonner "Product updated successfully" toast surfaces → drawer closes; (c) mocked 500 → banner appears with title "Couldn't save product" + server message "Database write timed out" → drawer stays open → `data-saving="false"` → form values preserved (nameKa round-trip asserted). Validation gates: `tsc --noEmit` clean on touched files (pre-existing TS2688 type-library noise filtered); `next lint` clean on all 3 touched files (only pre-existing unrelated warnings elsewhere); Vitest 248/274 passing (same pre-existing 26 product-card + 2 menus-API mock failures from T11.6/T11.7, unrelated); all 3 admin.json files parse valid via `python3 -c 'json.load(...)'`; Playwright list mode enumerated 10 tests correctly. Visual baselines need first-run `pnpm test:e2e:update` against the Dockerised test DB — local port 3000 held by another dev-server session, same pattern as T11–T15 work. Previously: T15.13 done ✅ — Menu Settings Tab · URL + Visibility shipped. Phase 15 now 7/15 (47%). **T15.14 (Schedule + SEO) + T15.15 (Clone/Archive/Delete) newly unlocked** — both depend on T15.13 ✅. Summary of what shipped in T15.13: (1) New `apps/web/components/admin/menu-url-visibility-section.tsx` — 600px-max card-internal section mirroring artboard `settings-menu-tab` 1:1. Menu URL row = host-prefix + monospace slug Input (lowercased + space→hyphen on input) + Copy-URL button, amber `Banner`-style warning banner ("Changing the URL will break any printed QR codes…") that flips to `role="alert"` while the slug is dirty. Visibility section = 3 custom RadioCards (Published · Password protected · Private draft) each with 18px radio dot + lucide Icon + Title + Body. Picking "Password protected" reveals a password input inside the selected card with show/hide toggle + "A password is already set. Leave blank to keep it." hint when `menu.hasPassword`. Save / Discard actions in a border-top footer, wired to `useUpdateMenu.mutateAsync` with dirty-tracking (`slugDirty`, `visibilityDirty`, `passwordDirty`); `SLUG_EXISTS` 409 surfaces as inline slug error instead of toast. Testids: `settings-url-visibility` (with `data-visibility` + `data-slug-dirty` + `data-visibility-dirty`), `settings-url-chip`, `settings-url-prefix`, `settings-url-slug`, `settings-url-copy`, `settings-url-error`, `settings-url-warning`, `settings-visibility-{published|password_protected|private_draft}` (with `data-selected`), `settings-vis-password-input`/`-error`/`-hint`, `settings-url-visibility-save`/`-discard`/`-actions`. (2) New `apps/web/components/public/menu-password-gate.tsx` — customer-facing gate with Lock icon, menu name, password input with Eye/EyeOff toggle, submit button with spinner, inline error on 403. Posts to `POST /api/menus/public/[slug]/verify-password`; on success calls `router.refresh()` which re-renders the page with the new cookie. (3) New `apps/web/app/api/menus/public/[slug]/verify-password/route.ts` — bcrypt-compares posted password against `menu.passwordHash`, on success sets HttpOnly SameSite=Lax (Secure in prod) cookie `menu-pass-{menuId}` containing an HMAC-SHA256-signed token `${menuId}.${exp}.${hex-sig}` signed by `NEXTAUTH_SECRET`; 24h TTL; `timingSafeEqual` verification in `verifyMenuPassToken`; rejects missing/unpublished menus with the same 403 shape as wrong-password to avoid enumeration. (4) New `apps/web/lib/menu-visibility.ts` — `deriveMenuVisibility(menu)` (status+hash → PUBLISHED/PASSWORD_PROTECTED/PRIVATE_DRAFT), `sanitizeMenuResponse(menu)` (strips `passwordHash`, adds `hasPassword: boolean`), and the cookie helpers. (5) Schema: `packages/database/prisma/schema.prisma` `Menu` gains `passwordHash String?`, pushed to Neon via `pnpm db:push --accept-data-loss` (additive, no data loss), Prisma Client regenerated. (6) API wiring: `PUT /api/menus/[id]` now accepts `visibility` + optional `password` in the body — Zod schema at `lib/validations/menu.ts` adds `menuVisibilityValues` enum + two optional fields; handler maps `PUBLISHED` → `status=PUBLISHED, passwordHash=null`, `PASSWORD_PROTECTED` → `status=PUBLISHED, passwordHash=bcrypt(password, 10)` (400 if neither new password nor existing hash), `PRIVATE_DRAFT` → `status=DRAFT, passwordHash=null`; `publishedAt` is refreshed whenever status crosses from DRAFT→PUBLISHED; `invalidateMenuCache()` fires whenever visibility or slug changes. Response path threads the menu through `sanitizeMenuResponse` so the admin client + Pusher payload never see the hash; `GET /api/menus/[id]`, `GET /api/menus`, and `POST /api/menus` got the same treatment. `types/menu.ts` `Menu` gains `hasPassword?: boolean`. (7) Public menu `app/m/[slug]/page.tsx` now selects `passwordHash` and — when `!isPreview && rawMenu.passwordHash` — checks the signed cookie; on miss, renders `<MenuPasswordGate>` instead of the menu. Before serialising to the client tree the hash is destructured out so it never reaches the browser. Redis cache TTL (5m) + invalidation-on-visibility-change keep the gate fresh. (8) Editor settings tab rework: `app/admin/menus/[id]/page.tsx` wraps the new URL+Visibility section in its own Card above the legacy `MenuSettingsForm` Card, removing the leftover "Public URL"/`publicHref` footer block; the admin route is now the single surface for changing URL, visibility, and everything else Branding/Fonts/Layout-related. (9) EN/KA/RU `admin.editor.settings.{url.{label, helper, slugAriaLabel, slugPlaceholder, copyAriaLabel, copyToast, copyError, warning, errors.{required,tooShort,tooLong,invalidChars,taken}}, visibility.{label, helper, ariaLabel, published.{title,body}, password.{title,body,inputLabelSet,inputLabelChange,placeholderSet,placeholderChange,showAriaLabel,hideAriaLabel,hint,errors.{required,tooShort}}, draft.{title,body}}, actions.{save,saving,discard,saved,saveFailed}}` keys added across all 3 locale files. (10) Playwright spec `tests/e2e/admin/editor-settings.spec.ts` (serial, desktop-only, 10 enumerated = 5 desktop + 5 mobile-skipped) — 1 visual baseline `editor-settings-url-visibility-desktop.png` + 4 functional: (a) slug edit + Save fires PUT /api/menus/{id}, DB slug updates, old slug 404s and new slug returns 200 on `/m/{slug}`; (b) picking "Private draft" + Save writes `status=DRAFT` + `passwordHash=null` to DB + `/m/{slug}` returns 404; (c) picking "Password protected" + entering `linville-2026` + Save bcrypt-hashes + keeps `status=PUBLISHED` + response body has `hasPassword: true` and NO `passwordHash`, then clearing cookies and hitting `/m/{slug}` renders `menu-password-gate`; wrong password returns 403; correct password returns 200 and sets cookie matching `^{menuId}\.\d+\.[a-f0-9]{64}$`; reloading `/m/{slug}` with the cookie bypasses the gate; (d) Copy URL button writes `${origin}/m/{slug}` to `navigator.clipboard`. Validation gates: `tsc --noEmit` clean on all touched files (pre-existing TS2688 type-library noise filtered); `next lint` clean on all new files (only pre-existing `code-block.tsx` + unrelated unused-var warnings across other files remain); Vitest 248/274 pass (same pre-existing 26 product-card mock failures unrelated); all 3 admin.json files parse valid. Visual baseline needs first-run `pnpm test:e2e:update` against the Dockerised test DB — local port 3000 held by another dev-server session, same pattern as T11–T15 work.
