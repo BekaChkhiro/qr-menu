@@ -117,6 +117,10 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
         data: {
           userId: session.user.id,
           name: `${menuToClone.name} — Copy`,
+          // T21.2 — clone multilingual names alongside the legacy `name` mirror.
+          nameKa: `${menuToClone.nameKa} — Copy`,
+          nameEn: menuToClone.nameEn ? `${menuToClone.nameEn} — Copy` : null,
+          nameRu: menuToClone.nameRu ? `${menuToClone.nameRu} — Copy` : null,
           slug: baseSlug,
           description: menuToClone.description,
           status: 'DRAFT',

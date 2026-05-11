@@ -164,6 +164,8 @@ export async function POST(request: NextRequest) {
         const created = await tx.menu.create({
           data: {
             name: tpl.defaults.nameEn,
+            // T21.2 — seed nameKa to keep multilingual public header in sync.
+            nameKa: tpl.defaults.nameEn,
             slug,
             userId: session.user.id,
           },
@@ -209,6 +211,9 @@ export async function POST(request: NextRequest) {
     const menu = await prisma.menu.create({
       data: {
         ...data,
+        // T21.2 — seed nameKa from the create form's single name input;
+        // multilingual translations are added later from Settings.
+        nameKa: data.name,
         userId: session.user.id,
       },
       include: {

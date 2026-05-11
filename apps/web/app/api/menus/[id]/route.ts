@@ -142,6 +142,21 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // T21.2 — gate EN/RU menu name translations behind PRO. KA always editable.
+    // Clearing (null/"") is always allowed so a downgraded user can wipe stale
+    // translations.
+    if (existingMenu.user.plan !== 'PRO') {
+      const hasEn = typeof data.nameEn === 'string' && data.nameEn.trim().length > 0;
+      const hasRu = typeof data.nameRu === 'string' && data.nameRu.trim().length > 0;
+      if (hasEn || hasRu) {
+        return createErrorResponse(
+          ERROR_CODES.PLAN_REQUIRED,
+          'Translated menu names are a PRO feature. Upgrade to enable.',
+          403
+        );
+      }
+    }
+
     // If slug is being changed, check if new slug is available
     if (data.slug && data.slug !== existingMenu.slug) {
       const slugTaken = await prisma.menu.findUnique({
@@ -162,6 +177,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // the persisted fields here.
     const { visibility, password, ...patch } = data;
     const updatePayload: Record<string, unknown> = { ...patch };
+
+    // T21.2 — keep the legacy `name` column in lockstep with `nameKa`.
+    // When a client sends `nameKa`, mirror it into `name`; when a legacy
+    // client sends `name` only, mirror it into `nameKa`.
+    if (typeof patch.nameKa === 'string') {
+      updatePayload.name = patch.nameKa;
+    } else if (typeof patch.name === 'string') {
+      updatePayload.nameKa = patch.name;
+    }
 
     if (visibility === 'PUBLISHED') {
       updatePayload.status = 'PUBLISHED';

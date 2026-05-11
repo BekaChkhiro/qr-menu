@@ -6,6 +6,10 @@ import { cacheGetOrSet, CACHE_KEYS, CACHE_TTL } from '@/lib/cache/redis';
 export const publicMenuSelect = {
   id: true,
   name: true,
+  // T21.2 — multilingual menu name; resolved by active locale at the page level.
+  nameKa: true,
+  nameEn: true,
+  nameRu: true,
   slug: true,
   description: true,
   logoUrl: true,
@@ -142,11 +146,26 @@ export async function getPreviewMenu(slug: string, userId: string) {
 
 export type RawPublicMenu = NonNullable<Awaited<ReturnType<typeof getPublicMenu>>>;
 
+// T21.2 — pick the menu name in the visitor's active locale, falling back
+// to Georgian when the requested translation is missing or empty.
+export function pickLocalizedMenuName(
+  menu: { nameKa: string; nameEn: string | null; nameRu: string | null },
+  locale: 'ka' | 'en' | 'ru',
+): string {
+  if (locale === 'en') return menu.nameEn?.trim() || menu.nameKa;
+  if (locale === 'ru') return menu.nameRu?.trim() || menu.nameKa;
+  return menu.nameKa;
+}
+
 // Serialized shape — Decimals/Dates become primitive strings/numbers after the
 // JSON.parse(JSON.stringify(...)) round-trip used to ship data into client islands.
 export interface SerializedPublicMenu {
   id: string;
   name: string;
+  // T21.2 — multilingual menu name (KA always present; EN/RU optional).
+  nameKa: string;
+  nameEn: string | null;
+  nameRu: string | null;
   slug: string;
   description: string | null;
   logoUrl: string | null;

@@ -36,7 +36,16 @@ export type Ribbon =
 export interface Menu {
   id: string;
   userId: string;
+  /**
+   * Legacy single-language name kept in lockstep with `nameKa` for backward
+   * compatibility (audit logs, dashboard listings, SEO fallbacks). Prefer
+   * `nameKa | nameEn | nameRu` on new surfaces.
+   */
   name: string;
+  // T21.2 — multilingual menu name. KA required, EN/RU PRO-gated.
+  nameKa: string;
+  nameEn: string | null;
+  nameRu: string | null;
   slug: string;
   description: string | null;
   status: MenuStatus;

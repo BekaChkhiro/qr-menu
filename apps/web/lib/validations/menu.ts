@@ -69,10 +69,31 @@ export const createMenuFromTemplateSchema = z.object({
 
 // Update menu schema — all fields optional
 export const updateMenuSchema = z.object({
+  // Legacy single-language name kept in lockstep with `nameKa` for backward
+  // compatibility (SEO fallbacks, audit log payloads). New clients should
+  // send `nameKa` (and optionally `nameEn` / `nameRu`); when both are present
+  // `nameKa` wins.
   name: z
     .string()
     .min(1, 'Menu name is required')
     .max(100, 'Menu name must be less than 100 characters')
+    .optional(),
+  // T21.2 — multilingual menu name. KA always editable; EN/RU are PRO-gated
+  // server-side (returns 403 PLAN_REQUIRED when a non-PRO user sets them).
+  nameKa: z
+    .string()
+    .min(1, 'Menu name is required')
+    .max(100, 'Menu name must be less than 100 characters')
+    .optional(),
+  nameEn: z
+    .string()
+    .max(100, 'Menu name must be less than 100 characters')
+    .nullable()
+    .optional(),
+  nameRu: z
+    .string()
+    .max(100, 'Menu name must be less than 100 characters')
+    .nullable()
     .optional(),
   slug: slugSchema.optional(),
   description: z
