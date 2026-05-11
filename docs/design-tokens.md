@@ -213,6 +213,42 @@ Alias example:
 **Last Updated**: 2026-04-21
 **Phase**: 9 (T9.1 Design Tokens Migration)
 
+## Public Menu Branding (`primaryColor` / `accentColor`)
+
+Owners set two brand colors in the Branding tab. They are emitted as CSS custom properties on the public menu root container in `apps/web/app/m/[slug]/page.tsx` and `apps/web/app/m/[slug]/t/[code]/page.tsx`:
+
+```css
+:root {
+  --menu-primary: <menu.primaryColor>;  /* default: #000000 */
+  --menu-accent:  <menu.accentColor>;   /* default: #666666 */
+}
+```
+
+Public components consume them via Tailwind arbitrary values (`bg-[var(--menu-primary)]`, `text-[var(--menu-accent)]`, `border-[color-mix(in_srgb,var(--menu-primary)_30%,transparent)]`, etc.) — never via shadcn's `bg-primary` / `text-primary`, which are reserved for the admin panel.
+
+### Surfaces driven by `--menu-primary`
+
+| Surface | File |
+|---|---|
+| Active category pill (bg + ring) | `components/public/category-nav.tsx` |
+| Active promotion carousel dot | `components/public/promotion-carousel.tsx` |
+| Promotion banner border + gradient wash | `components/public/promotion-banner.tsx` |
+| Category section divider (40% alpha) | `components/public/category-section.tsx` |
+| Category quick-jump tile hover border | `components/public/menu-body.tsx` |
+| Footer back-to-top hover fill | `components/public/menu-footer.tsx` |
+
+### Surfaces driven by `--menu-accent`
+
+| Surface | File |
+|---|---|
+| Promotion banner title + tag icon (non-urgent) | `components/public/promotion-banner.tsx` |
+| Featured-carousel price | `components/public/featured-carousel.tsx` |
+| Footer "Digital Menu" link | `components/public/menu-footer.tsx` |
+
+Urgent promotions (≤1 day remaining) override accent with orange; the override is intentional.
+
+When `bg-[var(--menu-primary)]` carries foreground text, pair it with `text-white` rather than `text-primary-foreground` — the menu primary is user-defined and white maximises contrast across the picker palette.
+
 ## Canonical Design Reference
 
 The full Claude Design handoff bundle is committed to the repo at **`qr-menu-design/`** (root level, not `apps/web/`). Structure:

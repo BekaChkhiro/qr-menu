@@ -61,7 +61,7 @@ export function MenuFooter({
             variant="outline"
             size="sm"
             onClick={scrollToTop}
-            className="gap-2 rounded-full px-5 touch-feedback transition-colors hover:bg-primary hover:text-primary-foreground"
+            className="gap-2 rounded-full px-5 touch-feedback transition-colors hover:bg-[var(--menu-primary)] hover:text-white"
           >
             <ArrowUp className="h-4 w-4" />
             {t.backToTop}
@@ -82,7 +82,7 @@ export function MenuFooter({
             {t.createdWith}{' '}
             <a
               href="/"
-              className="font-medium text-primary underline-offset-4 transition-colors hover:underline"
+              className="font-medium text-[var(--menu-accent)] underline-offset-4 transition-colors hover:underline"
               target="_blank"
               rel="noopener noreferrer"
             >

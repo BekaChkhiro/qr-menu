@@ -142,7 +142,7 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
                   aria-label={`Slide ${i + 1}`}
                   className={cn(
                     'h-1.5 rounded-full transition-all',
-                    i === activeIndex ? 'w-5 bg-primary' : 'w-1.5 bg-muted-foreground/40'
+                    i === activeIndex ? 'w-5 bg-[var(--menu-primary)]' : 'w-1.5 bg-muted-foreground/40'
                   )}
                 />
               ))}

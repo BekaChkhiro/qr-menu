@@ -82,8 +82,8 @@ export function PromotionBanner({ promotion, locale }: PromotionBannerProps) {
   return (
     <Card
       className={cn(
-        'overflow-hidden border-primary/30 animate-slide-in-left',
-        'bg-gradient-to-r from-primary/10 via-primary/5 to-transparent',
+        'overflow-hidden border-[color-mix(in_srgb,var(--menu-primary)_30%,transparent)] animate-slide-in-left',
+        'bg-gradient-to-r from-[color-mix(in_srgb,var(--menu-primary)_10%,transparent)] via-[color-mix(in_srgb,var(--menu-primary)_5%,transparent)] to-transparent',
         isUrgent && 'border-orange-400/50 from-orange-500/15 via-orange-500/5'
       )}
     >
@@ -115,12 +115,12 @@ export function PromotionBanner({ promotion, locale }: PromotionBannerProps) {
             <div className="flex items-start gap-2">
               <Tag className={cn(
                 'h-4 w-4 flex-shrink-0 mt-0.5',
-                isUrgent ? 'text-orange-500' : 'text-primary'
+                isUrgent ? 'text-orange-500' : 'text-[var(--menu-accent)]'
               )} />
               <div className="min-w-0 flex-1">
                 <h3 className={cn(
                   'font-semibold leading-tight',
-                  isUrgent ? 'text-orange-600 dark:text-orange-400' : 'text-primary'
+                  isUrgent ? 'text-orange-600 dark:text-orange-400' : 'text-[var(--menu-accent)]'
                 )}>
                   {title}
                 </h3>

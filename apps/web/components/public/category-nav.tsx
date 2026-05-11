@@ -121,9 +121,9 @@ export function CategoryNav({ menuId, trackViews, categories, locale }: Category
                 className={cn(
                   'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap flex-shrink-0',
                   'transition-all duration-200 touch-feedback',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--menu-primary)] focus-visible:ring-offset-2',
                   isActive
-                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    ? 'bg-[var(--menu-primary)] text-white shadow-sm'
                     : 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground'
                 )}
               >

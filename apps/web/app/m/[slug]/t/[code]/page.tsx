@@ -247,8 +247,8 @@ async function renderGuestMenu(args: RenderArgs) {
         className="min-h-screen bg-background pb-24"
         style={
           {
-            '--primary-color': menu.primaryColor || '#000000',
-            '--accent-color': menu.accentColor || '#666666',
+            '--menu-primary': menu.primaryColor || '#000000',
+            '--menu-accent': menu.accentColor || '#666666',
             ...(menu.headingFont ? { '--heading-font': `"${menu.headingFont}"` } : {}),
             ...(menu.bodyFont ? { '--body-font': `"${menu.bodyFont}"` } : {}),
           } as React.CSSProperties

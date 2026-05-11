@@ -146,8 +146,8 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
       className="min-h-screen bg-background"
       style={
         {
-          '--primary-color': menu.primaryColor || '#000000',
-          '--accent-color': menu.accentColor || '#666666',
+          '--menu-primary': menu.primaryColor || '#000000',
+          '--menu-accent': menu.accentColor || '#666666',
           ...(menu.headingFont ? { '--heading-font': `"${menu.headingFont}"` } : {}),
           ...(menu.bodyFont ? { '--body-font': `"${menu.bodyFont}"` } : {}),
         } as React.CSSProperties

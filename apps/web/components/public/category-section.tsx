@@ -112,7 +112,7 @@ export function CategorySection({
           >
             {name}
           </h2>
-          <div className="mx-auto mt-3 h-px w-16 bg-primary/40" />
+          <div className="mx-auto mt-3 h-px w-16 bg-[color-mix(in_srgb,var(--menu-primary)_40%,transparent)]" />
           {description && (
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
               {description}

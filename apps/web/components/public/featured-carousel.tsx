@@ -93,7 +93,7 @@ export function FeaturedCarousel({ products, locale, settings }: FeaturedCarouse
                   {getName(product, locale)}
                 </p>
                 <div className="mt-1 flex items-center gap-1.5">
-                  <span className={cn('text-sm font-semibold text-primary')}>
+                  <span className={cn('text-sm font-semibold text-[var(--menu-accent)]')}>
                     {price.toFixed(2)} {settings.currencySymbol}
                   </span>
                   {showDiscount && (
