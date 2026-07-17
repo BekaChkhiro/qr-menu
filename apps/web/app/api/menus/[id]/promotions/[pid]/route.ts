@@ -11,6 +11,7 @@ import { updatePromotionSchema } from '@/lib/validations';
 import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 import { logActivity } from '@/lib/activity/log';
+import { syncComboProduct, deleteComboProductFor } from '@/lib/promotions/combo';
 
 interface RouteParams {
   params: Promise<{ id: string; pid: string }>;
@@ -163,6 +164,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       data: data as any,
     });
 
+    // T22.24 — keep the generated combo product in sync with the promotion.
+    await syncComboProduct(promotionId);
+
     // Fetch updated promotion with category relation
     const promotion = await prisma.promotion.findUnique({
       where: { id: promotionId },
@@ -259,6 +263,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         404
       );
     }
+
+    // T22.24 — remove the generated combo product before the promotion goes.
+    await deleteComboProductFor(existingPromotion);
 
     // Delete promotion
     await prisma.promotion.delete({

@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { createPromotionSchema, type CreatePromotionInput } from '@/lib/validations/promotion';
 import type { Promotion, Category } from '@/types/menu';
 import { useCategories } from '@/hooks/use-categories';
+import { useProducts } from '@/hooks/use-products';
 
 const FORM_ID = 'promotion-drawer-form';
 
@@ -182,6 +183,7 @@ export function PromotionDrawer({
   const [isImageUploading, setIsImageUploading] = useState(false);
 
   const { data: categories } = useCategories(menuId);
+  const { data: products } = useProducts(menuId);
 
   const form = useForm<PromotionFormValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -314,7 +316,19 @@ export function PromotionDrawer({
     ],
   );
 
-  const canSave = (titleKaWatch || '').trim().length > 0;
+  const comboIdsWatch = form.watch('comboProductIds') || [];
+  const comboPriceWatch = form.watch('comboPrice');
+  const discountValueWatch = form.watch('discountValue');
+  const canSave = (() => {
+    if ((titleKaWatch || '').trim().length === 0) return false;
+    if (promoType === 'PERCENTAGE') {
+      return discountValueWatch != null && Number(discountValueWatch) > 0;
+    }
+    if (promoType === 'COMBO') {
+      return comboIdsWatch.length >= 2 && comboPriceWatch != null && Number(comboPriceWatch) > 0;
+    }
+    return true; // BANNER — title is enough
+  })();
 
   const titleFieldKey =
     activeLang === 'KA' ? 'titleKa' : activeLang === 'EN' ? 'titleEn' : 'titleRu';
@@ -667,6 +681,98 @@ export function PromotionDrawer({
                     )}
                   />
                 </div>
+                )}
+
+                {/* Combo builder — combo type only (T22.24) */}
+                {promoType === 'COMBO' && (
+                  <div data-testid="promotion-drawer-combo">
+                    <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
+                      {t('fields.comboProductsLabel')}
+                    </div>
+                    <Controller
+                      control={form.control}
+                      name="comboProductIds"
+                      render={({ field }) => {
+                        const selected = field.value ?? [];
+                        const toggle = (id: string) => {
+                          field.onChange(
+                            selected.includes(id)
+                              ? selected.filter((x) => x !== id)
+                              : [...selected, id],
+                          );
+                        };
+                        return (
+                          <div className="max-h-52 space-y-1 overflow-y-auto rounded-lg border border-border p-1.5">
+                            {(products ?? []).length === 0 && (
+                              <div className="p-2 text-[12px] text-text-muted">
+                                {t('fields.comboProductsHint')}
+                              </div>
+                            )}
+                            {(products ?? []).map((p) => {
+                              const checked = selected.includes(p.id);
+                              return (
+                                <label
+                                  key={p.id}
+                                  data-testid={`promotion-combo-product-${p.id}`}
+                                  data-checked={checked ? 'true' : 'false'}
+                                  className={cn(
+                                    'flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors',
+                                    checked ? 'bg-accent-soft' : 'hover:bg-chip',
+                                  )}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggle(p.id)}
+                                    className="h-4 w-4 accent-[hsl(var(--accent))]"
+                                  />
+                                  <span className="flex-1 text-text-default">{p.nameKa}</span>
+                                  <span className="font-mono text-[12px] tabular-nums text-text-muted">
+                                    {Number(p.price).toFixed(2)} ₾
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        );
+                      }}
+                    />
+                    <p className="mt-1.5 text-[12px] text-text-muted">
+                      {t('fields.comboProductsHint')}
+                    </p>
+
+                    {/* Combo price */}
+                    <div className="mt-3 max-w-[180px]">
+                      <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
+                        {t('fields.comboPriceLabel')}
+                      </div>
+                      <div className="flex overflow-hidden rounded-lg border border-border">
+                        <Controller
+                          control={form.control}
+                          name="comboPrice"
+                          render={({ field }) => (
+                            <>
+                              <Input
+                                type="number"
+                                min={0}
+                                step={0.01}
+                                value={field.value ?? ''}
+                                onChange={(e) =>
+                                  field.onChange(e.target.value === '' ? null : e.target.value)
+                                }
+                                autoComplete="off"
+                                className="h-[38px] flex-1 rounded-none border-0 bg-transparent px-3 text-right font-mono text-sm font-semibold tabular-nums focus-visible:ring-0 focus-visible:ring-offset-0"
+                                data-testid="promotion-combo-price-input"
+                              />
+                              <span className="flex items-center bg-chip px-3.5 text-[13px] font-semibold text-text-muted">
+                                ₾
+                              </span>
+                            </>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {/* Time restrictions */}
