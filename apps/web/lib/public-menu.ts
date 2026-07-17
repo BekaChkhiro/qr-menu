@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { cacheGetOrSet, CACHE_KEYS, CACHE_TTL } from '@/lib/cache/redis';
+import { isWithinWindows } from '@/lib/promotions/time-windows';
 
 // Shared select shape for menu fetch queries — kept identical between the
 // public page (`/m/[slug]`) and the table-mode page (`/m/[slug]/t/[code]`).
@@ -26,6 +27,8 @@ export const publicMenuSelect = {
   caloriesDisplay: true,
   showNutrition: true,
   showDiscount: true,
+  promoPopupEnabled: true,
+  timezone: true,
   splitByType: true,
   menuLayout: true,
   menuTemplate: true,
@@ -70,6 +73,8 @@ export const publicMenuSelect = {
           descriptionRu: true,
           price: true,
           oldPrice: true,
+          // T22.23 — dish discount windows gate the discount by day/hour.
+          discountWindows: true,
           currency: true,
           imageUrl: true,
           imageFocalX: true,
@@ -123,6 +128,17 @@ export const publicMenuSelect = {
       startDate: true,
       endDate: true,
       sortOrder: true,
+      // T22.18 — scope + discount config needed to apply category/menu-wide
+      // promotions to public product prices (not just the carousel banner).
+      discountType: true,
+      discountValue: true,
+      applyTo: true,
+      categoryId: true,
+      // T22.19/T22.20 — type + appearance for the public carousel variants.
+      type: true,
+      backgroundColor: true,
+      showTitle: true,
+      timeRestrictions: true,
     },
   },
 };
@@ -185,6 +201,9 @@ export interface SerializedPublicMenu {
   caloriesDisplay: 'DIRECT' | 'FLIP_REVEAL' | 'HIDDEN';
   showNutrition: boolean;
   showDiscount: boolean;
+  promoPopupEnabled: boolean;
+  // T22.21 — café-local timezone that day/hour windows are evaluated against.
+  timezone: string;
   splitByType: boolean;
   menuLayout: 'LINEAR' | 'CATEGORIES_FIRST';
   menuTemplate: 'CLASSIC' | 'MAGAZINE' | 'COMPACT';
@@ -230,6 +249,11 @@ export interface SerializedPublicProduct {
   descriptionRu: string | null;
   price: number | string;
   oldPrice: number | string | null;
+  // T22.23 — per-day windows restricting when the dish discount applies.
+  discountWindows: {
+    enabled?: boolean;
+    windows?: Record<string, { start: string; end: string }>;
+  } | null;
   currency: string;
   imageUrl: string | null;
   imageFocalX: number | null;
@@ -273,4 +297,144 @@ export interface SerializedPublicPromotion {
   startDate: string;
   endDate: string;
   sortOrder: number;
+  // T22.18 — scope + discount config (null on legacy banner-only promotions).
+  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT' | 'FREE_ADDON' | null;
+  discountValue: number | string | null;
+  applyTo: 'ENTIRE_MENU' | 'CATEGORY' | 'SPECIFIC_ITEMS' | null;
+  categoryId: string | null;
+  // T22.19/T22.20 — type + appearance.
+  type: 'PERCENTAGE' | 'BANNER' | 'COMBO' | null;
+  backgroundColor: string | null;
+  showTitle: boolean;
+  // T22.21 — per-day windows; legacy rows may still carry the flat shape.
+  timeRestrictions: {
+    enabled?: boolean;
+    windows?: Record<string, { start: string; end: string }>;
+    days?: string[];
+    startTime?: string;
+    endTime?: string;
+  } | null;
+}
+
+// ── T22.18 — apply category / menu-wide promotions to public prices ──────────
+//
+// Bug fix: a promotion scoped to a category (or the whole menu) was stored but
+// never affected the prices shown on the public menu — it only appeared as a
+// carousel banner. This transform walks the serialized menu and lowers product
+// prices for any active PERCENTAGE / FIXED_AMOUNT promotion that targets the
+// whole menu or the product's category.
+//
+// Conflict rule (spec "last wins"): a product that already carries a manual
+// `oldPrice` (a per-dish discount set in the product editor) is left untouched —
+// the dish-level discount wins over the category promotion. When multiple
+// promotions apply to the same product, the one yielding the lowest final price
+// wins. FREE_ADDON / banner-info promotions never change prices.
+function round2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+function discountedPrice(
+  price: number,
+  promo: Pick<SerializedPublicPromotion, 'discountType' | 'discountValue'>,
+): number | null {
+  const value = promo.discountValue == null ? NaN : Number(promo.discountValue);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  if (promo.discountType === 'PERCENTAGE') {
+    const pct = Math.min(100, value);
+    return round2(price * (1 - pct / 100));
+  }
+  if (promo.discountType === 'FIXED_AMOUNT') {
+    return round2(Math.max(0, price - value));
+  }
+  return null; // FREE_ADDON / null → no price effect
+}
+
+// T22.21 — a promotion is live only inside its configured day/hour windows,
+// evaluated against the café's local clock. Used for both the carousel and the
+// price transform so a "Mon 12:00–14:00" promotion is genuinely off at 15:00.
+export function isPromotionLive(
+  promo: Pick<SerializedPublicPromotion, 'timeRestrictions'>,
+  timezone: string,
+  now: Date = new Date(),
+): boolean {
+  return isWithinWindows(promo.timeRestrictions, now, timezone);
+}
+
+/** Promotions to show in the public carousel / pop-up right now. */
+export function livePromotions(
+  menu: SerializedPublicMenu,
+  now: Date = new Date(),
+): SerializedPublicPromotion[] {
+  return menu.promotions.filter((p) => isPromotionLive(p, menu.timezone, now));
+}
+
+// T22.23 — a dish discount can be restricted to certain days/hours. Outside its
+// window the discount must not apply, so we revert the card to the original
+// price (price = oldPrice, no strikethrough). Run this BEFORE
+// applyPromotionPricing: a dish whose own discount is off-hours becomes
+// eligible for a category/menu promotion again.
+export function applyDishDiscountWindows(
+  menu: SerializedPublicMenu,
+  now: Date = new Date(),
+): SerializedPublicMenu {
+  for (const category of menu.categories) {
+    for (const product of category.products) {
+      const windows = product.discountWindows;
+      if (!windows?.enabled) continue;
+      if (isWithinWindows(windows, now, menu.timezone)) continue;
+
+      // Off-hours → restore the original price.
+      const original = product.oldPrice == null ? null : Number(product.oldPrice);
+      if (original != null && Number.isFinite(original) && original > 0) {
+        product.price = original;
+        product.oldPrice = null;
+      }
+    }
+  }
+  return menu;
+}
+
+export function applyPromotionPricing(
+  menu: SerializedPublicMenu,
+  now: Date = new Date(),
+): SerializedPublicMenu {
+  const pricing = menu.promotions.filter(
+    (p) =>
+      (p.discountType === 'PERCENTAGE' || p.discountType === 'FIXED_AMOUNT') &&
+      (p.applyTo === 'ENTIRE_MENU' || (p.applyTo === 'CATEGORY' && !!p.categoryId)) &&
+      // Outside its day/hour window the discount must not touch prices.
+      isPromotionLive(p, menu.timezone, now),
+  );
+  if (pricing.length === 0) return menu;
+
+  const menuWide = pricing.filter((p) => p.applyTo === 'ENTIRE_MENU');
+
+  for (const category of menu.categories) {
+    const applicable = [
+      ...menuWide,
+      ...pricing.filter((p) => p.applyTo === 'CATEGORY' && p.categoryId === category.id),
+    ];
+    if (applicable.length === 0) continue;
+
+    for (const product of category.products) {
+      // Dish-level manual discount wins — never override an existing oldPrice.
+      if (product.oldPrice != null && Number(product.oldPrice) > 0) continue;
+
+      const base = Number(product.price);
+      if (!Number.isFinite(base) || base <= 0) continue;
+
+      let best = base;
+      for (const promo of applicable) {
+        const final = discountedPrice(base, promo);
+        if (final != null && final < best) best = final;
+      }
+
+      if (best < base) {
+        product.oldPrice = base;
+        product.price = best;
+      }
+    }
+  }
+
+  return menu;
 }

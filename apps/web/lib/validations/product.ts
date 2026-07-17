@@ -96,6 +96,33 @@ const zoomSchema = z.number().min(1).max(5).nullable().optional();
 // Shared extras (image crop, ribbons, dietary, nutrition)
 const productExtras = {
   oldPrice: oldPriceSchema,
+  // T22.23 — dish-level discount audit fields. The effective price still lives
+  // in price/oldPrice (so the public card is unchanged); these record HOW the
+  // discount was expressed so the editor can round-trip percent vs amount.
+  discountType: z.enum(['PERCENTAGE', 'FIXED_AMOUNT']).nullable().optional(),
+  discountValue: z
+    .number()
+    .nonnegative()
+    .multipleOf(0.01)
+    .max(99999.99)
+    .nullable()
+    .optional(),
+  // T22.23 — per-day windows restricting when the dish discount applies.
+  discountWindows: z
+    .object({
+      enabled: z.boolean(),
+      // Partial: `z.record` with an enum key is exhaustive in Zod 4 and would
+      // demand all seven days for a single-day discount window.
+      windows: z.partialRecord(
+        z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']),
+        z.object({
+          start: z.string().regex(/^\d{2}:\d{2}$/, 'Use HH:MM format'),
+          end: z.string().regex(/^\d{2}:\d{2}$/, 'Use HH:MM format'),
+        }),
+      ),
+    })
+    .nullable()
+    .optional(),
   imageFocalX: focalSchema,
   imageFocalY: focalSchema,
   imageZoom: zoomSchema,

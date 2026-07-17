@@ -12,6 +12,7 @@ import { hasFeature } from '@/lib/auth/permissions';
 import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 import { logActivity } from '@/lib/activity/log';
+import { syncComboProduct } from '@/lib/promotions/combo';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -171,6 +172,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         menuId,
       },
     });
+
+    // T22.24 — materialize / tear down the combo product for COMBO promotions.
+    await syncComboProduct(promotion.id);
 
     // Include category relation for the response
     const promotionWithCategory = await prisma.promotion.findUnique({

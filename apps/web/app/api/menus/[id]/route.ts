@@ -63,7 +63,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
         _count: {
           select: {
-            categories: true,
+            categories: { where: { isSystemOffers: false } },
             views: true,
           },
         },
@@ -219,7 +219,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       include: {
         _count: {
           select: {
-            categories: true,
+            categories: { where: { isSystemOffers: false } },
             views: true,
           },
         },

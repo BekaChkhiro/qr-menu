@@ -2,7 +2,14 @@ import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/db';
-import { getPublicMenu, pickLocalizedMenuName, type SerializedPublicMenu } from '@/lib/public-menu';
+import {
+  getPublicMenu,
+  pickLocalizedMenuName,
+  applyPromotionPricing,
+  applyDishDiscountWindows,
+  livePromotions,
+  type SerializedPublicMenu,
+} from '@/lib/public-menu';
 import { TABLE_COOKIE_NAME, verifyTableToken } from '@/lib/auth/table-token';
 import { getLocaleFromCookie, LOCALE_COOKIE_NAME, type Locale } from '@/i18n/config';
 import { MenuHeader } from '@/components/public/menu-header';
@@ -159,7 +166,11 @@ async function renderGuestMenu(args: RenderArgs) {
   // Strip server-only fields.
   const { passwordHash: _omitPasswordHash, ...rawMenuPublic } = rawMenu;
   void _omitPasswordHash;
-  const menu = JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu;
+  const menu = applyPromotionPricing(
+    applyDishDiscountWindows(
+      JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu,
+    ),
+  );
 
   // This guest's selections — needed to seed the tray + tray totals on first
   // paint (no client fetch round-trip).
@@ -205,7 +216,9 @@ async function renderGuestMenu(args: RenderArgs) {
     }))
   );
 
-  const hasPromotions = menu.promotions.length > 0;
+  // T22.21 — only promotions inside their café-local day/hour window are shown.
+  const activePromotions = livePromotions(menu);
+  const hasPromotions = activePromotions.length > 0;
   const hasCategories = categoriesWithProducts.length > 0;
   const hasInfo = Boolean(menu.address || menu.phone || menu.wifiSsid || menu.wcDirection);
 
@@ -289,7 +302,7 @@ async function renderGuestMenu(args: RenderArgs) {
           />
         )}
 
-        {hasPromotions && <PromotionCarousel promotions={menu.promotions} locale={args.locale} />}
+        {hasPromotions && <PromotionCarousel promotions={activePromotions} locale={args.locale} />}
 
         {featuredProducts.length > 0 && (
           <FeaturedCarousel

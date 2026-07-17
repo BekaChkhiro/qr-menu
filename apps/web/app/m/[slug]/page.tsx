@@ -7,6 +7,9 @@ import {
   getPublicMenu,
   getPreviewMenu,
   pickLocalizedMenuName,
+  applyPromotionPricing,
+  applyDishDiscountWindows,
+  livePromotions,
   type SerializedPublicMenu,
 } from '@/lib/public-menu';
 import { getLocaleFromCookie, isValidLocale, LOCALE_COOKIE_NAME, type Locale } from '@/i18n/config';
@@ -14,6 +17,7 @@ import { MenuHeader } from '@/components/public/menu-header';
 import { MenuInfoWidget } from '@/components/public/menu-info-widget';
 import { MenuBody } from '@/components/public/menu-body';
 import { PromotionCarousel } from '@/components/public/promotion-carousel';
+import { PromotionPopup } from '@/components/public/promotion-popup';
 import { FeaturedCarousel } from '@/components/public/featured-carousel';
 import { MenuFooter } from '@/components/public/menu-footer';
 import { ViewTracker } from '@/components/public/view-tracker';
@@ -120,7 +124,11 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
   // Strip server-only fields before serialising for the client tree.
   const { passwordHash: _omitPasswordHash, ...rawMenuPublic } = rawMenu;
   void _omitPasswordHash;
-  const menu = JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu;
+  const menu = applyPromotionPricing(
+    applyDishDiscountWindows(
+      JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu,
+    ),
+  );
   // `?locale=` query param takes precedence over the cookie so the admin preview
   // iframe can force a specific language without touching the visitor's cookie.
   const locale: Locale =
@@ -129,7 +137,9 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
       : (getLocaleFromCookie(cookieStore.get(LOCALE_COOKIE_NAME)?.value) as Locale);
 
   const categoriesWithProducts = menu.categories.filter((c) => c.products.length > 0);
-  const hasPromotions = menu.promotions.length > 0;
+  // T22.21 — only promotions inside their café-local day/hour window are shown.
+  const activePromotions = livePromotions(menu);
+  const hasPromotions = activePromotions.length > 0;
   const hasCategories = categoriesWithProducts.length > 0;
   const hasInfo = Boolean(menu.address || menu.phone || menu.wifiSsid || menu.wcDirection);
 
@@ -204,7 +214,11 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         />
       )}
 
-      {hasPromotions && <PromotionCarousel promotions={menu.promotions} locale={locale} />}
+      {hasPromotions && <PromotionCarousel promotions={activePromotions} locale={locale} />}
+
+      {!isPreview && menu.promoPopupEnabled && hasPromotions && (
+        <PromotionPopup menuId={menu.id} promotions={activePromotions} locale={locale} />
+      )}
 
       {featuredProducts.length > 0 && (
         <FeaturedCarousel products={featuredProducts} locale={locale} settings={displaySettings} />

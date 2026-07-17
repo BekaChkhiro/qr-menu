@@ -870,7 +870,11 @@
           "description": "Show the original price struck through next to the new one."
         },
         "saving": "Saving…",
-        "saveError": "Failed to save display settings"
+        "saveError": "Failed to save display settings",
+        "promoPopup": {
+          "label": "Promotions pop-up",
+          "description": "Show active promotions in a pop-up when the menu opens."
+        }
       }
     },
     "branding": {
@@ -914,9 +918,18 @@
         "template": {
           "label": "Template",
           "description": "Product card structure — preview in the phone frame",
-          "classic": { "label": "Classic", "desc": "Horizontal cards" },
-          "magazine": { "label": "Magazine", "desc": "Large hero images" },
-          "compact": { "label": "Compact", "desc": "Dense list" }
+          "classic": {
+            "label": "Classic",
+            "desc": "Horizontal cards"
+          },
+          "magazine": {
+            "label": "Magazine",
+            "desc": "Large hero images"
+          },
+          "compact": {
+            "label": "Compact",
+            "desc": "Dense list"
+          }
         },
         "menuLayout": {
           "label": "Layout",
@@ -1106,6 +1119,7 @@
       "addTitle": "Add new product",
       "editTitle": "Edit product",
       "closeLabel": "Close",
+      "langSwitcherLabel": "Form language",
       "deleteProduct": "Delete product",
       "saveNewProduct": "Save product",
       "saving": "Saving…",
@@ -1316,7 +1330,13 @@
         "toggle": "Add discount",
         "toggleHelp": "Show a strike-through price for promotions",
         "original": "Original",
-        "sale": "Sale price"
+        "sale": "Sale price",
+        "byAmount": "By amount",
+        "byPercent": "By percent",
+        "windowsToggle": "Discount only on certain days & hours",
+        "windowsHelp": "When on, the discount applies only within the selected days and hours.",
+        "dayInactive": "Off",
+        "timeTo": "to"
       },
       "tagsLabel": "Tags",
       "tagsPlaceholder": "Add tag…",
@@ -1408,9 +1428,11 @@
       "editTitle": "Edit promotion",
       "editSubtitle": "{title}",
       "closeLabel": "Close",
+      "langSwitcherLabel": "Form language",
       "saveErrorTitle": "Couldn't save promotion",
       "saveErrorDefault": "Something went wrong. Please try again.",
       "saving": "Saving…",
+      "uploadingImage": "Uploading image…",
       "saveNewPromotion": "Create promotion",
       "deletePromotion": "Delete promotion",
       "tabs": {
@@ -1428,11 +1450,6 @@
         "descriptionEnPlaceholder": "Describe the promotion...",
         "descriptionRuPlaceholder": "Describe the promotion...",
         "discountTypeLabel": "Discount type",
-        "discountTypes": {
-          "percentage": "Percentage off",
-          "fixed": "Fixed amount (₾)",
-          "freeAddon": "Free add-on"
-        },
         "discountValueLabel": "Discount value",
         "discountValueHint": "Enter the discount amount",
         "applyToLabel": "Apply to",
@@ -1445,10 +1462,6 @@
             "title": "Specific category",
             "hint": "Pick one category to discount",
             "placeholder": "Select a category"
-          },
-          "specificItems": {
-            "title": "Specific items",
-            "hint": "Pick individual items to discount"
           }
         },
         "timeRestrictionsLabel": "Time restrictions",
@@ -1460,7 +1473,30 @@
         "startDate": "Start date",
         "endDate": "End date",
         "isActive": "Active",
-        "isActiveHint": "When enabled, the promotion will be visible to customers within the date range."
+        "isActiveHint": "When enabled, the promotion will be visible to customers within the date range.",
+        "typeLabel": "Promotion type",
+        "types": {
+          "percentage": {
+            "title": "Percentage",
+            "hint": "A % discount — whole menu or a category"
+          },
+          "banner": {
+            "title": "Banner / info",
+            "hint": "Announce news or an event — prices stay the same"
+          },
+          "combo": {
+            "title": "Combo offer",
+            "hint": "Several products at one combo price"
+          }
+        },
+        "backgroundColorLabel": "Background color",
+        "backgroundColorHint": "Card background for title-only promotions (no banner)",
+        "showTitleLabel": "Title over banner",
+        "showTitleHint": "Show the title on top of the banner",
+        "comboProductsLabel": "Combo products",
+        "comboProductsHint": "Pick at least 2 products",
+        "comboPriceLabel": "Combo price (₾)",
+        "dayInactive": "Off"
       }
     }
   },

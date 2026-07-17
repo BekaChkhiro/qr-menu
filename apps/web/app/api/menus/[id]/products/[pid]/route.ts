@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth/auth';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import {
   handleApiError,
@@ -12,6 +13,21 @@ import { hasFeature } from '@/lib/auth/permissions';
 import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 import { logActivity } from '@/lib/activity/log';
+
+// T22.23 — `discountWindows` is a Prisma Json? column: it accepts a JSON value
+// or Prisma.DbNull, never a bare `null`. Normalize the validated payload so the
+// rest of the fields can still be spread as-is.
+function withJsonWindows<T extends { discountWindows?: unknown }>(data: T) {
+  const { discountWindows, ...rest } = data;
+  if (discountWindows === undefined) return rest;
+  return {
+    ...rest,
+    discountWindows:
+      discountWindows === null
+        ? Prisma.DbNull
+        : (discountWindows as Prisma.InputJsonValue),
+  };
+}
 
 interface RouteParams {
   params: Promise<{ id: string; pid: string }>;
@@ -216,7 +232,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Update product
     const product = await prisma.product.update({
       where: { id: productId },
-      data,
+      data: withJsonWindows(data),
       include: {
         category: {
           select: {

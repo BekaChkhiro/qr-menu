@@ -73,6 +73,8 @@ export interface Menu {
   caloriesDisplay: CaloriesDisplay;
   showNutrition: boolean;
   showDiscount: boolean;
+  // T22.25 — show active promotions as a dismissible pop-up on public menu open
+  promoPopupEnabled?: boolean;
 
   // Layout & visual style
   splitByType: boolean;
@@ -168,6 +170,14 @@ export interface Product {
   descriptionRu: string | null;
   price: number;
   oldPrice: number | null;
+  // T22.23 — dish-level discount audit (percent vs amount)
+  discountType?: string | null;
+  discountValue?: number | null;
+  // T22.23 — optional per-day windows restricting when the discount applies
+  discountWindows?: {
+    enabled: boolean;
+    windows: Record<string, { start: string; end: string }>;
+  } | null;
   currency: string;
   imageUrl: string | null;
   imageFocalX: number | null;
@@ -230,6 +240,15 @@ export interface Promotion {
   categoryId: string | null;
   timeRestrictions: { enabled: boolean; days: string[]; startTime: string; endTime: string } | null;
   category?: { id: string; nameKa: string; nameEn: string | null; nameRu: string | null; } | null;
+  // T22.19 — promotion type: PERCENTAGE | BANNER | COMBO
+  type?: string | null;
+  // T22.20 — appearance
+  backgroundColor?: string | null;
+  showTitle?: boolean;
+  // T22.24 — combo
+  comboProductIds?: string[];
+  comboPrice?: number | null;
+  comboProductId?: string | null;
   createdAt: string;
   updatedAt: string;
 }

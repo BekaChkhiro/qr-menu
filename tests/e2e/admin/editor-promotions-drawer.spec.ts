@@ -98,17 +98,17 @@ test.describe('promotion drawer (T15.8)', () => {
     await expect(page.getByTestId('promotion-drawer')).toBeVisible();
 
     // Fill title (KA)
-    await page.getByTestId('promotion-title-ka-input').fill('Happy Hour');
+    await page.getByTestId('promotion-title-input').fill('Happy Hour');
 
     // Fill description (KA)
-    await page.getByTestId('promotion-description-ka-input').fill(
+    await page.getByTestId('promotion-description-input').fill(
       'Every evening 18:00–20:00 — cocktails 20% off.',
     );
 
-    // Select discount type: Percentage
-    await page.getByTestId('promotion-discount-type-percentage').click();
+    // Select promotion type: Percentage (T22.19)
+    await page.getByTestId('promotion-type-percentage').click();
     await expect(
-      page.getByTestId('promotion-discount-type-percentage'),
+      page.getByTestId('promotion-type-percentage'),
     ).toHaveAttribute('data-active', 'true');
 
     // Enter discount value
@@ -116,20 +116,31 @@ test.describe('promotion drawer (T15.8)', () => {
 
     // Apply to: Category
     await page.getByTestId('promotion-apply-to-category').click();
-    // Category select should appear
+    // Category select should appear — and a category must actually be picked:
+    // applyTo=CATEGORY without categoryId is rejected by the schema, which would
+    // silently keep the drawer open on Save.
     await expect(page.getByTestId('promotion-category-select')).toBeVisible();
+    await page.getByTestId('promotion-category-select').click();
+    await page.getByRole('option').first().click();
 
     // Enable time restrictions
     await page.getByTestId('promotion-time-restrictions-toggle').click();
-    await expect(page.getByTestId('promotion-day-pills')).toBeVisible();
+    await expect(page.getByTestId('promotion-day-windows')).toBeVisible();
 
-    // Select Monday and Friday
-    await page.getByTestId('promotion-day-pill-mon').click();
-    await page.getByTestId('promotion-day-pill-fri').click();
+    // Enable Monday and Friday, each with its own window (T22.21 per-day)
+    await page.getByTestId('promotion-day-toggle-mon').click();
+    await page.getByTestId('promotion-day-toggle-fri').click();
 
-    // Set time range
-    await page.getByTestId('promotion-time-start').fill('18:00');
-    await page.getByTestId('promotion-time-end').fill('20:00');
+    // Set Monday's window. TimeField renders hour/minute as separate segments
+    // (T22.21), and mirrors the canonical 24h value on the group's data-value.
+    await page.getByTestId('promotion-day-start-mon-hour').fill('18');
+    await page.getByTestId('promotion-day-start-mon-minute').fill('00');
+    await page.getByTestId('promotion-day-end-mon-hour').fill('20');
+    await page.getByTestId('promotion-day-end-mon-minute').fill('00');
+    await expect(page.getByTestId('promotion-day-start-mon')).toHaveAttribute(
+      'data-value',
+      '18:00',
+    );
 
     // Switch to Appearance tab and upload is skipped in test (complex)
     await page.getByTestId('promotion-drawer-tab-appearance').click();
@@ -157,38 +168,71 @@ test.describe('promotion drawer (T15.8)', () => {
     ).toHaveText('Happy Hour');
   });
 
-  // ── Functional: discount type switching ───────────────────────────────────
+  // ── Functional: combo promotion generates an Offers product (T22.24) ──────
 
-  test('functional: discount type Percentage vs Fixed switches inputs', async ({
+  test('functional: saving a combo promotion creates an Offers-category product', async ({
+    page,
+  }) => {
+    const { menu } = await seedStarterScenario(page);
+
+    await page.getByTestId('editor-promotions-new').click();
+    await expect(page.getByTestId('promotion-drawer')).toBeVisible();
+
+    await page.getByTestId('promotion-title-input').fill('Lunch Break');
+    await page.getByTestId('promotion-type-combo').click();
+
+    // Pick the first two products from the combo picker
+    const comboProducts = page.locator('[data-testid^="promotion-combo-product-"]');
+    await comboProducts.nth(0).click();
+    await comboProducts.nth(1).click();
+
+    await page.getByTestId('promotion-combo-price-input').fill('12');
+
+    // Set the schedule dates
+    await page.getByTestId('promotion-drawer-tab-schedule').click();
+    await page.getByTestId('promotion-start-date').fill(day(0).toISOString().split('T')[0]);
+    await page.getByTestId('promotion-end-date').fill(day(14).toISOString().split('T')[0]);
+
+    await page.getByTestId('promotion-drawer-save').click();
+    await expect(page.getByTestId('promotion-drawer')).toHaveCount(0);
+
+    // The combo materializes an "Offers" category + a product at the combo price.
+    const offers = await prismaTest.category.findFirst({
+      where: { menuId: menu.id, isSystemOffers: true },
+      include: { products: true },
+    });
+    expect(offers).not.toBeNull();
+    expect(offers!.nameKa).toBe('შეთავაზება');
+    const combo = offers!.products.find((p) => p.nameKa === 'Lunch Break');
+    expect(combo).toBeTruthy();
+    expect(Number(combo!.price)).toBe(12);
+  });
+
+  // ── Functional: promotion type switching (T22.19) ─────────────────────────
+
+  test('functional: promotion type Percentage/Banner/Combo switches fields', async ({
     page,
   }) => {
     await seedStarterScenario(page);
 
     await page.getByTestId('editor-promotions-new').click();
 
-    // Percentage selected → value input with % suffix visible
-    await page.getByTestId('promotion-discount-type-percentage').click();
-    await expect(
-      page.getByTestId('promotion-drawer-discount-value'),
-    ).toBeVisible();
+    // Percentage → discount value (%) + apply-to both visible
+    await page.getByTestId('promotion-type-percentage').click();
+    await expect(page.getByTestId('promotion-drawer-discount-value')).toBeVisible();
     await expect(
       page.locator('[data-testid="promotion-drawer-discount-value"] span'),
     ).toHaveText('%');
+    await expect(page.getByTestId('promotion-drawer-apply-to')).toBeVisible();
 
-    // Fixed selected → value input with ₾ suffix visible
-    await page.getByTestId('promotion-discount-type-fixed').click();
-    await expect(
-      page.getByTestId('promotion-drawer-discount-value'),
-    ).toBeVisible();
-    await expect(
-      page.locator('[data-testid="promotion-drawer-discount-value"] span'),
-    ).toHaveText('₾');
+    // Banner → no discount value, no apply-to (pure announcement)
+    await page.getByTestId('promotion-type-banner').click();
+    await expect(page.getByTestId('promotion-drawer-discount-value')).toHaveCount(0);
+    await expect(page.getByTestId('promotion-drawer-apply-to')).toHaveCount(0);
 
-    // Free add-on selected → value input hidden
-    await page.getByTestId('promotion-discount-type-freeAddon').click();
-    await expect(
-      page.getByTestId('promotion-drawer-discount-value'),
-    ).toHaveCount(0);
+    // Combo → no percentage discount value either
+    await page.getByTestId('promotion-type-combo').click();
+    await expect(page.getByTestId('promotion-drawer-discount-value')).toHaveCount(0);
   });
 
   // ── Functional: edit mode pre-populates fields ────────────────────────────
@@ -227,27 +271,34 @@ test.describe('promotion drawer (T15.8)', () => {
     );
 
     // Verify pre-populated values
-    await expect(page.getByTestId('promotion-title-ka-input')).toHaveValue(
+    await expect(page.getByTestId('promotion-title-input')).toHaveValue(
       'Weekend Brunch',
     );
     await expect(
-      page.getByTestId('promotion-discount-type-percentage'),
+      page.getByTestId('promotion-type-percentage'),
     ).toHaveAttribute('data-active', 'true');
     await expect(
       page.getByTestId('promotion-discount-value-input'),
     ).toHaveValue('15');
 
-    // Time restrictions should be enabled with correct days
+    // Time restrictions enabled; legacy days+time migrated to per-day windows
+    // (T22.21 back-compat via toWindows).
     await expect(page.getByTestId('promotion-time-restrictions-toggle')).toBeChecked();
-    await expect(page.getByTestId('promotion-day-pill-sat')).toHaveAttribute(
+    await expect(page.getByTestId('promotion-day-toggle-sat')).toHaveAttribute(
       'data-active',
       'true',
     );
-    await expect(page.getByTestId('promotion-day-pill-sun')).toHaveAttribute(
+    await expect(page.getByTestId('promotion-day-toggle-sun')).toHaveAttribute(
       'data-active',
       'true',
     );
-    await expect(page.getByTestId('promotion-time-start')).toHaveValue('09:00');
-    await expect(page.getByTestId('promotion-time-end')).toHaveValue('13:00');
+    await expect(page.getByTestId('promotion-day-start-sat')).toHaveAttribute(
+      'data-value',
+      '09:00',
+    );
+    await expect(page.getByTestId('promotion-day-end-sat')).toHaveAttribute(
+      'data-value',
+      '13:00',
+    );
   });
 });

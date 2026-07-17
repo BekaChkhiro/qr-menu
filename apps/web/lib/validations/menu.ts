@@ -126,6 +126,7 @@ export const updateMenuSchema = z.object({
   caloriesDisplay: z.enum(caloriesDisplayValues).optional(),
   showNutrition: z.boolean().optional(),
   showDiscount: z.boolean().optional(),
+  promoPopupEnabled: z.boolean().optional(),
 
   // Layout & visual style
   splitByType: z.boolean().optional(),

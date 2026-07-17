@@ -1,11 +1,12 @@
-// T21.8 — Multilingual Form Sync (Product Drawer).
+// T21.8 — Multilingual Form Sync (Product + Promotion drawers).
 //
 // Run:    pnpm test:e2e tests/e2e/admin/product-form-lang-sync.spec.ts
 // Update: pnpm test:e2e:update tests/e2e/admin/product-form-lang-sync.spec.ts
 //
-// Bug: in the product drawer, the language switch was per-field — switching
-// the name tab to EN did not move the description (or variation name) along
-// with it. The fix lifts language scope to one switcher in the drawer header.
+// Bug: in the product/promotion drawers, the language switch was per-field —
+// switching the name tab to EN did not move the description (or variation
+// name) along with it. The fix lifts language scope to one switcher in the
+// drawer header.
 //
 // Phase 21 constraint: additive seeds only. No resetDb / no TRUNCATE.
 
@@ -236,5 +237,159 @@ test.describe('T21.8 multilingual form sync — product drawer', () => {
     await expect(enTab).toHaveAttribute('data-locked', 'true');
     await expect(ruTab).toHaveAttribute('data-locked', 'true');
     await expect(kaTab).toHaveAttribute('data-locked', 'false');
+  });
+});
+
+test.describe('T21.8 multilingual form sync — promotion drawer', () => {
+  test.describe.configure({ mode: 'serial' });
+
+  test.afterAll(async () => {
+    if (cleanupUserIds.length === 0) return;
+    await prismaTest.user
+      .deleteMany({ where: { id: { in: cleanupUserIds } } })
+      .catch(() => undefined);
+  });
+
+  test.beforeEach(async ({ context }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'desktop',
+      'Desktop-only; mobile bottom-sheet variant covered by T17.x.',
+    );
+    await context.clearCookies();
+    await context.addCookies([
+      { name: 'NEXT_LOCALE', value: 'en', domain: 'localhost', path: '/' },
+    ]);
+  });
+
+  test('PRO — header lang switch updates title and description together', async ({
+    page,
+  }) => {
+    const email = `promo-lang-pro-${RUN_ID}@test.local`;
+    const user = await prismaTest.user.create({
+      data: {
+        email: email.toLowerCase(),
+        name: 'Nino Kapanadze',
+        plan: 'PRO',
+        password: await bcrypt.hash('password-not-used', 10),
+        emailVerified: new Date(),
+      },
+    });
+    cleanupUserIds.push(user.id);
+
+    const menu = await prismaTest.menu.create({
+      data: {
+        userId: user.id,
+        name: 'Café Linville',
+        nameKa: 'კაფე ლინვილი',
+        slug: `promo-pro-${RUN_ID}`,
+        status: 'PUBLISHED',
+        publishedAt: new Date(),
+        enabledLanguages: ['KA', 'EN', 'RU'],
+      },
+    });
+    const promo = await prismaTest.promotion.create({
+      data: {
+        menuId: menu.id,
+        titleKa: 'ზამთრის შეთავაზება',
+        titleEn: 'Winter Offer',
+        titleRu: 'Зимнее предложение',
+        descriptionKa: 'მინუს 20% ხაჭაპურზე.',
+        descriptionEn: 'Minus 20% on Khachapuri.',
+        descriptionRu: 'Минус 20% на хачапури.',
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        isActive: true,
+      },
+    });
+
+    await loginAs(page, email);
+    await page.goto(`/admin/menus/${menu.id}?tab=promotions`);
+
+    const card = page.getByTestId(`editor-promotions-card-${promo.id}`);
+    await expect(card).toBeVisible();
+    await page.getByTestId(`editor-promotions-card-${promo.id}-kebab`).click();
+    await page.getByRole('menuitem', { name: 'Edit' }).click();
+
+    const drawer = page.getByTestId('promotion-drawer');
+    await expect(drawer).toBeVisible();
+
+    // Exactly ONE language switcher — old per-field tab strips are gone.
+    await expect(page.getByTestId('promotion-drawer-lang-tabs')).toHaveCount(1);
+    await expect(page.getByTestId('promotion-title-lang-tabs')).toHaveCount(0);
+    await expect(page.getByTestId('promotion-description-lang-tabs')).toHaveCount(0);
+
+    const langScope = page.getByTestId('promotion-drawer-lang-scope');
+    const titleInput = page.getByTestId('promotion-title-input');
+    const descInput = page.getByTestId('promotion-description-input');
+
+    await expect(langScope).toHaveAttribute('data-active-lang', 'KA');
+    await expect(titleInput).toHaveValue('ზამთრის შეთავაზება');
+    await expect(descInput).toHaveValue('მინუს 20% ხაჭაპურზე.');
+    await expect(titleInput).toHaveAttribute('data-active-lang', 'KA');
+
+    await page.getByTestId('promotion-drawer-lang-tab-EN').click();
+    await expect(langScope).toHaveAttribute('data-active-lang', 'EN');
+    await expect(titleInput).toHaveAttribute('data-active-lang', 'EN');
+    await expect(descInput).toHaveAttribute('data-active-lang', 'EN');
+    await expect(titleInput).toHaveValue('Winter Offer');
+    await expect(descInput).toHaveValue('Minus 20% on Khachapuri.');
+
+    await page.getByTestId('promotion-drawer-lang-tab-RU').click();
+    await expect(titleInput).toHaveValue('Зимнее предложение');
+    await expect(descInput).toHaveValue('Минус 20% на хачапури.');
+  });
+
+  test('STARTER — EN and RU segments locked in the promotion drawer', async ({
+    page,
+  }) => {
+    const email = `promo-lang-starter-${RUN_ID}@test.local`;
+    const user = await prismaTest.user.create({
+      data: {
+        email: email.toLowerCase(),
+        name: 'Nino Kapanadze',
+        plan: 'STARTER',
+        password: await bcrypt.hash('password-not-used', 10),
+        emailVerified: new Date(),
+      },
+    });
+    cleanupUserIds.push(user.id);
+
+    const menu = await prismaTest.menu.create({
+      data: {
+        userId: user.id,
+        name: 'Café Linville',
+        nameKa: 'კაფე ლინვილი',
+        slug: `promo-starter-${RUN_ID}`,
+        status: 'PUBLISHED',
+        publishedAt: new Date(),
+      },
+    });
+    const promo = await prismaTest.promotion.create({
+      data: {
+        menuId: menu.id,
+        titleKa: 'ზამთრის შეთავაზება',
+        descriptionKa: 'მინუს 20%.',
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        isActive: true,
+      },
+    });
+
+    await loginAs(page, email);
+    await page.goto(`/admin/menus/${menu.id}?tab=promotions`);
+
+    await page.getByTestId(`editor-promotions-card-${promo.id}-kebab`).click();
+    await page.getByRole('menuitem', { name: 'Edit' }).click();
+    await expect(page.getByTestId('promotion-drawer')).toBeVisible();
+
+    const enTab = page.getByTestId('promotion-drawer-lang-tab-EN');
+    const ruTab = page.getByTestId('promotion-drawer-lang-tab-RU');
+    const kaTab = page.getByTestId('promotion-drawer-lang-tab-KA');
+
+    await expect(enTab).toHaveAttribute('data-locked', 'true');
+    await expect(ruTab).toHaveAttribute('data-locked', 'true');
+    await expect(kaTab).toHaveAttribute('data-locked', 'false');
+    await expect(enTab).toBeDisabled();
+    await expect(ruTab).toBeDisabled();
   });
 });

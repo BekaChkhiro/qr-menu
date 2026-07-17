@@ -344,6 +344,14 @@ model Menu {
   showNutrition   Boolean         @default(false)
   showDiscount    Boolean         @default(true)
 
+  // T22.25 — show active promotions as a dismissible pop-up on menu open
+  promoPopupEnabled Boolean       @default(false)
+
+  // T22.21 — the café's local timezone. Day/hour windows for promotions and
+  // dish discounts are evaluated against this, not the server's or visitor's
+  // clock. Georgia has a single, DST-free zone, hence the default.
+  timezone        String          @default("Asia/Tbilisi")
+
   // Layout & visual style
   splitByType        Boolean            @default(false)
   menuLayout         MenuLayout         @default(LINEAR)
@@ -428,6 +436,10 @@ model Category {
   // Type (for Foods/Drinks split layout)
   type        CategoryType @default(OTHER)
 
+  // T22.24 — auto-managed "Offers / შეთავაზება" category that holds generated
+  // combo products. Hidden from normal category CRUD; owned by the combo flow.
+  isSystemOffers Boolean @default(false)
+
   // Ordering
   sortOrder   Int       @default(0)
 
@@ -468,6 +480,15 @@ model Product {
   price       Decimal             @db.Decimal(10, 2)
   oldPrice    Decimal?            @db.Decimal(10, 2)  // crossed-out price when discount is shown
   currency    String              @default("GEL")
+
+  // T22.23 — dish-level discount. When set, the public menu computes the
+  // effective price (oldPrice = price, price = discounted). `discountSource`
+  // records who set it — MANUAL (product editor) wins over a CATEGORY promotion
+  // ("last wins"); CATEGORY is a materialized copy from a category promotion.
+  discountType    String?         // PERCENTAGE | FIXED_AMOUNT
+  discountValue   Decimal?        @db.Decimal(10, 2)
+  discountWindows Json?           // { enabled, windows: { mon: [{start,end}], ... } }
+  discountSource  String?         // MANUAL | CATEGORY
 
   // Image + crop focal point (0.0-1.0 normalized coords)
   imageUrl    String?
@@ -587,6 +608,11 @@ model Promotion {
   // Visibility
   isActive    Boolean   @default(true)
 
+  // T22.19 — promotion type: PERCENTAGE (discount %) | BANNER (announcement,
+  // no price math) | COMBO (product bundle at a combo price). Legacy rows are
+  // null → treated as PERCENTAGE when discountValue is set, else BANNER.
+  type          String?   @default("PERCENTAGE")
+
   // Discount configuration (T15.8)
   discountType  String?
   discountValue Decimal?  @db.Decimal(10, 2)
@@ -594,6 +620,16 @@ model Promotion {
   // Apply-to scope (T15.8)
   applyTo       String?
   categoryId    String?
+
+  // T22.20 — appearance: title-only card background + show-title-over-banner
+  backgroundColor String?
+  showTitle       Boolean  @default(true)
+
+  // T22.24 — combo: component products + combo price, plus the generated combo
+  // product placed in the auto-managed "Offers" category.
+  comboProductIds String[]
+  comboPrice      Decimal?  @db.Decimal(10, 2)
+  comboProductId  String?
 
   // Time restrictions — JSON shape: { enabled: boolean, days: string[], startTime: string, endTime: string }
   timeRestrictions Json?  @default("{}")

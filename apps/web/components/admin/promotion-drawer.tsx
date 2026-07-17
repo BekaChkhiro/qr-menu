@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
-import { Percent, Banknote, Gift, X, Loader2, Trash2, Clock } from 'lucide-react';
+import { Percent, Megaphone, Gift, X, Loader2, Trash2 } from 'lucide-react';
 import * as SheetPrimitive from '@radix-ui/react-dialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Segmented, SegmentedItem } from '@/components/ui/segmented';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import {
@@ -25,10 +24,12 @@ import {
 import { Banner } from '@/components/ui/banner';
 import { ImageUpload } from './image-upload';
 import { LangTabsInline } from './product-drawer/lang-tabs-inline';
+import { DayWindowsEditor } from './day-windows-editor';
 import { cn } from '@/lib/utils';
 import { createPromotionSchema, type CreatePromotionInput } from '@/lib/validations/promotion';
-import type { Promotion, Category } from '@/types/menu';
+import type { Promotion } from '@/types/menu';
 import { useCategories } from '@/hooks/use-categories';
+import { useProducts } from '@/hooks/use-products';
 
 const FORM_ID = 'promotion-drawer-form';
 
@@ -49,6 +50,8 @@ interface PromotionDrawerProps {
   multilangUnlocked?: boolean;
 }
 
+type PromotionType = 'PERCENTAGE' | 'BANNER' | 'COMBO';
+
 interface PromotionFormValues {
   titleKa: string;
   titleEn?: string | null;
@@ -60,16 +63,45 @@ interface PromotionFormValues {
   startDate: Date;
   endDate: Date;
   isActive: boolean;
+  // T22.19 — top-level promotion type drives which fields show.
+  type: PromotionType;
   discountType: 'PERCENTAGE' | 'FIXED_AMOUNT' | 'FREE_ADDON' | null;
   discountValue: string | number | null;
   applyTo: 'ENTIRE_MENU' | 'CATEGORY' | 'SPECIFIC_ITEMS' | null;
   categoryId: string | null;
+  // T22.20 / T22.24
+  backgroundColor?: string | null;
+  showTitle?: boolean;
+  comboProductIds?: string[];
+  comboPrice?: string | number | null;
+  // T22.21 — per-day time windows (Mon 12:00–14:00, Tue 09:00–11:00, …).
   timeRestrictions: {
     enabled: boolean;
-    days: string[];
-    startTime: string;
-    endTime: string;
+    windows: Record<string, { start: string; end: string }>;
   };
+}
+
+// Normalize a stored timeRestrictions value (legacy flat OR new windows) into
+// the per-day windows shape used by the form.
+function toWindows(
+  tr:
+    | {
+        enabled?: boolean;
+        days?: string[];
+        startTime?: string;
+        endTime?: string;
+        windows?: Record<string, { start: string; end: string }>;
+      }
+    | null
+    | undefined,
+): Record<string, { start: string; end: string }> {
+  if (tr?.windows && Object.keys(tr.windows).length > 0) return tr.windows;
+  if (tr?.days?.length) {
+    return Object.fromEntries(
+      tr.days.map((d) => [d, { start: tr.startTime ?? '09:00', end: tr.endTime ?? '18:00' }]),
+    );
+  }
+  return {};
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -99,21 +131,25 @@ function pickBannerGradient(id?: string) {
   return BANNER_VARIANTS[hashString(id) % BANNER_VARIANTS.length].bg;
 }
 
-const WEEK_DAYS = [
-  { key: 'mon', label: 'M' },
-  { key: 'tue', label: 'T' },
-  { key: 'wed', label: 'W' },
-  { key: 'thu', label: 'T' },
-  { key: 'fri', label: 'F' },
-  { key: 'sat', label: 'S' },
-  { key: 'sun', label: 'S' },
+// T22.19 — owner's three promotion types.
+const TYPE_OPTIONS = [
+  { value: 'PERCENTAGE', key: 'percentage', Icon: Percent },
+  { value: 'BANNER', key: 'banner', Icon: Megaphone },
+  { value: 'COMBO', key: 'combo', Icon: Gift },
 ] as const;
 
-const DISCOUNT_OPTIONS = [
-  { value: 'PERCENTAGE', labelKey: 'percentage', Icon: Percent },
-  { value: 'FIXED_AMOUNT', labelKey: 'fixed', Icon: Banknote },
-  { value: 'FREE_ADDON', labelKey: 'freeAddon', Icon: Gift },
-] as const;
+// Infer a type for a legacy promotion that predates the `type` column.
+function inferPromotionType(p?: {
+  type?: string | null;
+  discountType?: string | null;
+}): PromotionType {
+  if (p?.type === 'PERCENTAGE' || p?.type === 'BANNER' || p?.type === 'COMBO') {
+    return p.type;
+  }
+  if (p?.discountType === 'FREE_ADDON') return 'COMBO';
+  if (p?.discountType === 'FIXED_AMOUNT') return 'BANNER'; // "fixed $" retired → banner
+  return 'PERCENTAGE';
+}
 
 // ── Component ───────────────────────────────────────────────────────────────
 
@@ -134,8 +170,10 @@ export function PromotionDrawer({
   const [saveError, setSaveError] = useState<string | null>(null);
   // T21.8 — single drawer-wide language scope; title + description switch together.
   const [activeLang, setActiveLang] = useState<LangCode>('KA');
+  const [isImageUploading, setIsImageUploading] = useState(false);
 
   const { data: categories } = useCategories(menuId);
+  const { data: products } = useProducts(menuId);
 
   const form = useForm<PromotionFormValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -151,11 +189,16 @@ export function PromotionDrawer({
       startDate: new Date(),
       endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       isActive: true,
+      type: 'PERCENTAGE',
       discountType: null,
       discountValue: null,
       applyTo: 'ENTIRE_MENU',
       categoryId: null,
-      timeRestrictions: { enabled: false, days: [], startTime: '09:00', endTime: '18:00' },
+      backgroundColor: null,
+      showTitle: true,
+      comboProductIds: [],
+      comboPrice: null,
+      timeRestrictions: { enabled: false, windows: {} },
     },
   });
 
@@ -165,6 +208,7 @@ export function PromotionDrawer({
       setActiveTab('details');
       setSaveError(null);
       setActiveLang('KA');
+      setIsImageUploading(false);
 
       const tr = promotion?.timeRestrictions;
       form.reset({
@@ -178,15 +222,22 @@ export function PromotionDrawer({
         startDate: promotion?.startDate ? new Date(promotion.startDate) : new Date(),
         endDate: promotion?.endDate ? new Date(promotion.endDate) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
         isActive: promotion?.isActive ?? true,
+        type: inferPromotionType(promotion),
         discountType: (promotion?.discountType as PromotionFormValues['discountType']) || null,
         discountValue: promotion?.discountValue ?? null,
-        applyTo: (promotion?.applyTo as PromotionFormValues['applyTo']) || 'ENTIRE_MENU',
+        // T22.18 — "specific items" scope retired; coerce legacy rows to whole-menu.
+        applyTo:
+          promotion?.applyTo && promotion.applyTo !== 'SPECIFIC_ITEMS'
+            ? (promotion.applyTo as PromotionFormValues['applyTo'])
+            : 'ENTIRE_MENU',
         categoryId: promotion?.categoryId || null,
+        backgroundColor: promotion?.backgroundColor ?? null,
+        showTitle: promotion?.showTitle ?? true,
+        comboProductIds: promotion?.comboProductIds ?? [],
+        comboPrice: promotion?.comboPrice ?? null,
         timeRestrictions: {
           enabled: tr?.enabled ?? false,
-          days: tr?.days ?? [],
-          startTime: tr?.startTime ?? '09:00',
-          endTime: tr?.endTime ?? '18:00',
+          windows: toWindows(tr),
         },
       });
     }
@@ -195,7 +246,26 @@ export function PromotionDrawer({
   const handleSubmit = async (data: PromotionFormValues) => {
     setSaveError(null);
     try {
-      await onSubmit(data as CreatePromotionInput);
+      // T22.19 — normalize by type so only the relevant fields persist.
+      const payload: PromotionFormValues = { ...data };
+      if (data.type === 'PERCENTAGE') {
+        payload.discountType = 'PERCENTAGE';
+        payload.comboProductIds = [];
+        payload.comboPrice = null;
+      } else if (data.type === 'BANNER') {
+        payload.discountType = null;
+        payload.discountValue = null;
+        payload.applyTo = null;
+        payload.categoryId = null;
+        payload.comboProductIds = [];
+        payload.comboPrice = null;
+      } else if (data.type === 'COMBO') {
+        payload.discountType = null;
+        payload.discountValue = null;
+        payload.applyTo = null;
+        payload.categoryId = null;
+      }
+      await onSubmit(payload as CreatePromotionInput);
       onOpenChange(false);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : t('saveErrorDefault'));
@@ -206,10 +276,10 @@ export function PromotionDrawer({
     onOpenChange(false);
   };
 
-  const discountType = form.watch('discountType');
-  const applyTo = form.watch('applyTo');
+  const promoType = form.watch('type');
+  const imageUrlWatch = form.watch('imageUrl');
   const timeEnabled = form.watch('timeRestrictions.enabled');
-  const timeDays = form.watch('timeRestrictions.days');
+  const timeWindows = form.watch('timeRestrictions.windows');
 
   // Header dots: language is "filled" once either its title or description has content.
   const titleKaWatch = form.watch('titleKa');
@@ -234,6 +304,20 @@ export function PromotionDrawer({
       descRuWatch,
     ],
   );
+
+  const comboIdsWatch = form.watch('comboProductIds') || [];
+  const comboPriceWatch = form.watch('comboPrice');
+  const discountValueWatch = form.watch('discountValue');
+  const canSave = (() => {
+    if ((titleKaWatch || '').trim().length === 0) return false;
+    if (promoType === 'PERCENTAGE') {
+      return discountValueWatch != null && Number(discountValueWatch) > 0;
+    }
+    if (promoType === 'COMBO') {
+      return comboIdsWatch.length >= 2 && comboPriceWatch != null && Number(comboPriceWatch) > 0;
+    }
+    return true; // BANNER — title is enough
+  })();
 
   const titleFieldKey =
     activeLang === 'KA' ? 'titleKa' : activeLang === 'EN' ? 'titleEn' : 'titleRu';
@@ -398,25 +482,25 @@ export function PromotionDrawer({
                   </div>
                 </div>
 
-                {/* Discount type */}
-                <div data-testid="promotion-drawer-discount-type">
+                {/* Promotion type (T22.19) */}
+                <div data-testid="promotion-drawer-type">
                   <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
-                    {t('fields.discountTypeLabel')}
+                    {t('fields.typeLabel')}
                   </div>
                   <Controller
                     control={form.control}
-                    name="discountType"
+                    name="type"
                     render={({ field }) => (
                       <div className="grid grid-cols-3 gap-2">
-                        {DISCOUNT_OPTIONS.map((opt) => (
+                        {TYPE_OPTIONS.map((opt) => (
                           <button
                             key={opt.value}
                             type="button"
                             onClick={() => field.onChange(opt.value)}
-                            data-testid={`promotion-discount-type-${opt.labelKey}`}
+                            data-testid={`promotion-type-${opt.key}`}
                             data-active={field.value === opt.value ? 'true' : 'false'}
                             className={cn(
-                              'flex flex-col items-center gap-1.5 rounded-lg border p-3 transition-all',
+                              'flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-all',
                               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2',
                               field.value === opt.value
                                 ? 'border-accent bg-card shadow-[0_0_0_3px_hsl(var(--accent-soft))]'
@@ -432,23 +516,26 @@ export function PromotionDrawer({
                             />
                             <span
                               className={cn(
-                                'text-center text-[11.5px] leading-tight',
+                                'text-[11.5px] leading-tight',
                                 field.value === opt.value
                                   ? 'font-semibold text-text-default'
                                   : 'font-medium text-text-muted',
                               )}
                             >
-                              {t(`fields.discountTypes.${opt.labelKey}`)}
+                              {t(`fields.types.${opt.key}.title`)}
                             </span>
                           </button>
                         ))}
                       </div>
                     )}
                   />
+                  <p className="mt-1.5 text-[12px] text-text-muted">
+                    {t(`fields.types.${TYPE_OPTIONS.find((o) => o.value === promoType)?.key ?? 'percentage'}.hint`)}
+                  </p>
                 </div>
 
-                {/* Discount value (conditional) */}
-                {discountType && discountType !== 'FREE_ADDON' && (
+                {/* Discount value — percentage only (T22.19) */}
+                {promoType === 'PERCENTAGE' && (
                   <div data-testid="promotion-drawer-discount-value">
                     <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
                       {t('fields.discountValueLabel')}
@@ -462,24 +549,26 @@ export function PromotionDrawer({
                             <Input
                               type="number"
                               min={0}
-                              step={discountType === 'PERCENTAGE' ? 1 : 0.01}
+                              max={100}
+                              step={1}
                               value={field.value ?? ''}
                               onChange={(e) => {
                                 const val = e.target.value;
                                 field.onChange(val === '' ? null : val);
                               }}
+                              autoComplete="off"
                               className="h-[38px] flex-1 rounded-none border-0 bg-transparent px-3 text-right font-mono text-sm font-semibold tabular-nums focus-visible:ring-0 focus-visible:ring-offset-0"
                               data-testid="promotion-discount-value-input"
                             />
                             <span className="flex items-center bg-chip px-3.5 text-[13px] font-semibold text-text-muted">
-                              {discountType === 'PERCENTAGE' ? '%' : '₾'}
+                              %
                             </span>
                           </>
                         )}
                       />
                     </div>
                     <p className="mt-1.5 text-[12px] text-text-muted">
-                      {t('fields.discountValueHint', { example: discountType === 'PERCENTAGE' ? '20%' : '5₾' })}
+                      {t('fields.discountValueHint', { example: '20%' })}
                     </p>
                     {form.formState.errors.discountValue && (
                       <p className="mt-1 text-[12px] text-danger">{form.formState.errors.discountValue.message}</p>
@@ -487,7 +576,8 @@ export function PromotionDrawer({
                   </div>
                 )}
 
-                {/* Apply to */}
+                {/* Apply to — percentage only (T22.19) */}
+                {promoType === 'PERCENTAGE' && (
                 <div data-testid="promotion-drawer-apply-to">
                   <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
                     {t('fields.applyToLabel')}
@@ -574,31 +664,105 @@ export function PromotionDrawer({
                             </div>
                           )}
                         </div>
-
-                        {/* Specific items */}
-                        <label
-                          className={cn(
-                            'flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors',
-                            field.value === 'SPECIFIC_ITEMS'
-                              ? 'border-accent shadow-[0_0_0_3px_hsl(var(--accent-soft))]'
-                              : 'border-border hover:bg-chip',
-                          )}
-                          data-testid="promotion-apply-to-items"
-                        >
-                          <RadioGroupItem value="SPECIFIC_ITEMS" />
-                          <div className="flex-1">
-                            <div className="text-[13px] font-medium text-text-default">
-                              {t('fields.applyTo.specificItems.title')}
-                            </div>
-                            <div className="text-[11.5px] text-text-muted">
-                              {t('fields.applyTo.specificItems.hint')}
-                            </div>
-                          </div>
-                        </label>
+                        {/* T22.18 — "Specific items" scope removed for promotions;
+                            per-dish discounting lives in the product editor. */}
                       </RadioGroup>
                     )}
                   />
                 </div>
+                )}
+
+                {/* Combo builder — combo type only (T22.24) */}
+                {promoType === 'COMBO' && (
+                  <div data-testid="promotion-drawer-combo">
+                    <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
+                      {t('fields.comboProductsLabel')}
+                    </div>
+                    <Controller
+                      control={form.control}
+                      name="comboProductIds"
+                      render={({ field }) => {
+                        const selected = field.value ?? [];
+                        const toggle = (id: string) => {
+                          field.onChange(
+                            selected.includes(id)
+                              ? selected.filter((x) => x !== id)
+                              : [...selected, id],
+                          );
+                        };
+                        return (
+                          <div className="max-h-52 space-y-1 overflow-y-auto rounded-lg border border-border p-1.5">
+                            {(products ?? []).length === 0 && (
+                              <div className="p-2 text-[12px] text-text-muted">
+                                {t('fields.comboProductsHint')}
+                              </div>
+                            )}
+                            {(products ?? []).map((p) => {
+                              const checked = selected.includes(p.id);
+                              return (
+                                <label
+                                  key={p.id}
+                                  data-testid={`promotion-combo-product-${p.id}`}
+                                  data-checked={checked ? 'true' : 'false'}
+                                  className={cn(
+                                    'flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors',
+                                    checked ? 'bg-accent-soft' : 'hover:bg-chip',
+                                  )}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggle(p.id)}
+                                    className="h-4 w-4 accent-[hsl(var(--accent))]"
+                                  />
+                                  <span className="flex-1 text-text-default">{p.nameKa}</span>
+                                  <span className="font-mono text-[12px] tabular-nums text-text-muted">
+                                    {Number(p.price).toFixed(2)} ₾
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        );
+                      }}
+                    />
+                    <p className="mt-1.5 text-[12px] text-text-muted">
+                      {t('fields.comboProductsHint')}
+                    </p>
+
+                    {/* Combo price */}
+                    <div className="mt-3 max-w-[180px]">
+                      <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
+                        {t('fields.comboPriceLabel')}
+                      </div>
+                      <div className="flex overflow-hidden rounded-lg border border-border">
+                        <Controller
+                          control={form.control}
+                          name="comboPrice"
+                          render={({ field }) => (
+                            <>
+                              <Input
+                                type="number"
+                                min={0}
+                                step={0.01}
+                                value={field.value ?? ''}
+                                onChange={(e) =>
+                                  field.onChange(e.target.value === '' ? null : e.target.value)
+                                }
+                                autoComplete="off"
+                                className="h-[38px] flex-1 rounded-none border-0 bg-transparent px-3 text-right font-mono text-sm font-semibold tabular-nums focus-visible:ring-0 focus-visible:ring-offset-0"
+                                data-testid="promotion-combo-price-input"
+                              />
+                              <span className="flex items-center bg-chip px-3.5 text-[13px] font-semibold text-text-muted">
+                                ₾
+                              </span>
+                            </>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Time restrictions */}
                 <div data-testid="promotion-drawer-time-restrictions">
@@ -633,71 +797,16 @@ export function PromotionDrawer({
                   />
 
                   {timeEnabled && (
-                    <div className="mt-3 space-y-3">
-                      {/* Day pills */}
-                      <div className="flex gap-1.5" data-testid="promotion-day-pills">
-                        {WEEK_DAYS.map((day) => {
-                          const active = timeDays.includes(day.key);
-                          return (
-                            <button
-                              key={day.key}
-                              type="button"
-                              onClick={() => {
-                                const current = form.getValues('timeRestrictions.days');
-                                const next = active
-                                  ? current.filter((d) => d !== day.key)
-                                  : [...current, day.key];
-                                form.setValue('timeRestrictions.days', next, { shouldValidate: true });
-                              }}
-                              data-testid={`promotion-day-pill-${day.key}`}
-                              data-active={active ? 'true' : 'false'}
-                              className={cn(
-                                'flex h-8 w-8 items-center justify-center rounded-md border text-[11.5px] font-semibold transition-colors',
-                                active
-                                  ? 'border-text-default bg-text-default text-white'
-                                  : 'border-border bg-card text-text-muted hover:bg-chip',
-                              )}
-                            >
-                              {day.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Time range */}
-                      <div className="flex items-center gap-2.5" data-testid="promotion-time-range">
-                        <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
-                          <Clock className="h-3.5 w-3.5 text-text-muted" strokeWidth={1.5} />
-                          <Controller
-                            control={form.control}
-                            name="timeRestrictions.startTime"
-                            render={({ field }) => (
-                              <input
-                                type="time"
-                                {...field}
-                                className="w-full bg-transparent text-[13px] font-mono tabular-nums text-text-default outline-none"
-                                data-testid="promotion-time-start"
-                              />
-                            )}
-                          />
-                        </div>
-                        <span className="text-[12px] text-text-muted">{t('fields.timeTo')}</span>
-                        <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
-                          <Clock className="h-3.5 w-3.5 text-text-muted" strokeWidth={1.5} />
-                          <Controller
-                            control={form.control}
-                            name="timeRestrictions.endTime"
-                            render={({ field }) => (
-                              <input
-                                type="time"
-                                {...field}
-                                className="w-full bg-transparent text-[13px] font-mono tabular-nums text-text-default outline-none"
-                                data-testid="promotion-time-end"
-                              />
-                            )}
-                          />
-                        </div>
-                      </div>
+                    <div className="mt-3">
+                      <DayWindowsEditor
+                        value={timeWindows || {}}
+                        onChange={(next) =>
+                          form.setValue('timeRestrictions.windows', next, { shouldValidate: true })
+                        }
+                        testIdPrefix="promotion"
+                        inactiveLabel={t('fields.dayInactive')}
+                        toLabel={t('fields.timeTo')}
+                      />
                     </div>
                   )}
                 </div>
@@ -713,17 +822,111 @@ export function PromotionDrawer({
                     control={form.control}
                     name="imageUrl"
                     render={({ field }) => (
-                      <ImageUpload
-                        value={field.value}
-                        onChange={field.onChange}
-                        preset="promotion"
-                        aspectRatio="video"
-                        disabled={isLoading}
-                      />
+                      <>
+                        <ImageUpload
+                          value={field.value}
+                          onChange={field.onChange}
+                          preset="promotion"
+                          aspectRatio="video"
+                          disabled={isLoading}
+                          enableCropper={false}
+                          onUploadingChange={setIsImageUploading}
+                          testIdPrefix="promotion-image"
+                        />
+                        <input
+                          type="hidden"
+                          name="imageUrl"
+                          value={field.value ?? ''}
+                          data-testid="promotion-image-url"
+                          readOnly
+                        />
+                      </>
                     )}
                   />
                   <p className="mt-1.5 text-[12px] text-text-muted">{t('fields.bannerHint')}</p>
                 </div>
+
+                {/* T22.20 — appearance controls */}
+                {imageUrlWatch ? (
+                  /* Banner present → choose whether the title shows over it. */
+                  <div className="mt-6" data-testid="promotion-drawer-show-title">
+                    <Controller
+                      control={form.control}
+                      name="showTitle"
+                      render={({ field }) => (
+                        <div
+                          className={cn(
+                            'flex items-center gap-3 rounded-lg border p-3',
+                            field.value
+                              ? 'border-accent shadow-[0_0_0_3px_hsl(var(--accent-soft))]'
+                              : 'border-border',
+                          )}
+                        >
+                          <div className="flex-1">
+                            <div className="text-[13px] font-medium text-text-default">
+                              {t('fields.showTitleLabel')}
+                            </div>
+                            <div className="text-[11.5px] text-text-muted">
+                              {t('fields.showTitleHint')}
+                            </div>
+                          </div>
+                          <Switch
+                            checked={field.value ?? true}
+                            onCheckedChange={field.onChange}
+                            data-testid="promotion-show-title-toggle"
+                          />
+                        </div>
+                      )}
+                    />
+                  </div>
+                ) : (
+                  /* No banner → title-only card on a chosen background color. */
+                  <div className="mt-6" data-testid="promotion-drawer-background-color">
+                    <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
+                      {t('fields.backgroundColorLabel')}
+                    </div>
+                    <Controller
+                      control={form.control}
+                      name="backgroundColor"
+                      render={({ field }) => {
+                        const value = field.value || '#7A3F27';
+                        return (
+                          <div className="space-y-3">
+                            <div
+                              className="flex h-24 items-center justify-center rounded-xl px-4 text-center"
+                              style={{ backgroundColor: value }}
+                              data-testid="promotion-bg-preview"
+                            >
+                              <span className="text-[15px] font-semibold text-white drop-shadow">
+                                {titleKaWatch || t('fields.titleKaPlaceholder')}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={value}
+                                onChange={(e) => field.onChange(e.target.value)}
+                                className="h-9 w-12 cursor-pointer rounded border border-border bg-transparent"
+                                data-testid="promotion-bg-color-input"
+                                aria-label={t('fields.backgroundColorLabel')}
+                              />
+                              <Input
+                                value={field.value ?? ''}
+                                onChange={(e) => field.onChange(e.target.value || null)}
+                                placeholder="#7A3F27"
+                                className="h-9 max-w-[130px] font-mono text-[13px]"
+                                data-testid="promotion-bg-hex-input"
+                              />
+                            </div>
+                            <p className="text-[12px] text-text-muted">
+                              {t('fields.backgroundColorHint')}
+                            </p>
+                          </div>
+                        );
+                      }}
+                    />
+                  </div>
+                )}
               </TabsContent>
 
               {/* ── Schedule tab ────────────────────────────────────────── */}
@@ -843,12 +1046,21 @@ export function PromotionDrawer({
               type="submit"
               form={FORM_ID}
               size="sm"
-              disabled={isLoading}
+              disabled={isLoading || isImageUploading || !canSave}
               data-testid="promotion-drawer-save"
               data-saving={isLoading ? 'true' : 'false'}
+              data-uploading={isImageUploading ? 'true' : 'false'}
             >
-              {isLoading && <Loader2 className="mr-1.5 h-[13px] w-[13px] animate-spin" />}
-              {isLoading ? t('saving') : isEditing ? tActions('save') : t('saveNewPromotion')}
+              {(isLoading || isImageUploading) && (
+                <Loader2 className="mr-1.5 h-[13px] w-[13px] animate-spin" />
+              )}
+              {isImageUploading
+                ? t('uploadingImage')
+                : isLoading
+                  ? t('saving')
+                  : isEditing
+                    ? tActions('save')
+                    : t('saveNewPromotion')}
             </Button>
           </div>
         </div>

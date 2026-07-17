@@ -2,11 +2,46 @@ import { z } from 'zod';
 
 // ── Enums ───────────────────────────────────────────────────────────────────
 
+// T22.19 — promotion type (owner spec): the drawer picks one of these three.
+// PERCENTAGE keeps the discountType/discountValue percentage math; BANNER is a
+// pure announcement (no price effect); COMBO bundles products at a combo price.
+export const PromotionType = {
+  PERCENTAGE: 'PERCENTAGE',
+  BANNER: 'BANNER',
+  COMBO: 'COMBO',
+} as const;
+
+export type PromotionTypeValue = (typeof PromotionType)[keyof typeof PromotionType];
+
 export const DiscountType = {
   PERCENTAGE: 'PERCENTAGE',
   FIXED_AMOUNT: 'FIXED_AMOUNT',
   FREE_ADDON: 'FREE_ADDON',
 } as const;
+
+// Coerce "" / null / non-numeric → null; numeric strings → number.
+const nullableNumber = z
+  .union([z.string(), z.number()])
+  .optional()
+  .nullable()
+  .transform((v) => {
+    if (v === null || v === undefined || v === '') return null;
+    const n = typeof v === 'string' ? parseFloat(v) : v;
+    return isNaN(n) ? null : n;
+  });
+
+// T22.19/T22.20/T22.24 — shared appearance + type + combo fields.
+const promotionExtraFields = {
+  type: z.enum(['PERCENTAGE', 'BANNER', 'COMBO']).optional().nullable(),
+  backgroundColor: z
+    .string()
+    .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Use a hex color like #RRGGBB')
+    .nullable()
+    .optional(),
+  showTitle: z.boolean().optional(),
+  comboProductIds: z.array(z.string()).optional(),
+  comboPrice: nullableNumber,
+};
 
 export const ApplyToType = {
   ENTIRE_MENU: 'ENTIRE_MENU',
@@ -28,16 +63,45 @@ export type DiscountTypeValue = (typeof DiscountType)[keyof typeof DiscountType]
 export type ApplyToTypeValue = (typeof ApplyToType)[keyof typeof ApplyToType];
 export type WeekDayValue = (typeof WeekDay)[keyof typeof WeekDay];
 
-// ── Time restrictions schema ────────────────────────────────────────────────
+// ── Time restrictions schema (T22.21) ───────────────────────────────────────
+//
+// Per-day windows: each weekday can carry its own start/end (Mon 12:00–14:00,
+// Tue 09:00–11:00). The canonical shape is `{ enabled, windows }`. The legacy
+// flat shape `{ enabled, days[], startTime, endTime }` is still accepted on
+// read and normalized into `windows` so old rows keep working.
+const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+const HHMM = z.string().regex(/^\d{2}:\d{2}$/, 'Use HH:MM format');
 
-export const timeRestrictionsSchema = z.object({
-  enabled: z.boolean().default(false),
-  days: z.array(z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])).default([]),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/, 'Use HH:MM format').default('09:00'),
-  endTime: z.string().regex(/^\d{2}:\d{2}$/, 'Use HH:MM format').default('18:00'),
+const timeWindowSchema = z.object({
+  start: HHMM.default('09:00'),
+  end: HHMM.default('18:00'),
 });
 
+export const timeRestrictionsSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    // `z.record` with an enum key is EXHAUSTIVE in Zod 4 — it would demand all
+    // seven days and reject a Mon-only window. Windows are sparse by nature, so
+    // this must be a partial record.
+    windows: z.partialRecord(z.enum(WEEKDAYS), timeWindowSchema).optional(),
+    // legacy (accepted on read; migrated below)
+    days: z.array(z.enum(WEEKDAYS)).optional(),
+    startTime: HHMM.optional(),
+    endTime: HHMM.optional(),
+  })
+  .transform((v) => {
+    let windows = v.windows ?? {};
+    // Migrate legacy days[]+startTime+endTime → per-day windows.
+    if ((!v.windows || Object.keys(v.windows).length === 0) && v.days?.length) {
+      windows = Object.fromEntries(
+        v.days.map((d) => [d, { start: v.startTime ?? '09:00', end: v.endTime ?? '18:00' }]),
+      );
+    }
+    return { enabled: v.enabled, windows };
+  });
+
 export type TimeRestrictionsInput = z.infer<typeof timeRestrictionsSchema>;
+export type WeekdayKey = (typeof WEEKDAYS)[number];
 
 // ── Create promotion schema ─────────────────────────────────────────────────
 
@@ -92,6 +156,7 @@ export const createPromotionSchema = z
     applyTo: z.enum(['ENTIRE_MENU', 'CATEGORY', 'SPECIFIC_ITEMS']).optional().nullable(),
     categoryId: z.string().nullable().optional(),
     timeRestrictions: timeRestrictionsSchema.optional().nullable(),
+    ...promotionExtraFields,
   })
   .refine((data) => data.endDate > data.startDate, {
     message: 'End date must be after start date',
@@ -108,7 +173,12 @@ export const createPromotionSchema = z
       message: 'Please select a category',
       path: ['categoryId'],
     }
-  );
+  )
+  // T22.18 — "specific items" scope retired; whole-menu / category only.
+  .refine((data) => data.applyTo !== 'SPECIFIC_ITEMS', {
+    message: 'Promotions apply to the whole menu or a category',
+    path: ['applyTo'],
+  });
 
 // ── Update promotion schema ─────────────────────────────────────────────────
 
@@ -164,6 +234,7 @@ export const updatePromotionSchema = z
     applyTo: z.enum(['ENTIRE_MENU', 'CATEGORY', 'SPECIFIC_ITEMS']).optional().nullable(),
     categoryId: z.string().nullable().optional(),
     timeRestrictions: timeRestrictionsSchema.optional().nullable(),
+    ...promotionExtraFields,
   })
   .refine(
     (data) => {
@@ -188,7 +259,12 @@ export const updatePromotionSchema = z
       message: 'Please select a category',
       path: ['categoryId'],
     }
-  );
+  )
+  // T22.18 — "specific items" scope retired; whole-menu / category only.
+  .refine((data) => data.applyTo !== 'SPECIFIC_ITEMS', {
+    message: 'Promotions apply to the whole menu or a category',
+    path: ['applyTo'],
+  });
 
 // ── Reorder promotions schema ───────────────────────────────────────────────
 
