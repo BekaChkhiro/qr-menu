@@ -26,6 +26,7 @@ export const publicMenuSelect = {
   caloriesDisplay: true,
   showNutrition: true,
   showDiscount: true,
+  promoPopupEnabled: true,
   splitByType: true,
   menuLayout: true,
   menuTemplate: true,
@@ -196,6 +197,7 @@ export interface SerializedPublicMenu {
   caloriesDisplay: 'DIRECT' | 'FLIP_REVEAL' | 'HIDDEN';
   showNutrition: boolean;
   showDiscount: boolean;
+  promoPopupEnabled: boolean;
   splitByType: boolean;
   menuLayout: 'LINEAR' | 'CATEGORIES_FIRST';
   menuTemplate: 'CLASSIC' | 'MAGAZINE' | 'COMPACT';

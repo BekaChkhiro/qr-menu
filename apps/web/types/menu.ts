@@ -73,6 +73,8 @@ export interface Menu {
   caloriesDisplay: CaloriesDisplay;
   showNutrition: boolean;
   showDiscount: boolean;
+  // T22.25 — show active promotions as a dismissible pop-up on public menu open
+  promoPopupEnabled?: boolean;
 
   // Layout & visual style
   splitByType: boolean;

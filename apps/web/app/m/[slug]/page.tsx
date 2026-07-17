@@ -15,6 +15,7 @@ import { MenuHeader } from '@/components/public/menu-header';
 import { MenuInfoWidget } from '@/components/public/menu-info-widget';
 import { MenuBody } from '@/components/public/menu-body';
 import { PromotionCarousel } from '@/components/public/promotion-carousel';
+import { PromotionPopup } from '@/components/public/promotion-popup';
 import { FeaturedCarousel } from '@/components/public/featured-carousel';
 import { MenuFooter } from '@/components/public/menu-footer';
 import { ViewTracker } from '@/components/public/view-tracker';
@@ -208,6 +209,10 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
       )}
 
       {hasPromotions && <PromotionCarousel promotions={menu.promotions} locale={locale} />}
+
+      {!isPreview && menu.promoPopupEnabled && hasPromotions && (
+        <PromotionPopup menuId={menu.id} promotions={menu.promotions} locale={locale} />
+      )}
 
       {featuredProducts.length > 0 && (
         <FeaturedCarousel products={featuredProducts} locale={locale} settings={displaySettings} />

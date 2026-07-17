@@ -47,6 +47,9 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
   const [showDiscount, setShowDiscount] = useState<boolean>(
     menu.showDiscount ?? DEFAULT_SHOW_DISCOUNT,
   );
+  const [promoPopupEnabled, setPromoPopupEnabled] = useState<boolean>(
+    menu.promoPopupEnabled ?? false,
+  );
 
   const prevMenuIdRef = useRef(menu.id);
   useEffect(() => {
@@ -56,6 +59,7 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
       setCaloriesDisplay(menu.caloriesDisplay ?? DEFAULT_CALORIES);
       setShowNutrition(menu.showNutrition ?? DEFAULT_SHOW_NUTRITION);
       setShowDiscount(menu.showDiscount ?? DEFAULT_SHOW_DISCOUNT);
+      setPromoPopupEnabled(menu.promoPopupEnabled ?? false);
     }
   }, [
     menu.id,
@@ -63,6 +67,7 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
     menu.caloriesDisplay,
     menu.showNutrition,
     menu.showDiscount,
+    menu.promoPopupEnabled,
   ]);
 
   const save = async (patch: Parameters<typeof updateMenu.mutateAsync>[0]) => {
@@ -93,6 +98,11 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
   const handleShowDiscountChange = (next: boolean) => {
     setShowDiscount(next);
     void save({ showDiscount: next });
+  };
+
+  const handlePromoPopupChange = (next: boolean) => {
+    setPromoPopupEnabled(next);
+    void save({ promoPopupEnabled: next });
   };
 
   return (
@@ -191,6 +201,15 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
             description={t('showDiscount.description')}
             checked={showDiscount}
             onCheckedChange={handleShowDiscountChange}
+          />
+
+          {/* Promotion pop-up switch (T22.25) */}
+          <SwitchRow
+            testId="content-promo-popup-switch"
+            label={t('promoPopup.label')}
+            description={t('promoPopup.description')}
+            checked={promoPopupEnabled}
+            onCheckedChange={handlePromoPopupChange}
           />
         </div>
       </div>

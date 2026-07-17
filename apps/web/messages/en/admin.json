@@ -870,7 +870,11 @@
           "description": "Show the original price struck through next to the new one."
         },
         "saving": "Saving…",
-        "saveError": "Failed to save display settings"
+        "saveError": "Failed to save display settings",
+        "promoPopup": {
+          "label": "Promotions pop-up",
+          "description": "Show active promotions in a pop-up when the menu opens."
+        }
       }
     },
     "branding": {
