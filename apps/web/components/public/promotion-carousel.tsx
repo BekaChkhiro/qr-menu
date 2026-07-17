@@ -12,6 +12,10 @@ interface Promotion {
   titleEn: string | null;
   titleRu: string | null;
   imageUrl: string | null;
+  // T22.19/T22.20 — type + appearance drive which visual variant renders.
+  type?: 'PERCENTAGE' | 'BANNER' | 'COMBO' | null;
+  backgroundColor?: string | null;
+  showTitle?: boolean;
 }
 
 interface PromotionCarouselProps {
@@ -30,8 +34,16 @@ function getTitle(p: Promotion, locale: Locale): string {
   }
 }
 
+// A promotion shows in the carousel when it has a banner image, OR it is a
+// title-only BANNER announcement (T22.20 — "café without a designer"). Pure
+// percentage/combo promotions with no image surface via prices / the Offers
+// category instead, so they are not carded here.
+function isCarded(p: Promotion): boolean {
+  return Boolean(p.imageUrl) || p.type === 'BANNER';
+}
+
 export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps) {
-  const withImages = promotions.filter((p) => p.imageUrl);
+  const slides = promotions.filter(isCarded);
   const trackRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -43,10 +55,10 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
     const handleScroll = () => {
       const trackRect = track.getBoundingClientRect();
       const centerX = trackRect.left + trackRect.width / 2;
-      const slides = track.querySelectorAll<HTMLElement>('[data-promo-slide]');
+      const els = track.querySelectorAll<HTMLElement>('[data-promo-slide]');
       let closestIndex = 0;
       let closestDistance = Infinity;
-      slides.forEach((slide, i) => {
+      els.forEach((slide, i) => {
         const rect = slide.getBoundingClientRect();
         const slideCenter = rect.left + rect.width / 2;
         const distance = Math.abs(slideCenter - centerX);
@@ -60,7 +72,7 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
 
     track.addEventListener('scroll', handleScroll, { passive: true });
     return () => track.removeEventListener('scroll', handleScroll);
-  }, [withImages.length]);
+  }, [slides.length]);
 
   const scrollToIndex = (idx: number) => {
     const track = trackRef.current;
@@ -72,10 +84,9 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
   };
 
   const handlePrev = () => scrollToIndex(Math.max(0, activeIndex - 1));
-  const handleNext = () =>
-    scrollToIndex(Math.min(withImages.length - 1, activeIndex + 1));
+  const handleNext = () => scrollToIndex(Math.min(slides.length - 1, activeIndex + 1));
 
-  if (withImages.length === 0) return null;
+  if (slides.length === 0) return null;
 
   return (
     <section className="px-4 py-4" aria-label={locale === 'ka' ? 'აქციები' : 'Promotions'}>
@@ -85,29 +96,67 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
           className="scrollbar-hide flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth px-[15%]"
           role="list"
         >
-          {withImages.map((promo) => (
-            <div
-              key={promo.id}
-              data-promo-slide
-              className="relative aspect-[16/9] w-[70%] shrink-0 snap-center overflow-hidden rounded-[var(--menu-radius-card)] bg-muted shadow-sm"
-              role="listitem"
-            >
-              {promo.imageUrl && (
-                <Image
-                  src={promo.imageUrl}
-                  alt={getTitle(promo, locale)}
-                  fill
-                  className="object-cover"
-                  sizes="(min-width: 768px) 448px, 70vw"
-                  priority={withImages.indexOf(promo) === 0}
-                />
-              )}
-            </div>
-          ))}
+          {slides.map((promo, i) => {
+            const title = getTitle(promo, locale);
+            const showTitle = promo.showTitle ?? true;
+            return (
+              <div
+                key={promo.id}
+                data-promo-slide
+                data-testid={`promotion-slide-${promo.id}`}
+                className="relative aspect-[16/9] w-[70%] shrink-0 snap-center overflow-hidden rounded-[var(--menu-radius-card)] shadow-sm"
+                style={
+                  promo.imageUrl
+                    ? undefined
+                    : {
+                        background:
+                          promo.backgroundColor ||
+                          'linear-gradient(135deg, #7A8C5F, #4F5F3F)',
+                      }
+                }
+                role="listitem"
+              >
+                {promo.imageUrl ? (
+                  <>
+                    {/* Variant 1/2 — banner, with optional title overlay */}
+                    <Image
+                      src={promo.imageUrl}
+                      alt={title}
+                      fill
+                      className="object-cover"
+                      sizes="(min-width: 768px) 448px, 70vw"
+                      priority={i === 0}
+                      unoptimized={promo.imageUrl.toLowerCase().endsWith('.gif')}
+                    />
+                    {showTitle && (
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                        <span
+                          className="text-[14px] font-semibold text-white drop-shadow"
+                          data-testid="promotion-slide-title"
+                        >
+                          {title}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* Variant 3 — title-only card on the chosen background color */
+                  <div className="flex h-full items-center justify-center px-4 text-center">
+                    <span
+                      className="text-[16px] font-semibold leading-snug text-white drop-shadow"
+                      data-testid="promotion-slide-title"
+                    >
+                      {title}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Prev/Next — visible only if more than one */}
-        {withImages.length > 1 && (
+        {slides.length > 1 && (
           <>
             <button
               type="button"
@@ -123,7 +172,7 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
             <button
               type="button"
               onClick={handleNext}
-              disabled={activeIndex === withImages.length - 1}
+              disabled={activeIndex === slides.length - 1}
               className={cn(
                 'absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/80 p-1.5 shadow backdrop-blur transition-opacity hover:bg-background disabled:opacity-0',
               )}
@@ -134,7 +183,7 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
 
             {/* Dots */}
             <div className="mt-2 flex justify-center gap-1.5">
-              {withImages.map((_, i) => (
+              {slides.map((_, i) => (
                 <button
                   key={i}
                   type="button"
@@ -142,7 +191,7 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
                   aria-label={`Slide ${i + 1}`}
                   className={cn(
                     'h-1.5 rounded-full transition-all',
-                    i === activeIndex ? 'w-5 bg-[var(--menu-primary)]' : 'w-1.5 bg-muted-foreground/40'
+                    i === activeIndex ? 'w-5 bg-[var(--menu-primary)]' : 'w-1.5 bg-muted-foreground/40',
                   )}
                 />
               ))}

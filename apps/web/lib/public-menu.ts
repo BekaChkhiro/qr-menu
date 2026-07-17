@@ -129,6 +129,11 @@ export const publicMenuSelect = {
       discountValue: true,
       applyTo: true,
       categoryId: true,
+      // T22.19/T22.20 — type + appearance for the public carousel variants.
+      type: true,
+      backgroundColor: true,
+      showTitle: true,
+      timeRestrictions: true,
     },
   },
 };
@@ -284,6 +289,16 @@ export interface SerializedPublicPromotion {
   discountValue: number | string | null;
   applyTo: 'ENTIRE_MENU' | 'CATEGORY' | 'SPECIFIC_ITEMS' | null;
   categoryId: string | null;
+  // T22.19/T22.20 — type + appearance.
+  type: 'PERCENTAGE' | 'BANNER' | 'COMBO' | null;
+  backgroundColor: string | null;
+  showTitle: boolean;
+  timeRestrictions: {
+    enabled: boolean;
+    days: string[];
+    startTime: string;
+    endTime: string;
+  } | null;
 }
 
 // ── T22.18 — apply category / menu-wide promotions to public prices ──────────

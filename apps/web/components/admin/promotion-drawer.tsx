@@ -266,6 +266,7 @@ export function PromotionDrawer({
 
   const promoType = form.watch('type');
   const applyTo = form.watch('applyTo');
+  const imageUrlWatch = form.watch('imageUrl');
   const timeEnabled = form.watch('timeRestrictions.enabled');
   const timeDays = form.watch('timeRestrictions.days');
 
@@ -784,6 +785,88 @@ export function PromotionDrawer({
                   />
                   <p className="mt-1.5 text-[12px] text-text-muted">{t('fields.bannerHint')}</p>
                 </div>
+
+                {/* T22.20 — appearance controls */}
+                {imageUrlWatch ? (
+                  /* Banner present → choose whether the title shows over it. */
+                  <div className="mt-6" data-testid="promotion-drawer-show-title">
+                    <Controller
+                      control={form.control}
+                      name="showTitle"
+                      render={({ field }) => (
+                        <div
+                          className={cn(
+                            'flex items-center gap-3 rounded-lg border p-3',
+                            field.value
+                              ? 'border-accent shadow-[0_0_0_3px_hsl(var(--accent-soft))]'
+                              : 'border-border',
+                          )}
+                        >
+                          <div className="flex-1">
+                            <div className="text-[13px] font-medium text-text-default">
+                              {t('fields.showTitleLabel')}
+                            </div>
+                            <div className="text-[11.5px] text-text-muted">
+                              {t('fields.showTitleHint')}
+                            </div>
+                          </div>
+                          <Switch
+                            checked={field.value ?? true}
+                            onCheckedChange={field.onChange}
+                            data-testid="promotion-show-title-toggle"
+                          />
+                        </div>
+                      )}
+                    />
+                  </div>
+                ) : (
+                  /* No banner → title-only card on a chosen background color. */
+                  <div className="mt-6" data-testid="promotion-drawer-background-color">
+                    <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
+                      {t('fields.backgroundColorLabel')}
+                    </div>
+                    <Controller
+                      control={form.control}
+                      name="backgroundColor"
+                      render={({ field }) => {
+                        const value = field.value || '#7A3F27';
+                        return (
+                          <div className="space-y-3">
+                            <div
+                              className="flex h-24 items-center justify-center rounded-xl px-4 text-center"
+                              style={{ backgroundColor: value }}
+                              data-testid="promotion-bg-preview"
+                            >
+                              <span className="text-[15px] font-semibold text-white drop-shadow">
+                                {titleKaWatch || t('fields.titleKaPlaceholder')}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={value}
+                                onChange={(e) => field.onChange(e.target.value)}
+                                className="h-9 w-12 cursor-pointer rounded border border-border bg-transparent"
+                                data-testid="promotion-bg-color-input"
+                                aria-label={t('fields.backgroundColorLabel')}
+                              />
+                              <Input
+                                value={field.value ?? ''}
+                                onChange={(e) => field.onChange(e.target.value || null)}
+                                placeholder="#7A3F27"
+                                className="h-9 max-w-[130px] font-mono text-[13px]"
+                                data-testid="promotion-bg-hex-input"
+                              />
+                            </div>
+                            <p className="text-[12px] text-text-muted">
+                              {t('fields.backgroundColorHint')}
+                            </p>
+                          </div>
+                        );
+                      }}
+                    />
+                  </div>
+                )}
               </TabsContent>
 
               {/* ── Schedule tab ────────────────────────────────────────── */}
