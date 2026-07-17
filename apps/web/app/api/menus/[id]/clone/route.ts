@@ -85,6 +85,9 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       where: { id: menuId },
       include: {
         categories: {
+          // T22.24 — skip the auto-managed Offers category. Promotions are not
+          // cloned, so its generated combo products would be orphaned.
+          where: { isSystemOffers: false },
           orderBy: { sortOrder: 'asc' },
           include: {
             products: {
@@ -233,7 +236,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
         where: { id: newMenu.id },
         include: {
           _count: {
-            select: { categories: true, views: true },
+            select: { categories: { where: { isSystemOffers: false } }, views: true },
           },
         },
       });

@@ -58,11 +58,13 @@ export async function GET(request: NextRequest) {
         include: {
           _count: {
             select: {
-              categories: true,
+              // T22.24 — the generated Offers category isn't the owner's.
+              categories: { where: { isSystemOffers: false } },
               views: true,
             },
           },
           categories: {
+            where: { isSystemOffers: false },
             select: {
               _count: { select: { products: true } },
             },
@@ -177,7 +179,7 @@ export async function POST(request: NextRequest) {
           where: { id: created.id },
           include: {
             _count: {
-              select: { categories: true, views: true },
+              select: { categories: { where: { isSystemOffers: false } }, views: true },
             },
           },
         });
@@ -219,7 +221,7 @@ export async function POST(request: NextRequest) {
       include: {
         _count: {
           select: {
-            categories: true,
+            categories: { where: { isSystemOffers: false } },
             views: true,
           },
         },

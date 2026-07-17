@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Segmented, SegmentedItem } from '@/components/ui/segmented';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import {
@@ -28,7 +27,7 @@ import { LangTabsInline } from './product-drawer/lang-tabs-inline';
 import { DayWindowsEditor } from './day-windows-editor';
 import { cn } from '@/lib/utils';
 import { createPromotionSchema, type CreatePromotionInput } from '@/lib/validations/promotion';
-import type { Promotion, Category } from '@/types/menu';
+import type { Promotion } from '@/types/menu';
 import { useCategories } from '@/hooks/use-categories';
 import { useProducts } from '@/hooks/use-products';
 
@@ -278,7 +277,6 @@ export function PromotionDrawer({
   };
 
   const promoType = form.watch('type');
-  const applyTo = form.watch('applyTo');
   const imageUrlWatch = form.watch('imageUrl');
   const timeEnabled = form.watch('timeRestrictions.enabled');
   const timeWindows = form.watch('timeRestrictions.windows');

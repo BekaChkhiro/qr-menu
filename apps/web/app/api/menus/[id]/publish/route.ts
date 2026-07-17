@@ -42,7 +42,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         slug: true,
         status: true,
         _count: {
-          select: { categories: true },
+          select: { categories: { where: { isSystemOffers: false } } },
         },
       },
     });
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         },
         _count: {
           select: {
-            categories: true,
+            categories: { where: { isSystemOffers: false } },
             views: true,
           },
         },
