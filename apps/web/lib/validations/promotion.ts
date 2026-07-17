@@ -2,11 +2,46 @@ import { z } from 'zod';
 
 // ── Enums ───────────────────────────────────────────────────────────────────
 
+// T22.19 — promotion type (owner spec): the drawer picks one of these three.
+// PERCENTAGE keeps the discountType/discountValue percentage math; BANNER is a
+// pure announcement (no price effect); COMBO bundles products at a combo price.
+export const PromotionType = {
+  PERCENTAGE: 'PERCENTAGE',
+  BANNER: 'BANNER',
+  COMBO: 'COMBO',
+} as const;
+
+export type PromotionTypeValue = (typeof PromotionType)[keyof typeof PromotionType];
+
 export const DiscountType = {
   PERCENTAGE: 'PERCENTAGE',
   FIXED_AMOUNT: 'FIXED_AMOUNT',
   FREE_ADDON: 'FREE_ADDON',
 } as const;
+
+// Coerce "" / null / non-numeric → null; numeric strings → number.
+const nullableNumber = z
+  .union([z.string(), z.number()])
+  .optional()
+  .nullable()
+  .transform((v) => {
+    if (v === null || v === undefined || v === '') return null;
+    const n = typeof v === 'string' ? parseFloat(v) : v;
+    return isNaN(n) ? null : n;
+  });
+
+// T22.19/T22.20/T22.24 — shared appearance + type + combo fields.
+const promotionExtraFields = {
+  type: z.enum(['PERCENTAGE', 'BANNER', 'COMBO']).optional().nullable(),
+  backgroundColor: z
+    .string()
+    .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Use a hex color like #RRGGBB')
+    .nullable()
+    .optional(),
+  showTitle: z.boolean().optional(),
+  comboProductIds: z.array(z.string()).optional(),
+  comboPrice: nullableNumber,
+};
 
 export const ApplyToType = {
   ENTIRE_MENU: 'ENTIRE_MENU',
@@ -92,6 +127,7 @@ export const createPromotionSchema = z
     applyTo: z.enum(['ENTIRE_MENU', 'CATEGORY', 'SPECIFIC_ITEMS']).optional().nullable(),
     categoryId: z.string().nullable().optional(),
     timeRestrictions: timeRestrictionsSchema.optional().nullable(),
+    ...promotionExtraFields,
   })
   .refine((data) => data.endDate > data.startDate, {
     message: 'End date must be after start date',
@@ -169,6 +205,7 @@ export const updatePromotionSchema = z
     applyTo: z.enum(['ENTIRE_MENU', 'CATEGORY', 'SPECIFIC_ITEMS']).optional().nullable(),
     categoryId: z.string().nullable().optional(),
     timeRestrictions: timeRestrictionsSchema.optional().nullable(),
+    ...promotionExtraFields,
   })
   .refine(
     (data) => {

@@ -914,9 +914,18 @@
         "template": {
           "label": "შაბლონი",
           "description": "პროდუქტის ბარათის სტრუქტურა — გადახედე phone preview-ში",
-          "classic": { "label": "Classic", "desc": "ჰორიზონტალური ბარათები" },
-          "magazine": { "label": "Magazine", "desc": "დიდი hero ფოტოები" },
-          "compact": { "label": "Compact", "desc": "მკვრივი სია" }
+          "classic": {
+            "label": "Classic",
+            "desc": "ჰორიზონტალური ბარათები"
+          },
+          "magazine": {
+            "label": "Magazine",
+            "desc": "დიდი hero ფოტოები"
+          },
+          "compact": {
+            "label": "Compact",
+            "desc": "მკვრივი სია"
+          }
         },
         "menuLayout": {
           "label": "განლაგება",
@@ -1431,11 +1440,6 @@
         "descriptionEnPlaceholder": "Describe the promotion...",
         "descriptionRuPlaceholder": "Опишите акцию...",
         "discountTypeLabel": "ფასდაკლების ტიპი",
-        "discountTypes": {
-          "percentage": "პროცენტული",
-          "fixed": "ფიქსირებული თანხა (₾)",
-          "freeAddon": "უფასო დამატება"
-        },
         "discountValueLabel": "ფასდაკლების ოდენობა",
         "discountValueHint": "შეიყვანეთ ფასდაკლების ოდენობა",
         "applyToLabel": "გავრცელება",
@@ -1448,10 +1452,6 @@
             "title": "კონკრეტულ კატეგორიაზე",
             "hint": "აირჩიე ერთი კატეგორია",
             "placeholder": "აირჩიე კატეგორია"
-          },
-          "specificItems": {
-            "title": "კონკრეტულ პროდუქტებზე",
-            "hint": "აირჩიე ცალკეული პროდუქტები"
           }
         },
         "timeRestrictionsLabel": "დროის შეზღუდვა",
@@ -1463,7 +1463,29 @@
         "startDate": "დაწყების თარიღი",
         "endDate": "დასრულების თარიღი",
         "isActive": "აქტიური",
-        "isActiveHint": "ჩართვისას, აქცია ხილული იქნება მომხმარებლებისთვის თარიღების დიაპაზონში."
+        "isActiveHint": "ჩართვისას, აქცია ხილული იქნება მომხმარებლებისთვის თარიღების დიაპაზონში.",
+        "typeLabel": "აქციის ტიპი",
+        "types": {
+          "percentage": {
+            "title": "პროცენტული",
+            "hint": "ფასდაკლება % — მთელ მენიუზე ან კატეგორიაზე"
+          },
+          "banner": {
+            "title": "ბანერი / ინფო",
+            "hint": "სიახლის ან ღონისძიების გამოცხადება — ფასი არ იცვლება"
+          },
+          "combo": {
+            "title": "კომბო შეთავაზება",
+            "hint": "რამდენიმე პროდუქტი ერთ კომბო ფასად"
+          }
+        },
+        "backgroundColorLabel": "ფონის ფერი",
+        "backgroundColorHint": "უბანერო ბარათის ფონი (მხოლოდ სათაურით)",
+        "showTitleLabel": "სათაური ბანერზე",
+        "showTitleHint": "აჩვენე სათაური ბანერის ზემოდან",
+        "comboProductsLabel": "კომბოს პროდუქტები",
+        "comboProductsHint": "აირჩიე მინიმუმ 2 პროდუქტი",
+        "comboPriceLabel": "კომბო ფასი (₾)"
       }
     }
   },

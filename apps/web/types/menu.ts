@@ -230,6 +230,15 @@ export interface Promotion {
   categoryId: string | null;
   timeRestrictions: { enabled: boolean; days: string[]; startTime: string; endTime: string } | null;
   category?: { id: string; nameKa: string; nameEn: string | null; nameRu: string | null; } | null;
+  // T22.19 — promotion type: PERCENTAGE | BANNER | COMBO
+  type?: string | null;
+  // T22.20 — appearance
+  backgroundColor?: string | null;
+  showTitle?: boolean;
+  // T22.24 — combo
+  comboProductIds?: string[];
+  comboPrice?: number | null;
+  comboProductId?: string | null;
   createdAt: string;
   updatedAt: string;
 }

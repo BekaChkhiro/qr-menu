@@ -914,9 +914,18 @@
         "template": {
           "label": "Шаблон",
           "description": "Структура карточки товара — посмотрите в превью телефона",
-          "classic": { "label": "Classic", "desc": "Горизонтальные карточки" },
-          "magazine": { "label": "Magazine", "desc": "Большие hero-фото" },
-          "compact": { "label": "Compact", "desc": "Плотный список" }
+          "classic": {
+            "label": "Classic",
+            "desc": "Горизонтальные карточки"
+          },
+          "magazine": {
+            "label": "Magazine",
+            "desc": "Большие hero-фото"
+          },
+          "compact": {
+            "label": "Compact",
+            "desc": "Плотный список"
+          }
         },
         "menuLayout": {
           "label": "Раскладка",
@@ -1431,11 +1440,6 @@
         "descriptionEnPlaceholder": "Describe the promotion...",
         "descriptionRuPlaceholder": "Опишите акцию...",
         "discountTypeLabel": "Тип скидки",
-        "discountTypes": {
-          "percentage": "Процентная",
-          "fixed": "Фиксированная сумма (₾)",
-          "freeAddon": "Бесплатное дополнение"
-        },
         "discountValueLabel": "Размер скидки",
         "discountValueHint": "Введите размер скидки",
         "applyToLabel": "Применить к",
@@ -1448,10 +1452,6 @@
             "title": "Конкретной категории",
             "hint": "Выберите одну категорию",
             "placeholder": "Выберите категорию"
-          },
-          "specificItems": {
-            "title": "Конкретным позициям",
-            "hint": "Выберите отдельные позиции"
           }
         },
         "timeRestrictionsLabel": "Ограничения по времени",
@@ -1463,7 +1463,29 @@
         "startDate": "Дата начала",
         "endDate": "Дата окончания",
         "isActive": "Активная",
-        "isActiveHint": "При включении акция будет видна клиентам в указанном диапазоне дат."
+        "isActiveHint": "При включении акция будет видна клиентам в указанном диапазоне дат.",
+        "typeLabel": "Тип акции",
+        "types": {
+          "percentage": {
+            "title": "Процентная",
+            "hint": "Скидка в % — на всё меню или категорию"
+          },
+          "banner": {
+            "title": "Баннер / инфо",
+            "hint": "Анонс новости или события — цены не меняются"
+          },
+          "combo": {
+            "title": "Комбо-предложение",
+            "hint": "Несколько продуктов по одной комбо-цене"
+          }
+        },
+        "backgroundColorLabel": "Цвет фона",
+        "backgroundColorHint": "Фон карточки для акций без баннера (только заголовок)",
+        "showTitleLabel": "Заголовок на баннере",
+        "showTitleHint": "Показывать заголовок поверх баннера",
+        "comboProductsLabel": "Продукты комбо",
+        "comboProductsHint": "Выберите минимум 2 продукта",
+        "comboPriceLabel": "Комбо-цена (₾)"
       }
     }
   },

@@ -105,10 +105,10 @@ test.describe('promotion drawer (T15.8)', () => {
       'Every evening 18:00–20:00 — cocktails 20% off.',
     );
 
-    // Select discount type: Percentage
-    await page.getByTestId('promotion-discount-type-percentage').click();
+    // Select promotion type: Percentage (T22.19)
+    await page.getByTestId('promotion-type-percentage').click();
     await expect(
-      page.getByTestId('promotion-discount-type-percentage'),
+      page.getByTestId('promotion-type-percentage'),
     ).toHaveAttribute('data-active', 'true');
 
     // Enter discount value
@@ -157,38 +157,31 @@ test.describe('promotion drawer (T15.8)', () => {
     ).toHaveText('Happy Hour');
   });
 
-  // ── Functional: discount type switching ───────────────────────────────────
+  // ── Functional: promotion type switching (T22.19) ─────────────────────────
 
-  test('functional: discount type Percentage vs Fixed switches inputs', async ({
+  test('functional: promotion type Percentage/Banner/Combo switches fields', async ({
     page,
   }) => {
     await seedStarterScenario(page);
 
     await page.getByTestId('editor-promotions-new').click();
 
-    // Percentage selected → value input with % suffix visible
-    await page.getByTestId('promotion-discount-type-percentage').click();
-    await expect(
-      page.getByTestId('promotion-drawer-discount-value'),
-    ).toBeVisible();
+    // Percentage → discount value (%) + apply-to both visible
+    await page.getByTestId('promotion-type-percentage').click();
+    await expect(page.getByTestId('promotion-drawer-discount-value')).toBeVisible();
     await expect(
       page.locator('[data-testid="promotion-drawer-discount-value"] span'),
     ).toHaveText('%');
+    await expect(page.getByTestId('promotion-drawer-apply-to')).toBeVisible();
 
-    // Fixed selected → value input with ₾ suffix visible
-    await page.getByTestId('promotion-discount-type-fixed').click();
-    await expect(
-      page.getByTestId('promotion-drawer-discount-value'),
-    ).toBeVisible();
-    await expect(
-      page.locator('[data-testid="promotion-drawer-discount-value"] span'),
-    ).toHaveText('₾');
+    // Banner → no discount value, no apply-to (pure announcement)
+    await page.getByTestId('promotion-type-banner').click();
+    await expect(page.getByTestId('promotion-drawer-discount-value')).toHaveCount(0);
+    await expect(page.getByTestId('promotion-drawer-apply-to')).toHaveCount(0);
 
-    // Free add-on selected → value input hidden
-    await page.getByTestId('promotion-discount-type-freeAddon').click();
-    await expect(
-      page.getByTestId('promotion-drawer-discount-value'),
-    ).toHaveCount(0);
+    // Combo → no percentage discount value either
+    await page.getByTestId('promotion-type-combo').click();
+    await expect(page.getByTestId('promotion-drawer-discount-value')).toHaveCount(0);
   });
 
   // ── Functional: edit mode pre-populates fields ────────────────────────────
@@ -231,7 +224,7 @@ test.describe('promotion drawer (T15.8)', () => {
       'Weekend Brunch',
     );
     await expect(
-      page.getByTestId('promotion-discount-type-percentage'),
+      page.getByTestId('promotion-type-percentage'),
     ).toHaveAttribute('data-active', 'true');
     await expect(
       page.getByTestId('promotion-discount-value-input'),

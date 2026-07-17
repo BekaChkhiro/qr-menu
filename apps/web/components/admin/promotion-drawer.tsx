@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
-import { Percent, Banknote, Gift, X, Loader2, Trash2, Clock } from 'lucide-react';
+import { Percent, Megaphone, Gift, X, Loader2, Trash2, Clock } from 'lucide-react';
 import * as SheetPrimitive from '@radix-ui/react-dialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -49,6 +49,8 @@ interface PromotionDrawerProps {
   multilangUnlocked?: boolean;
 }
 
+type PromotionType = 'PERCENTAGE' | 'BANNER' | 'COMBO';
+
 interface PromotionFormValues {
   titleKa: string;
   titleEn?: string | null;
@@ -60,10 +62,17 @@ interface PromotionFormValues {
   startDate: Date;
   endDate: Date;
   isActive: boolean;
+  // T22.19 — top-level promotion type drives which fields show.
+  type: PromotionType;
   discountType: 'PERCENTAGE' | 'FIXED_AMOUNT' | 'FREE_ADDON' | null;
   discountValue: string | number | null;
   applyTo: 'ENTIRE_MENU' | 'CATEGORY' | 'SPECIFIC_ITEMS' | null;
   categoryId: string | null;
+  // T22.20 / T22.24
+  backgroundColor?: string | null;
+  showTitle?: boolean;
+  comboProductIds?: string[];
+  comboPrice?: string | number | null;
   timeRestrictions: {
     enabled: boolean;
     days: string[];
@@ -109,11 +118,25 @@ const WEEK_DAYS = [
   { key: 'sun', label: 'S' },
 ] as const;
 
-const DISCOUNT_OPTIONS = [
-  { value: 'PERCENTAGE', labelKey: 'percentage', Icon: Percent },
-  { value: 'FIXED_AMOUNT', labelKey: 'fixed', Icon: Banknote },
-  { value: 'FREE_ADDON', labelKey: 'freeAddon', Icon: Gift },
+// T22.19 — owner's three promotion types.
+const TYPE_OPTIONS = [
+  { value: 'PERCENTAGE', key: 'percentage', Icon: Percent },
+  { value: 'BANNER', key: 'banner', Icon: Megaphone },
+  { value: 'COMBO', key: 'combo', Icon: Gift },
 ] as const;
+
+// Infer a type for a legacy promotion that predates the `type` column.
+function inferPromotionType(p?: {
+  type?: string | null;
+  discountType?: string | null;
+}): PromotionType {
+  if (p?.type === 'PERCENTAGE' || p?.type === 'BANNER' || p?.type === 'COMBO') {
+    return p.type;
+  }
+  if (p?.discountType === 'FREE_ADDON') return 'COMBO';
+  if (p?.discountType === 'FIXED_AMOUNT') return 'BANNER'; // "fixed $" retired → banner
+  return 'PERCENTAGE';
+}
 
 // ── Component ───────────────────────────────────────────────────────────────
 
@@ -152,10 +175,15 @@ export function PromotionDrawer({
       startDate: new Date(),
       endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       isActive: true,
+      type: 'PERCENTAGE',
       discountType: null,
       discountValue: null,
       applyTo: 'ENTIRE_MENU',
       categoryId: null,
+      backgroundColor: null,
+      showTitle: true,
+      comboProductIds: [],
+      comboPrice: null,
       timeRestrictions: { enabled: false, days: [], startTime: '09:00', endTime: '18:00' },
     },
   });
@@ -180,6 +208,7 @@ export function PromotionDrawer({
         startDate: promotion?.startDate ? new Date(promotion.startDate) : new Date(),
         endDate: promotion?.endDate ? new Date(promotion.endDate) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
         isActive: promotion?.isActive ?? true,
+        type: inferPromotionType(promotion),
         discountType: (promotion?.discountType as PromotionFormValues['discountType']) || null,
         discountValue: promotion?.discountValue ?? null,
         // T22.18 — "specific items" scope retired; coerce legacy rows to whole-menu.
@@ -188,6 +217,10 @@ export function PromotionDrawer({
             ? (promotion.applyTo as PromotionFormValues['applyTo'])
             : 'ENTIRE_MENU',
         categoryId: promotion?.categoryId || null,
+        backgroundColor: promotion?.backgroundColor ?? null,
+        showTitle: promotion?.showTitle ?? true,
+        comboProductIds: promotion?.comboProductIds ?? [],
+        comboPrice: promotion?.comboPrice ?? null,
         timeRestrictions: {
           enabled: tr?.enabled ?? false,
           days: tr?.days ?? [],
@@ -201,7 +234,26 @@ export function PromotionDrawer({
   const handleSubmit = async (data: PromotionFormValues) => {
     setSaveError(null);
     try {
-      await onSubmit(data as CreatePromotionInput);
+      // T22.19 — normalize by type so only the relevant fields persist.
+      const payload: PromotionFormValues = { ...data };
+      if (data.type === 'PERCENTAGE') {
+        payload.discountType = 'PERCENTAGE';
+        payload.comboProductIds = [];
+        payload.comboPrice = null;
+      } else if (data.type === 'BANNER') {
+        payload.discountType = null;
+        payload.discountValue = null;
+        payload.applyTo = null;
+        payload.categoryId = null;
+        payload.comboProductIds = [];
+        payload.comboPrice = null;
+      } else if (data.type === 'COMBO') {
+        payload.discountType = null;
+        payload.discountValue = null;
+        payload.applyTo = null;
+        payload.categoryId = null;
+      }
+      await onSubmit(payload as CreatePromotionInput);
       onOpenChange(false);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : t('saveErrorDefault'));
@@ -212,7 +264,7 @@ export function PromotionDrawer({
     onOpenChange(false);
   };
 
-  const discountType = form.watch('discountType');
+  const promoType = form.watch('type');
   const applyTo = form.watch('applyTo');
   const timeEnabled = form.watch('timeRestrictions.enabled');
   const timeDays = form.watch('timeRestrictions.days');
@@ -406,25 +458,25 @@ export function PromotionDrawer({
                   </div>
                 </div>
 
-                {/* Discount type */}
-                <div data-testid="promotion-drawer-discount-type">
+                {/* Promotion type (T22.19) */}
+                <div data-testid="promotion-drawer-type">
                   <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
-                    {t('fields.discountTypeLabel')}
+                    {t('fields.typeLabel')}
                   </div>
                   <Controller
                     control={form.control}
-                    name="discountType"
+                    name="type"
                     render={({ field }) => (
                       <div className="grid grid-cols-3 gap-2">
-                        {DISCOUNT_OPTIONS.map((opt) => (
+                        {TYPE_OPTIONS.map((opt) => (
                           <button
                             key={opt.value}
                             type="button"
                             onClick={() => field.onChange(opt.value)}
-                            data-testid={`promotion-discount-type-${opt.labelKey}`}
+                            data-testid={`promotion-type-${opt.key}`}
                             data-active={field.value === opt.value ? 'true' : 'false'}
                             className={cn(
-                              'flex flex-col items-center gap-1.5 rounded-lg border p-3 transition-all',
+                              'flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-all',
                               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2',
                               field.value === opt.value
                                 ? 'border-accent bg-card shadow-[0_0_0_3px_hsl(var(--accent-soft))]'
@@ -440,23 +492,26 @@ export function PromotionDrawer({
                             />
                             <span
                               className={cn(
-                                'text-center text-[11.5px] leading-tight',
+                                'text-[11.5px] leading-tight',
                                 field.value === opt.value
                                   ? 'font-semibold text-text-default'
                                   : 'font-medium text-text-muted',
                               )}
                             >
-                              {t(`fields.discountTypes.${opt.labelKey}`)}
+                              {t(`fields.types.${opt.key}.title`)}
                             </span>
                           </button>
                         ))}
                       </div>
                     )}
                   />
+                  <p className="mt-1.5 text-[12px] text-text-muted">
+                    {t(`fields.types.${TYPE_OPTIONS.find((o) => o.value === promoType)?.key ?? 'percentage'}.hint`)}
+                  </p>
                 </div>
 
-                {/* Discount value (conditional) */}
-                {discountType && discountType !== 'FREE_ADDON' && (
+                {/* Discount value — percentage only (T22.19) */}
+                {promoType === 'PERCENTAGE' && (
                   <div data-testid="promotion-drawer-discount-value">
                     <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
                       {t('fields.discountValueLabel')}
@@ -470,7 +525,8 @@ export function PromotionDrawer({
                             <Input
                               type="number"
                               min={0}
-                              step={discountType === 'PERCENTAGE' ? 1 : 0.01}
+                              max={100}
+                              step={1}
                               value={field.value ?? ''}
                               onChange={(e) => {
                                 const val = e.target.value;
@@ -481,14 +537,14 @@ export function PromotionDrawer({
                               data-testid="promotion-discount-value-input"
                             />
                             <span className="flex items-center bg-chip px-3.5 text-[13px] font-semibold text-text-muted">
-                              {discountType === 'PERCENTAGE' ? '%' : '₾'}
+                              %
                             </span>
                           </>
                         )}
                       />
                     </div>
                     <p className="mt-1.5 text-[12px] text-text-muted">
-                      {t('fields.discountValueHint', { example: discountType === 'PERCENTAGE' ? '20%' : '5₾' })}
+                      {t('fields.discountValueHint', { example: '20%' })}
                     </p>
                     {form.formState.errors.discountValue && (
                       <p className="mt-1 text-[12px] text-danger">{form.formState.errors.discountValue.message}</p>
@@ -496,7 +552,8 @@ export function PromotionDrawer({
                   </div>
                 )}
 
-                {/* Apply to */}
+                {/* Apply to — percentage only (T22.19) */}
+                {promoType === 'PERCENTAGE' && (
                 <div data-testid="promotion-drawer-apply-to">
                   <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
                     {t('fields.applyToLabel')}
@@ -589,6 +646,7 @@ export function PromotionDrawer({
                     )}
                   />
                 </div>
+                )}
 
                 {/* Time restrictions */}
                 <div data-testid="promotion-drawer-time-restrictions">

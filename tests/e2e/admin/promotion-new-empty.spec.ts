@@ -87,17 +87,15 @@ test.describe('T21.9 promotion form — empty defaults + Save guard', () => {
     await expect(page.getByTestId('promotion-title-input')).toHaveValue('');
     await expect(page.getByTestId('promotion-description-input')).toHaveValue('');
 
-    // Discount value input is conditional on a discount type. Assert it is
-    // empty for both numeric discount kinds (Percentage / Fixed).
-    for (const kind of ['percentage', 'fixed'] as const) {
-      await page.getByTestId(`promotion-discount-type-${kind}`).click();
-      const valueInput = page.getByTestId('promotion-discount-value-input');
-      await expect(valueInput).toBeVisible();
-      await expect(valueInput).toHaveValue('');
-      // Autofill guard: a saved "260" (or any prior value) can't be re-applied
-      // by the browser. The placeholder shows but value stays empty.
-      await expect(valueInput).toHaveAttribute('autocomplete', 'off');
-    }
+    // Discount value input is only shown for the Percentage promotion type
+    // (T22.19). Assert it opens empty with autofill disabled.
+    await page.getByTestId('promotion-type-percentage').click();
+    const valueInput = page.getByTestId('promotion-discount-value-input');
+    await expect(valueInput).toBeVisible();
+    await expect(valueInput).toHaveValue('');
+    // Autofill guard: a saved "260" (or any prior value) can't be re-applied
+    // by the browser. The placeholder shows but value stays empty.
+    await expect(valueInput).toHaveAttribute('autocomplete', 'off');
   });
 
   test('Save is disabled until the required Georgian title is filled', async ({ page }) => {
