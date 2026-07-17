@@ -41,6 +41,9 @@ const productFormSchema = z.object({
   descriptionRu: z.string().max(500).optional(),
   price: z.string().min(1, 'Price is required'),
   oldPrice: z.string().optional(),
+  // T22.23 — how the discount was expressed (percent vs amount) for round-trip.
+  discountType: z.string().optional(),
+  discountValue: z.string().optional(),
   imageUrl: z.string().url('Invalid URL').optional().or(z.literal('')),
   allergens: z.array(z.string()).optional(),
   ribbons: z.array(z.string()).optional(),
@@ -106,6 +109,11 @@ export function ProductForm({
       descriptionRu: product?.descriptionRu || '',
       price: product?.price ? String(product.price) : '',
       oldPrice: product?.oldPrice ? String(product.oldPrice) : '',
+      discountType: product?.discountType || '',
+      discountValue:
+        product?.discountValue !== null && product?.discountValue !== undefined
+          ? String(product.discountValue)
+          : '',
       imageUrl: product?.imageUrl || '',
       allergens: product?.allergens || [],
       ribbons: product?.ribbons || [],
@@ -153,6 +161,26 @@ export function ProductForm({
 
   // Discount toggle is derived from oldPrice having a value
   const [hasDiscount, setHasDiscount] = useState(() => !!(product?.oldPrice));
+  // T22.23 — express the discount by amount (enter sale price) or by percent
+  // (enter %, price auto-computes from the original).
+  const [discountMode, setDiscountMode] = useState<'amount' | 'percent'>(
+    product?.discountType === 'PERCENTAGE' ? 'percent' : 'amount',
+  );
+  const [percentInput, setPercentInput] = useState<string>(() =>
+    product?.discountType === 'PERCENTAGE' && product?.discountValue != null
+      ? String(product.discountValue)
+      : '',
+  );
+
+  // Recompute the sale price whenever original × percent changes (percent mode).
+  const recomputeFromPercent = (originalStr: string, pctStr: string) => {
+    const original = parseFloat(originalStr);
+    const pct = parseFloat(pctStr);
+    if (Number.isFinite(original) && original > 0 && Number.isFinite(pct) && pct >= 0) {
+      const sale = Math.round(original * (1 - Math.min(100, pct) / 100) * 100) / 100;
+      setValue('price', String(sale), { shouldValidate: true });
+    }
+  };
 
   // Report live filled/empty statuses up to the drawer so the header switcher
   // dots reflect "this language has some content" without a second source of truth.
@@ -199,7 +227,27 @@ export function ProductForm({
       : null;
 
   const handleSubmit = async (data: ProductFormValues) => {
-    await onSubmit(data);
+    // T22.23 — derive the discount audit fields from the final numbers.
+    const orig = parseFloat(data.oldPrice || '');
+    const sale = parseFloat(data.price);
+    let discountType = '';
+    let discountValue = '';
+    if (
+      hasDiscount &&
+      Number.isFinite(orig) &&
+      orig > 0 &&
+      Number.isFinite(sale) &&
+      sale < orig
+    ) {
+      if (discountMode === 'percent') {
+        discountType = 'PERCENTAGE';
+        discountValue = String(Math.round((1 - sale / orig) * 100));
+      } else {
+        discountType = 'FIXED_AMOUNT';
+        discountValue = (orig - sale).toFixed(2);
+      }
+    }
+    await onSubmit({ ...data, discountType, discountValue });
   };
 
   const handleInvalid = (formErrors: typeof errors) => {
@@ -214,6 +262,7 @@ export function ProductForm({
     setHasDiscount(checked);
     if (!checked) {
       setValue('oldPrice', '');
+      setPercentInput('');
     }
   };
 
@@ -421,88 +470,162 @@ export function ProductForm({
             </div>
           </div>
 
-          {/* Expanded row */}
+          {/* Expanded */}
           {hasDiscount && (
-            <div
-              className="mt-3 grid grid-cols-[1fr_1fr_80px] gap-2"
-              data-testid="product-basics-discount-row"
-            >
-              {/* Original price */}
-              <div>
-                <div className="mb-1 text-[10.5px] font-bold uppercase tracking-[0.4px] text-text-subtle">
-                  {t('discount.original')}
-                </div>
-                <div className="relative flex items-center">
-                  <span className="pointer-events-none absolute left-2.5 text-[12px] text-text-subtle line-through">
-                    ₾
-                  </span>
-                  <Controller
-                    control={form.control}
-                    name="oldPrice"
-                    render={({ field }) => (
-                      <Input
-                        {...field}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={field.value || ''}
-                        placeholder="0.00"
-                        data-testid="product-basics-discount-original"
-                        className="pl-6 text-[12.5px] tabular-nums"
-                      />
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Sale price */}
-              <div>
-                <div className="mb-1 text-[10.5px] font-bold uppercase tracking-[0.4px] text-text-subtle">
-                  {t('discount.sale')}
-                </div>
-                <div className="relative flex items-center">
-                  <span className="pointer-events-none absolute left-2.5 text-[12px] font-semibold text-accent">
-                    ₾
-                  </span>
-                  <Controller
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                      <Input
-                        {...field}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        data-testid="product-basics-discount-sale"
-                        className="pl-6 text-[12.5px] tabular-nums"
-                      />
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Discount % pill */}
-              <div>
-                <div className="mb-1 text-[10.5px] font-bold uppercase tracking-[0.4px] text-text-subtle">
-                  &nbsp;
-                </div>
-                {discountPct !== null && discountPct !== 0 ? (
-                  <div
-                    data-testid="product-basics-discount-pill"
+            <div className="mt-3 space-y-2.5">
+              {/* T22.23 — express discount by amount or by percent */}
+              <div
+                className="inline-flex rounded-md border border-border-soft p-0.5"
+                data-testid="product-discount-mode"
+              >
+                {(['amount', 'percent'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => {
+                      setDiscountMode(mode);
+                      if (mode === 'percent') recomputeFromPercent(oldPrice || '', percentInput);
+                    }}
+                    data-testid={`product-discount-mode-${mode}`}
+                    data-active={discountMode === mode ? 'true' : 'false'}
                     className={cn(
-                      'flex h-[30px] items-center justify-center rounded-md text-[12.5px] font-bold tabular-nums',
-                      discountPct > 0
-                        ? 'bg-danger-soft text-danger'
-                        : 'bg-success-soft text-success',
+                      'rounded px-2.5 py-1 text-[11.5px] font-semibold transition-colors',
+                      discountMode === mode
+                        ? 'bg-text-default text-white'
+                        : 'text-text-muted hover:bg-chip',
                     )}
                   >
-                    {discountPct > 0 ? `−${discountPct}%` : `+${Math.abs(discountPct)}%`}
+                    {mode === 'amount' ? t('discount.byAmount') : t('discount.byPercent')}
+                  </button>
+                ))}
+              </div>
+
+              <div
+                className="grid grid-cols-[1fr_1fr_80px] gap-2"
+                data-testid="product-basics-discount-row"
+              >
+                {/* Original price (always editable) */}
+                <div>
+                  <div className="mb-1 text-[10.5px] font-bold uppercase tracking-[0.4px] text-text-subtle">
+                    {t('discount.original')}
+                  </div>
+                  <div className="relative flex items-center">
+                    <span className="pointer-events-none absolute left-2.5 text-[12px] text-text-subtle line-through">
+                      ₾
+                    </span>
+                    <Controller
+                      control={form.control}
+                      name="oldPrice"
+                      render={({ field }) => (
+                        <Input
+                          {...field}
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            if (discountMode === 'percent')
+                              recomputeFromPercent(e.target.value, percentInput);
+                          }}
+                          placeholder="0.00"
+                          data-testid="product-basics-discount-original"
+                          className="pl-6 text-[12.5px] tabular-nums"
+                        />
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Middle: amount → editable sale price; percent → percent input */}
+                {discountMode === 'amount' ? (
+                  <div>
+                    <div className="mb-1 text-[10.5px] font-bold uppercase tracking-[0.4px] text-text-subtle">
+                      {t('discount.sale')}
+                    </div>
+                    <div className="relative flex items-center">
+                      <span className="pointer-events-none absolute left-2.5 text-[12px] font-semibold text-accent">
+                        ₾
+                      </span>
+                      <Controller
+                        control={form.control}
+                        name="price"
+                        render={({ field }) => (
+                          <Input
+                            {...field}
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00"
+                            data-testid="product-basics-discount-sale"
+                            className="pl-6 text-[12.5px] tabular-nums"
+                          />
+                        )}
+                      />
+                    </div>
                   </div>
                 ) : (
-                  <div className="h-[30px]" />
+                  <div>
+                    <div className="mb-1 text-[10.5px] font-bold uppercase tracking-[0.4px] text-text-subtle">
+                      {t('discount.byPercent')}
+                    </div>
+                    <div className="relative flex items-center">
+                      <span className="pointer-events-none absolute left-2.5 text-[12px] font-semibold text-accent">
+                        %
+                      </span>
+                      <Input
+                        type="number"
+                        step="1"
+                        min="0"
+                        max="100"
+                        value={percentInput}
+                        onChange={(e) => {
+                          setPercentInput(e.target.value);
+                          recomputeFromPercent(oldPrice || '', e.target.value);
+                        }}
+                        placeholder="0"
+                        data-testid="product-basics-discount-percent"
+                        className="pl-6 text-[12.5px] tabular-nums"
+                      />
+                    </div>
+                  </div>
                 )}
+
+                {/* Discount % pill */}
+                <div>
+                  <div className="mb-1 text-[10.5px] font-bold uppercase tracking-[0.4px] text-text-subtle">
+                    &nbsp;
+                  </div>
+                  {discountPct !== null && discountPct !== 0 ? (
+                    <div
+                      data-testid="product-basics-discount-pill"
+                      className={cn(
+                        'flex h-[30px] items-center justify-center rounded-md text-[12.5px] font-bold tabular-nums',
+                        discountPct > 0
+                          ? 'bg-danger-soft text-danger'
+                          : 'bg-success-soft text-success',
+                      )}
+                    >
+                      {discountPct > 0 ? `−${discountPct}%` : `+${Math.abs(discountPct)}%`}
+                    </div>
+                  ) : (
+                    <div className="h-[30px]" />
+                  )}
+                </div>
               </div>
+
+              {/* Percent mode: computed sale price readout */}
+              {discountMode === 'percent' && (
+                <div
+                  className="text-[12px] text-text-muted"
+                  data-testid="product-discount-computed-sale"
+                >
+                  {t('discount.sale')}:{' '}
+                  <span className="font-semibold text-text-default tabular-nums">
+                    {price || '—'} ₾
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>

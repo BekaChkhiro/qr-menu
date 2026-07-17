@@ -96,6 +96,17 @@ const zoomSchema = z.number().min(1).max(5).nullable().optional();
 // Shared extras (image crop, ribbons, dietary, nutrition)
 const productExtras = {
   oldPrice: oldPriceSchema,
+  // T22.23 — dish-level discount audit fields. The effective price still lives
+  // in price/oldPrice (so the public card is unchanged); these record HOW the
+  // discount was expressed so the editor can round-trip percent vs amount.
+  discountType: z.enum(['PERCENTAGE', 'FIXED_AMOUNT']).nullable().optional(),
+  discountValue: z
+    .number()
+    .nonnegative()
+    .multipleOf(0.01)
+    .max(99999.99)
+    .nullable()
+    .optional(),
   imageFocalX: focalSchema,
   imageFocalY: focalSchema,
   imageZoom: zoomSchema,

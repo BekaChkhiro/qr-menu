@@ -168,6 +168,9 @@ export interface Product {
   descriptionRu: string | null;
   price: number;
   oldPrice: number | null;
+  // T22.23 — dish-level discount audit (percent vs amount)
+  discountType?: string | null;
+  discountValue?: number | null;
   currency: string;
   imageUrl: string | null;
   imageFocalX: number | null;

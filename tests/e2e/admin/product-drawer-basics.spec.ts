@@ -214,6 +214,23 @@ test.describe('product drawer — basics tab (T14.2)', () => {
     await expect(pill).toContainText('25%');
   });
 
+  test('functional: percent mode auto-computes sale price (20 − 10% = 18)', async ({
+    page,
+  }) => {
+    await seedAndOpenEditor(page, 'STARTER');
+    await openEditDrawerForFirstProduct(page);
+
+    await page.getByTestId('product-basics-discount-toggle').click();
+    await page.getByTestId('product-basics-discount-mode-percent').click();
+
+    // Original 20 + 10% → computed sale 18
+    await page.getByTestId('product-basics-discount-original').fill('20');
+    await page.getByTestId('product-basics-discount-percent').fill('10');
+
+    await expect(page.getByTestId('product-discount-computed-sale')).toContainText('18');
+    await expect(page.getByTestId('product-basics-discount-pill')).toContainText('10%');
+  });
+
   // ── Functional: language tabs STARTER (locked) ─────────────────────────────
 
   test('functional: STARTER — EN and RU tabs are locked', async ({ page }) => {
