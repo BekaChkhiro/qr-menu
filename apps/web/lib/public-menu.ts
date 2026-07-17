@@ -123,6 +123,12 @@ export const publicMenuSelect = {
       startDate: true,
       endDate: true,
       sortOrder: true,
+      // T22.18 — scope + discount config needed to apply category/menu-wide
+      // promotions to public product prices (not just the carousel banner).
+      discountType: true,
+      discountValue: true,
+      applyTo: true,
+      categoryId: true,
     },
   },
 };
@@ -273,4 +279,82 @@ export interface SerializedPublicPromotion {
   startDate: string;
   endDate: string;
   sortOrder: number;
+  // T22.18 — scope + discount config (null on legacy banner-only promotions).
+  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT' | 'FREE_ADDON' | null;
+  discountValue: number | string | null;
+  applyTo: 'ENTIRE_MENU' | 'CATEGORY' | 'SPECIFIC_ITEMS' | null;
+  categoryId: string | null;
+}
+
+// ── T22.18 — apply category / menu-wide promotions to public prices ──────────
+//
+// Bug fix: a promotion scoped to a category (or the whole menu) was stored but
+// never affected the prices shown on the public menu — it only appeared as a
+// carousel banner. This transform walks the serialized menu and lowers product
+// prices for any active PERCENTAGE / FIXED_AMOUNT promotion that targets the
+// whole menu or the product's category.
+//
+// Conflict rule (spec "last wins"): a product that already carries a manual
+// `oldPrice` (a per-dish discount set in the product editor) is left untouched —
+// the dish-level discount wins over the category promotion. When multiple
+// promotions apply to the same product, the one yielding the lowest final price
+// wins. FREE_ADDON / banner-info promotions never change prices.
+function round2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+function discountedPrice(
+  price: number,
+  promo: Pick<SerializedPublicPromotion, 'discountType' | 'discountValue'>,
+): number | null {
+  const value = promo.discountValue == null ? NaN : Number(promo.discountValue);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  if (promo.discountType === 'PERCENTAGE') {
+    const pct = Math.min(100, value);
+    return round2(price * (1 - pct / 100));
+  }
+  if (promo.discountType === 'FIXED_AMOUNT') {
+    return round2(Math.max(0, price - value));
+  }
+  return null; // FREE_ADDON / null → no price effect
+}
+
+export function applyPromotionPricing(menu: SerializedPublicMenu): SerializedPublicMenu {
+  const pricing = menu.promotions.filter(
+    (p) =>
+      (p.discountType === 'PERCENTAGE' || p.discountType === 'FIXED_AMOUNT') &&
+      (p.applyTo === 'ENTIRE_MENU' || (p.applyTo === 'CATEGORY' && !!p.categoryId)),
+  );
+  if (pricing.length === 0) return menu;
+
+  const menuWide = pricing.filter((p) => p.applyTo === 'ENTIRE_MENU');
+
+  for (const category of menu.categories) {
+    const applicable = [
+      ...menuWide,
+      ...pricing.filter((p) => p.applyTo === 'CATEGORY' && p.categoryId === category.id),
+    ];
+    if (applicable.length === 0) continue;
+
+    for (const product of category.products) {
+      // Dish-level manual discount wins — never override an existing oldPrice.
+      if (product.oldPrice != null && Number(product.oldPrice) > 0) continue;
+
+      const base = Number(product.price);
+      if (!Number.isFinite(base) || base <= 0) continue;
+
+      let best = base;
+      for (const promo of applicable) {
+        const final = discountedPrice(base, promo);
+        if (final != null && final < best) best = final;
+      }
+
+      if (best < base) {
+        product.oldPrice = base;
+        product.price = best;
+      }
+    }
+  }
+
+  return menu;
 }

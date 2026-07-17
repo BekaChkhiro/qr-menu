@@ -182,7 +182,11 @@ export function PromotionDrawer({
         isActive: promotion?.isActive ?? true,
         discountType: (promotion?.discountType as PromotionFormValues['discountType']) || null,
         discountValue: promotion?.discountValue ?? null,
-        applyTo: (promotion?.applyTo as PromotionFormValues['applyTo']) || 'ENTIRE_MENU',
+        // T22.18 — "specific items" scope retired; coerce legacy rows to whole-menu.
+        applyTo:
+          promotion?.applyTo && promotion.applyTo !== 'SPECIFIC_ITEMS'
+            ? (promotion.applyTo as PromotionFormValues['applyTo'])
+            : 'ENTIRE_MENU',
         categoryId: promotion?.categoryId || null,
         timeRestrictions: {
           enabled: tr?.enabled ?? false,
@@ -579,27 +583,8 @@ export function PromotionDrawer({
                             </div>
                           )}
                         </div>
-
-                        {/* Specific items */}
-                        <label
-                          className={cn(
-                            'flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors',
-                            field.value === 'SPECIFIC_ITEMS'
-                              ? 'border-accent shadow-[0_0_0_3px_hsl(var(--accent-soft))]'
-                              : 'border-border hover:bg-chip',
-                          )}
-                          data-testid="promotion-apply-to-items"
-                        >
-                          <RadioGroupItem value="SPECIFIC_ITEMS" />
-                          <div className="flex-1">
-                            <div className="text-[13px] font-medium text-text-default">
-                              {t('fields.applyTo.specificItems.title')}
-                            </div>
-                            <div className="text-[11.5px] text-text-muted">
-                              {t('fields.applyTo.specificItems.hint')}
-                            </div>
-                          </div>
-                        </label>
+                        {/* T22.18 — "Specific items" scope removed for promotions;
+                            per-dish discounting lives in the product editor. */}
                       </RadioGroup>
                     )}
                   />

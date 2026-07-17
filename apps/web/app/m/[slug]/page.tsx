@@ -7,6 +7,7 @@ import {
   getPublicMenu,
   getPreviewMenu,
   pickLocalizedMenuName,
+  applyPromotionPricing,
   type SerializedPublicMenu,
 } from '@/lib/public-menu';
 import { getLocaleFromCookie, isValidLocale, LOCALE_COOKIE_NAME, type Locale } from '@/i18n/config';
@@ -120,7 +121,9 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
   // Strip server-only fields before serialising for the client tree.
   const { passwordHash: _omitPasswordHash, ...rawMenuPublic } = rawMenu;
   void _omitPasswordHash;
-  const menu = JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu;
+  const menu = applyPromotionPricing(
+    JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu,
+  );
   // `?locale=` query param takes precedence over the cookie so the admin preview
   // iframe can force a specific language without touching the visitor's cookie.
   const locale: Locale =

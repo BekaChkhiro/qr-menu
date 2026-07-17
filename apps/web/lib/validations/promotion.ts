@@ -108,7 +108,12 @@ export const createPromotionSchema = z
       message: 'Please select a category',
       path: ['categoryId'],
     }
-  );
+  )
+  // T22.18 — "specific items" scope retired; whole-menu / category only.
+  .refine((data) => data.applyTo !== 'SPECIFIC_ITEMS', {
+    message: 'Promotions apply to the whole menu or a category',
+    path: ['applyTo'],
+  });
 
 // ── Update promotion schema ─────────────────────────────────────────────────
 
@@ -188,7 +193,12 @@ export const updatePromotionSchema = z
       message: 'Please select a category',
       path: ['categoryId'],
     }
-  );
+  )
+  // T22.18 — "specific items" scope retired; whole-menu / category only.
+  .refine((data) => data.applyTo !== 'SPECIFIC_ITEMS', {
+    message: 'Promotions apply to the whole menu or a category',
+    path: ['applyTo'],
+  });
 
 // ── Reorder promotions schema ───────────────────────────────────────────────
 

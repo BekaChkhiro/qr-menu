@@ -2759,6 +2759,58 @@ After Phase 20: legacy `MenuSettingsForm` is deleted, legacy `/admin/menus/[id]/
 
 ---
 
+### Phase 22 Addendum: Promotions & Discounts — Owner Spec (`აქციები Rapport.pdf`)
+
+**Source**: Café owner walkthrough of the promotions flow (7-page PDF, KA). Reconciles the existing T22.1–T22.9 promotion tasks with the owner's detailed requirements and adds the genuinely-new work (dish-level discounts, combo builder, per-day time windows, public carousel behavior, pop-up). Terminology from the PDF is authoritative for the promotion **type** names.
+
+**Reconciliation with existing tasks** (do not duplicate — extend these):
+- Duplicate action → **T22.1** (as-is).
+- Title-only fallback + show-title toggle → **T22.2 + T22.3**, extended by **T22.20**.
+- Type split → **T22.7**, but rename to the PDF's three types (see T22.19). The PDF "Gift/Combo" ≠ T22.7 "Gift": PDF combo **creates a real product**, tracked separately in **T22.24**.
+- "Selected products" apply-to (**T22.5**) is **dropped for promotions** — the owner explicitly disables "specific dishes" as a promotion scope (see T22.18). Per-dish discounting moves to the product editor (T22.23).
+- No-time + weekday schedule → **T22.6**, extended with per-day windows + picker UX in **T22.21**.
+
+#### T22.18: Promotion Apply-To — Fix Category Scope + Drop "Specific Items" (= spec **D**)
+- [ ] **Status**: TODO
+- **Complexity**: Medium
+- **Dependencies**: T15.8
+- **Description**: **Bug**: a promotion with `applyTo=CATEGORY` + `categoryId` is created and stored, but nothing renders on the public menu for that category. Fix the public evaluation/render so a category-scoped promotion visibly applies. **Change**: remove `SPECIFIC_ITEMS` from the promotion apply-to options in the drawer (keep the enum value for back-compat but hide it in UI and reject on create). Apply-to choices become **Whole menu** / **Specific category** only.
+- **Conflict rule (documented, enforced in T22.23)**: last-applied wins — a per-dish discount overrides a category promotion on that dish; re-announcing a category promotion re-covers dishes that don't have a newer per-dish discount.
+- **Playwright test**: `tests/e2e/admin/promotion-category-scope.spec.ts`
+  - Functional: create `applyTo=CATEGORY` promotion → public menu for that category renders the discounted prices / promotion marker; drawer no longer offers "specific dishes".
+
+#### T22.19: Promotion Types — Percentage / Banner-Info / Combo (= spec **B**, refines T22.7)
+- [ ] **Status**: TODO · **Dependencies**: T22.7, T22.18
+- **Description**: Adopt the owner's three types: **Percentage** (`%` discount, scope = whole menu / category), **Banner-Info** (announcement only — replaces "Fixed $"; title + optional banner + optional Background Color, no discount math), **Combo** (replaces "Free addon" — product bundle, see T22.24). Update `Promotion.type`/`discountType` mapping, drawer Step-0 copy, and translations (ka/en/ru).
+
+#### T22.20: Appearance — Title-Only Card Background Color + Banner Show-Title Toggle (= spec **H**)
+- [ ] **Status**: TODO · **Dependencies**: T22.3, T22.19
+- **Description**: Add `Promotion.backgroundColor String?` + `Promotion.showTitle Boolean @default(true)`. No-banner promotion renders a title-only card on the chosen Background Color (var 3). Banner promotions expose "Show title over banner?" → var 1 (banner only) / var 2 (banner + title). Admin list card previews exactly what the customer sees (= spec **I**).
+
+#### T22.21: Time Picker UX + Per-Day Windows (= spec **F/G**, extends T22.6)
+- [ ] **Status**: TODO · **Dependencies**: T22.6
+- **Description**: Move time restriction into the schedule section. Time picker: **AM/PM (US) ↔ 24h (EU)** style toggle, up/down arrow-key stepping (incl. AM/PM), auto-advance hour→minute on typing. Support **different hours per weekday** (Mon 12:00–14:00, Tue 09:00–11:00) — migrate `timeRestrictions` JSON to per-day windows `{ enabled, windows: { mon: [{start,end}], ... } }` (keep back-compat read of the old flat shape). Clear visual summary of which days/hours are restricted. Plus the T22.6 "just activate, no time" path.
+
+#### T22.22: Public Promo Carousel — Variants + Auto-Advance + GIF + Tap-to-Expand (= spec **J**)
+- [ ] **Status**: TODO · **Dependencies**: T22.20, T22.9
+- **Description**: Public menu promo carousel renders the 3 visual variants (banner / banner+title / title-only bg-color card). Title-only cards DO appear. Auto-advance on a timer (not arrows-only), pause on interaction. GIF `imageUrl` plays. Tap a promo → expand element in corner (`{ სრულიად > }`) opens a detail sheet showing days, restricted hours, and full description. Re-crop behavior documented.
+
+#### T22.23: Dish-Level Discount Subsystem + Category↔Dish Conflict (= spec **E**) — MAJOR
+- [ ] **Status**: TODO · **Dependencies**: T22.18
+- **Complexity**: High
+- **Description**: In the product/dish editor, a "Discount" section: choose **by amount** or **by percentage** (20₾ → 10% auto-calculates the other; `price` unchanged, `oldPrice` shows strikethrough, discounted price computed). Optional "Discount on specific days & hours" toggle (per-dish, same per-day model as T22.21). **Conflict resolution ("last wins")**: category promotion (T22.18) covers all dishes in the category; a per-dish discount set afterward removes that dish from the category promotion's coverage; re-announcing the category promotion re-covers dishes without a newer per-dish rule. Requires schema fields on `Product` (e.g. `discountType`, `discountValue`, `discountWindows Json?`, `discountSource`). DB migration + public price evaluation + admin UI + tests.
+
+#### T22.24: Combo Builder → Creates Product in "Offers" Category (= spec **C**) — MAJOR
+- [ ] **Status**: TODO · **Dependencies**: T22.19
+- **Complexity**: High
+- **Description**: Combo promotion authoring (Wendy's-style): pick N existing products, set a single new combo price, title + description. On save, create a new "combo" product in an auto-managed **"Offers / შეთავაზება"** category, referencing the component products, priced at the combo price. Admin can include products from hidden categories (e.g. "Brand items"). Combo appears both in the promotions list and as a purchasable/orderable product card (cart integration deferred if no cart exists yet — scope-gate during implementation).
+
+#### T22.25: Promotion Pop-Up on Menu Open + Active-Promotions Calendar (= spec **K**)
+- [ ] **Status**: TODO · **Dependencies**: T22.22
+- **Description**: (a) Per-menu "Show promotions as pop-up on open" toggle → on public menu load (post-scan), show a carousel-style pop-up of active promotions with an X (top-right) to dismiss into the menu. (b) Admin: small calendar view (Google-Calendar style) showing which promotions are active on which dates / overlapping ranges. Both are additive, plan-gating respected.
+
+---
+
 ### Phase 23: Analytics Tab — Deep Review & Implementation
 
 **Goal**: Operator review flagged "analytics" generally as needing work but without specifying which metrics are broken. This phase starts with a discovery task that produces a written audit, then ships concrete fixes informed by that audit. The four follow-up tasks (T23.2–T23.5) are deliberately left with TBD complexity/estimates until T23.1 is complete.
