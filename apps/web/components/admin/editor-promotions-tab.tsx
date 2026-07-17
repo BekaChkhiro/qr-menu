@@ -20,6 +20,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { StatusPill } from '@/components/ui/status-pill';
+import { PromotionCalendar } from './promotion-calendar';
 import {
   KebabMenu,
   KebabMenuContent,
@@ -552,6 +553,12 @@ export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocke
           ) : null}
         </div>
       ) : (
+        <>
+        {/* T22.25 — month view of which promotions run when (and overlap). */}
+        <PromotionCalendar
+          promotions={annotated.map((a) => a.promotion)}
+          locale={locale as 'ka' | 'en' | 'ru'}
+        />
         <div
           data-testid="editor-promotions-grid"
           className="grid grid-cols-1 gap-4 md:grid-cols-2"
@@ -570,6 +577,7 @@ export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocke
             />
           ))}
         </div>
+        </>
       )}
 
       <Suggestions
