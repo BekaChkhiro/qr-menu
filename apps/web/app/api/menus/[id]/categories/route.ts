@@ -58,8 +58,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Fetch categories with product counts
+    // T22.24 — the auto-managed "Offers" category is owned by the combo flow;
+    // it must not appear in (or be editable from) the admin category list.
     const categories = await prisma.category.findMany({
-      where: { menuId },
+      where: { menuId, isSystemOffers: false },
       orderBy: { sortOrder: 'asc' },
       include: {
         _count: {
@@ -128,8 +130,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Generated Offers categories don't count against the plan limit.
     const categoryCount = await prisma.category.count({
-      where: { menuId },
+      where: { menuId, isSystemOffers: false },
     });
 
     if (!canCreateCategory(user, categoryCount)) {

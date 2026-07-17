@@ -1332,7 +1332,11 @@
         "original": "Original",
         "sale": "Sale price",
         "byAmount": "By amount",
-        "byPercent": "By percent"
+        "byPercent": "By percent",
+        "windowsToggle": "Discount only on certain days & hours",
+        "windowsHelp": "When on, the discount applies only within the selected days and hours.",
+        "dayInactive": "Off",
+        "timeTo": "to"
       },
       "tagsLabel": "Tags",
       "tagsPlaceholder": "Add tag…",

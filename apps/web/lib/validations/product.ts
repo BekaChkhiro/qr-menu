@@ -107,6 +107,20 @@ const productExtras = {
     .max(99999.99)
     .nullable()
     .optional(),
+  // T22.23 — per-day windows restricting when the dish discount applies.
+  discountWindows: z
+    .object({
+      enabled: z.boolean(),
+      windows: z.record(
+        z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']),
+        z.object({
+          start: z.string().regex(/^\d{2}:\d{2}$/, 'Use HH:MM format'),
+          end: z.string().regex(/^\d{2}:\d{2}$/, 'Use HH:MM format'),
+        }),
+      ),
+    })
+    .nullable()
+    .optional(),
   imageFocalX: focalSchema,
   imageFocalY: focalSchema,
   imageZoom: zoomSchema,

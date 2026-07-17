@@ -173,6 +173,11 @@ export interface Product {
   // T22.23 — dish-level discount audit (percent vs amount)
   discountType?: string | null;
   discountValue?: number | null;
+  // T22.23 — optional per-day windows restricting when the discount applies
+  discountWindows?: {
+    enabled: boolean;
+    windows: Record<string, { start: string; end: string }>;
+  } | null;
   currency: string;
   imageUrl: string | null;
   imageFocalX: number | null;

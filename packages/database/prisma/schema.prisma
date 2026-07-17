@@ -347,6 +347,11 @@ model Menu {
   // T22.25 — show active promotions as a dismissible pop-up on menu open
   promoPopupEnabled Boolean       @default(false)
 
+  // T22.21 — the café's local timezone. Day/hour windows for promotions and
+  // dish discounts are evaluated against this, not the server's or visitor's
+  // clock. Georgia has a single, DST-free zone, hence the default.
+  timezone        String          @default("Asia/Tbilisi")
+
   // Layout & visual style
   splitByType        Boolean            @default(false)
   menuLayout         MenuLayout         @default(LINEAR)

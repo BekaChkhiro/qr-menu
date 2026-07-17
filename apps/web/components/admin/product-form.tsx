@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { LangCode } from './product-drawer/lang-tabs-inline';
+import { DayWindowsEditor } from './day-windows-editor';
 import { TagsInput } from './product-drawer/tags-input';
 import { ProductImageField } from './product-drawer/product-image-field';
 import type { Product, Category } from '@/types/menu';
@@ -44,6 +45,13 @@ const productFormSchema = z.object({
   // T22.23 — how the discount was expressed (percent vs amount) for round-trip.
   discountType: z.string().optional(),
   discountValue: z.string().optional(),
+  // T22.23 — optional per-day windows restricting when the discount applies.
+  discountWindows: z
+    .object({
+      enabled: z.boolean(),
+      windows: z.record(z.string(), z.object({ start: z.string(), end: z.string() })),
+    })
+    .optional(),
   imageUrl: z.string().url('Invalid URL').optional().or(z.literal('')),
   allergens: z.array(z.string()).optional(),
   ribbons: z.array(z.string()).optional(),
@@ -114,6 +122,10 @@ export function ProductForm({
         product?.discountValue !== null && product?.discountValue !== undefined
           ? String(product.discountValue)
           : '',
+      discountWindows: {
+        enabled: product?.discountWindows?.enabled ?? false,
+        windows: product?.discountWindows?.windows ?? {},
+      },
       imageUrl: product?.imageUrl || '',
       allergens: product?.allergens || [],
       ribbons: product?.ribbons || [],
@@ -154,6 +166,8 @@ export function ProductForm({
   const descriptionRu = watch('descriptionRu');
   const price = watch('price');
   const oldPrice = watch('oldPrice');
+  const discountWindowsValue = watch('discountWindows');
+  const discountWindowsEnabled = discountWindowsValue?.enabled ?? false;
   const isAvailable = watch('isAvailable');
   const ribbons = watch('ribbons') || [];
   const isVegan = watch('isVegan') || false;
@@ -626,6 +640,45 @@ export function ProductForm({
                   </span>
                 </div>
               )}
+
+              {/* T22.23 — restrict the dish discount to certain days & hours */}
+              <div className="border-t border-border-soft pt-2.5">
+                <div className="flex items-center gap-2.5">
+                  <Switch
+                    checked={discountWindowsEnabled}
+                    onCheckedChange={(next) =>
+                      setValue('discountWindows', {
+                        enabled: next,
+                        windows: discountWindowsValue?.windows ?? {},
+                      })
+                    }
+                    data-testid="product-discount-windows-toggle"
+                    aria-label={t('discount.windowsToggle')}
+                  />
+                  <div className="flex-1">
+                    <div className="text-[13px] font-[550] text-text-default">
+                      {t('discount.windowsToggle')}
+                    </div>
+                    <div className="text-[11.5px] text-text-muted">
+                      {t('discount.windowsHelp')}
+                    </div>
+                  </div>
+                </div>
+
+                {discountWindowsEnabled && (
+                  <div className="mt-2.5">
+                    <DayWindowsEditor
+                      value={discountWindowsValue?.windows ?? {}}
+                      onChange={(next) =>
+                        setValue('discountWindows', { enabled: true, windows: next })
+                      }
+                      testIdPrefix="product-discount"
+                      inactiveLabel={t('discount.dayInactive')}
+                      toLabel={t('discount.timeTo')}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

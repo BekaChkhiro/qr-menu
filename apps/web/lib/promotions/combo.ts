@@ -79,14 +79,32 @@ export async function syncComboProduct(promotionId: string): Promise<void> {
   }
 
   const categoryId = await getOrCreateOffersCategory(promo.menuId);
+
+  // T22.24 — spell out what's in the combo on its card. The operator's own
+  // description wins; otherwise we list the component products ("Coffee +
+  // Sandwich + Branded cup") so the card is self-explanatory.
+  const components = promo.comboProductIds.length
+    ? await prisma.product.findMany({
+        where: { id: { in: promo.comboProductIds } },
+        select: { id: true, nameKa: true, nameEn: true, nameRu: true },
+      })
+    : [];
+  // Keep the operator's chosen order rather than the DB's.
+  const ordered = promo.comboProductIds
+    .map((id) => components.find((c) => c.id === id))
+    .filter((c): c is (typeof components)[number] => !!c);
+
+  const join = (pick: (c: (typeof ordered)[number]) => string | null) =>
+    ordered.length ? ordered.map((c) => pick(c) || c.nameKa).join(' + ') : null;
+
   const data = {
     categoryId,
     nameKa: promo.titleKa,
     nameEn: promo.titleEn,
     nameRu: promo.titleRu,
-    descriptionKa: promo.descriptionKa,
-    descriptionEn: promo.descriptionEn,
-    descriptionRu: promo.descriptionRu,
+    descriptionKa: promo.descriptionKa || join((c) => c.nameKa),
+    descriptionEn: promo.descriptionEn || join((c) => c.nameEn),
+    descriptionRu: promo.descriptionRu || join((c) => c.nameRu),
     price: promo.comboPrice!,
     isAvailable: promo.isActive,
   };

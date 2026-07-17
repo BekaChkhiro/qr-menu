@@ -8,6 +8,8 @@ import {
   getPreviewMenu,
   pickLocalizedMenuName,
   applyPromotionPricing,
+  applyDishDiscountWindows,
+  livePromotions,
   type SerializedPublicMenu,
 } from '@/lib/public-menu';
 import { getLocaleFromCookie, isValidLocale, LOCALE_COOKIE_NAME, type Locale } from '@/i18n/config';
@@ -123,7 +125,9 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
   const { passwordHash: _omitPasswordHash, ...rawMenuPublic } = rawMenu;
   void _omitPasswordHash;
   const menu = applyPromotionPricing(
-    JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu,
+    applyDishDiscountWindows(
+      JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu,
+    ),
   );
   // `?locale=` query param takes precedence over the cookie so the admin preview
   // iframe can force a specific language without touching the visitor's cookie.
@@ -133,7 +137,9 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
       : (getLocaleFromCookie(cookieStore.get(LOCALE_COOKIE_NAME)?.value) as Locale);
 
   const categoriesWithProducts = menu.categories.filter((c) => c.products.length > 0);
-  const hasPromotions = menu.promotions.length > 0;
+  // T22.21 — only promotions inside their café-local day/hour window are shown.
+  const activePromotions = livePromotions(menu);
+  const hasPromotions = activePromotions.length > 0;
   const hasCategories = categoriesWithProducts.length > 0;
   const hasInfo = Boolean(menu.address || menu.phone || menu.wifiSsid || menu.wcDirection);
 
@@ -208,10 +214,10 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         />
       )}
 
-      {hasPromotions && <PromotionCarousel promotions={menu.promotions} locale={locale} />}
+      {hasPromotions && <PromotionCarousel promotions={activePromotions} locale={locale} />}
 
       {!isPreview && menu.promoPopupEnabled && hasPromotions && (
-        <PromotionPopup menuId={menu.id} promotions={menu.promotions} locale={locale} />
+        <PromotionPopup menuId={menu.id} promotions={activePromotions} locale={locale} />
       )}
 
       {featuredProducts.length > 0 && (

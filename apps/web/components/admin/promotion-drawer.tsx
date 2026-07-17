@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
-import { Percent, Megaphone, Gift, X, Loader2, Trash2, Clock } from 'lucide-react';
+import { Percent, Megaphone, Gift, X, Loader2, Trash2 } from 'lucide-react';
 import * as SheetPrimitive from '@radix-ui/react-dialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -25,6 +25,7 @@ import {
 import { Banner } from '@/components/ui/banner';
 import { ImageUpload } from './image-upload';
 import { LangTabsInline } from './product-drawer/lang-tabs-inline';
+import { DayWindowsEditor } from './day-windows-editor';
 import { cn } from '@/lib/utils';
 import { createPromotionSchema, type CreatePromotionInput } from '@/lib/validations/promotion';
 import type { Promotion, Category } from '@/types/menu';
@@ -130,16 +131,6 @@ function pickBannerGradient(id?: string) {
   if (!id) return BANNER_VARIANTS[0].bg;
   return BANNER_VARIANTS[hashString(id) % BANNER_VARIANTS.length].bg;
 }
-
-const WEEK_DAYS = [
-  { key: 'mon', label: 'M' },
-  { key: 'tue', label: 'T' },
-  { key: 'wed', label: 'W' },
-  { key: 'thu', label: 'T' },
-  { key: 'fri', label: 'F' },
-  { key: 'sat', label: 'S' },
-  { key: 'sun', label: 'S' },
-] as const;
 
 // T22.19 — owner's three promotion types.
 const TYPE_OPTIONS = [
@@ -808,77 +799,16 @@ export function PromotionDrawer({
                   />
 
                   {timeEnabled && (
-                    <div className="mt-3 space-y-2" data-testid="promotion-day-windows">
-                      {/* Per-day windows (T22.21): each day can carry its own
-                          start/end so operators can set e.g. Mon 12:00–14:00
-                          and Tue 09:00–11:00. */}
-                      {WEEK_DAYS.map((day) => {
-                        const win = timeWindows?.[day.key];
-                        const active = !!win;
-                        const setWindow = (next: { start: string; end: string } | null) => {
-                          const current = { ...(form.getValues('timeRestrictions.windows') || {}) };
-                          if (next) current[day.key] = next;
-                          else delete current[day.key];
-                          form.setValue('timeRestrictions.windows', current, { shouldValidate: true });
-                        };
-                        return (
-                          <div
-                            key={day.key}
-                            data-testid={`promotion-day-row-${day.key}`}
-                            data-active={active ? 'true' : 'false'}
-                            className={cn(
-                              'flex items-center gap-2.5 rounded-lg border p-2',
-                              active ? 'border-accent bg-card' : 'border-border',
-                            )}
-                          >
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setWindow(active ? null : { start: '09:00', end: '18:00' })
-                              }
-                              data-testid={`promotion-day-toggle-${day.key}`}
-                              data-active={active ? 'true' : 'false'}
-                              className={cn(
-                                'flex h-8 w-9 shrink-0 items-center justify-center rounded-md border text-[11.5px] font-semibold transition-colors',
-                                active
-                                  ? 'border-text-default bg-text-default text-white'
-                                  : 'border-border bg-card text-text-muted hover:bg-chip',
-                              )}
-                            >
-                              {day.label}
-                            </button>
-                            {active ? (
-                              <div className="flex flex-1 items-center gap-2">
-                                <div className="flex flex-1 items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
-                                  <Clock className="h-3.5 w-3.5 text-text-muted" strokeWidth={1.5} />
-                                  <input
-                                    type="time"
-                                    value={win!.start}
-                                    onChange={(e) => setWindow({ start: e.target.value, end: win!.end })}
-                                    className="w-full bg-transparent text-[13px] font-mono tabular-nums text-text-default outline-none"
-                                    data-testid={`promotion-day-start-${day.key}`}
-                                  />
-                                </div>
-                                <span className="text-[12px] text-text-muted">{t('fields.timeTo')}</span>
-                                <div className="flex flex-1 items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
-                                  <Clock className="h-3.5 w-3.5 text-text-muted" strokeWidth={1.5} />
-                                  <input
-                                    type="time"
-                                    value={win!.end}
-                                    onChange={(e) => setWindow({ start: win!.start, end: e.target.value })}
-                                    className="w-full bg-transparent text-[13px] font-mono tabular-nums text-text-default outline-none"
-                                    data-testid={`promotion-day-end-${day.key}`}
-                                  />
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="flex-1 text-[12px] text-text-muted">
-                                {t('fields.dayInactive')}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
+                    <div className="mt-3">
+                      <DayWindowsEditor
+                        value={timeWindows || {}}
+                        onChange={(next) =>
+                          form.setValue('timeRestrictions.windows', next, { shouldValidate: true })
+                        }
+                        testIdPrefix="promotion"
+                        inactiveLabel={t('fields.dayInactive')}
+                        toLabel={t('fields.timeTo')}
+                      />
                     </div>
                   )}
                 </div>

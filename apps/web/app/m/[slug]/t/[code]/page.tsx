@@ -6,6 +6,8 @@ import {
   getPublicMenu,
   pickLocalizedMenuName,
   applyPromotionPricing,
+  applyDishDiscountWindows,
+  livePromotions,
   type SerializedPublicMenu,
 } from '@/lib/public-menu';
 import { TABLE_COOKIE_NAME, verifyTableToken } from '@/lib/auth/table-token';
@@ -165,7 +167,9 @@ async function renderGuestMenu(args: RenderArgs) {
   const { passwordHash: _omitPasswordHash, ...rawMenuPublic } = rawMenu;
   void _omitPasswordHash;
   const menu = applyPromotionPricing(
-    JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu,
+    applyDishDiscountWindows(
+      JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu,
+    ),
   );
 
   // This guest's selections — needed to seed the tray + tray totals on first
@@ -212,7 +216,9 @@ async function renderGuestMenu(args: RenderArgs) {
     }))
   );
 
-  const hasPromotions = menu.promotions.length > 0;
+  // T22.21 — only promotions inside their café-local day/hour window are shown.
+  const activePromotions = livePromotions(menu);
+  const hasPromotions = activePromotions.length > 0;
   const hasCategories = categoriesWithProducts.length > 0;
   const hasInfo = Boolean(menu.address || menu.phone || menu.wifiSsid || menu.wcDirection);
 
@@ -296,7 +302,7 @@ async function renderGuestMenu(args: RenderArgs) {
           />
         )}
 
-        {hasPromotions && <PromotionCarousel promotions={menu.promotions} locale={args.locale} />}
+        {hasPromotions && <PromotionCarousel promotions={activePromotions} locale={args.locale} />}
 
         {featuredProducts.length > 0 && (
           <FeaturedCarousel

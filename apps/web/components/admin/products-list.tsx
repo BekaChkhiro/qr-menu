@@ -93,6 +93,7 @@ function formToApi(data: ProductFormValues) {
     // T22.23 — dish-level discount audit fields
     discountType: (data.discountType || null) as 'PERCENTAGE' | 'FIXED_AMOUNT' | null,
     discountValue: numOrNull(data.discountValue),
+    discountWindows: data.discountWindows?.enabled ? data.discountWindows : null,
     currency: 'GEL',
     imageUrl: data.imageUrl || null,
     allergens: (data.allergens || []) as Allergen[],
