@@ -1,11 +1,11 @@
 'use client';
 
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import type { Locale } from '@/i18n/config';
 import type { MenuTemplate } from '@/types/menu';
 import { type PublicProduct, type PublicDisplaySettings } from './product-card';
 import { ProductCardRenderer } from './product-card-renderer';
-import { CategoryAvatar } from '@/components/shared/category-avatar';
 
 interface Category {
   id: string;
@@ -26,10 +26,6 @@ interface CategorySectionProps {
   index?: number;
   settings: PublicDisplaySettings;
   template?: MenuTemplate;
-  /**
-   * Hex color used to tint the category-avatar letter fallback when no
-   * `iconUrl` is set (T21.7). Should match the menu's `accentColor`.
-   */
   accentColor?: string | null;
 }
 
@@ -55,6 +51,101 @@ function getCategoryDescription(category: Category, locale: Locale): string | nu
   }
 }
 
+interface BannerProps {
+  iconUrl?: string | null;
+  name: string;
+  brandLabel?: string | null;
+  accentColor?: string | null;
+  template: MenuTemplate;
+  headingId: string;
+  productCount: number;
+  productCountLabel: string;
+}
+
+function CategoryBannerHeader({
+  iconUrl,
+  name,
+  brandLabel,
+  accentColor,
+  template,
+  headingId,
+  productCount,
+  productCountLabel,
+}: BannerProps) {
+  const isCompact = template === 'COMPACT';
+
+  const fallbackStyle = accentColor
+    ? {
+        background: `linear-gradient(135deg, color-mix(in srgb, ${accentColor} 20%, hsl(240 6% 15%)), color-mix(in srgb, ${accentColor} 55%, hsl(240 6% 8%)))`,
+      }
+    : undefined;
+
+  return (
+    <div
+      className={cn(
+        'relative mb-4 overflow-hidden rounded-xl',
+        isCompact ? 'h-[120px] sm:h-[160px]' : 'h-[140px] sm:h-[180px] md:h-[240px]',
+      )}
+      data-testid="category-banner"
+    >
+      {iconUrl ? (
+        <Image
+          src={iconUrl}
+          alt=""
+          fill
+          sizes="(max-width: 672px) 100vw, 672px"
+          className="object-cover"
+          aria-hidden
+        />
+      ) : (
+        <div
+          className={cn('absolute inset-0', !accentColor && 'bg-muted')}
+          style={fallbackStyle}
+          aria-hidden
+        >
+          <span
+            className="absolute inset-0 flex items-center justify-center select-none font-bold leading-none text-white opacity-20"
+            style={{ fontSize: 'clamp(3rem, 15vw, 8rem)' }}
+            data-testid="category-banner-initial"
+          >
+            {[...name.trim()][0]?.toUpperCase() ?? '?'}
+          </span>
+        </div>
+      )}
+
+      {/* Bottom-up gradient overlay for text legibility */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+      {/* Name + count overlay */}
+      <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between px-3 py-2.5">
+        <div className="min-w-0">
+          {brandLabel && (
+            <div className="mb-0.5 truncate text-[10px] font-semibold uppercase tracking-[0.15em] text-white/70">
+              {brandLabel}
+            </div>
+          )}
+          <h2
+            id={headingId}
+            className={cn(
+              'truncate font-bold leading-tight text-white drop-shadow-sm',
+              isCompact ? 'text-base' : 'text-xl',
+            )}
+            style={{ fontFamily: 'var(--heading-font)' }}
+          >
+            {name}
+          </h2>
+        </div>
+        <span
+          className="ml-3 shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm"
+          aria-label={`${productCount} ${productCountLabel}`}
+        >
+          {productCount}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function CategorySection({
   category,
   locale,
@@ -69,21 +160,6 @@ export function CategorySection({
 
   const productCountLabel =
     locale === 'ka' ? 'პროდუქტი' : locale === 'ru' ? 'продукт' : 'products';
-
-  // Per-template header styling
-  const headerClass =
-    template === 'MAGAZINE'
-      ? 'mb-6 text-center'
-      : template === 'COMPACT'
-      ? 'mb-2 pb-2 border-b border-border/40'
-      : 'mb-4 pb-3 border-b border-border/50';
-
-  const headingClass =
-    template === 'MAGAZINE'
-      ? 'text-3xl font-semibold tracking-tight'
-      : template === 'COMPACT'
-      ? 'text-base font-semibold tracking-tight'
-      : 'text-xl font-bold tracking-tight';
 
   // Per-template product list container
   const listClass =
@@ -106,7 +182,7 @@ export function CategorySection({
     >
       {template === 'MAGAZINE' ? (
         // ── Magazine: centered, serif, decorative ──
-        <div className={headerClass}>
+        <div className="mb-6 text-center">
           {category.brandLabel && (
             <div className="mb-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
               {category.brandLabel}
@@ -114,7 +190,7 @@ export function CategorySection({
           )}
           <h2
             id={`category-heading-${category.id}`}
-            className={headingClass}
+            className="text-3xl font-semibold tracking-tight"
             style={{ fontFamily: 'var(--heading-font)' }}
           >
             {name}
@@ -127,42 +203,24 @@ export function CategorySection({
           )}
         </div>
       ) : (
-        // ── Classic / Compact: default header with count badge ──
-        <div className={headerClass}>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2">
-              <CategoryAvatar
-                iconUrl={category.iconUrl}
-                name={name}
-                accentColor={accentColor}
-                size={template === 'COMPACT' ? 22 : 28}
-                testId="public-category-avatar"
-              />
-              {category.brandLabel && (
-                <span className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
-                  {category.brandLabel}
-                </span>
-              )}
-              <h2
-                id={`category-heading-${category.id}`}
-                className={cn(headingClass, 'truncate')}
-              >
-                {name}
-              </h2>
-            </div>
-            <span
-              className="text-xs text-muted-foreground font-medium px-2 py-0.5 bg-muted rounded-full shrink-0"
-              aria-label={`${productCount} ${productCountLabel}`}
-            >
-              {productCount}
-            </span>
-          </div>
+        // ── Classic / Compact: full-width banner header (T21.11) ──
+        <>
+          <CategoryBannerHeader
+            iconUrl={category.iconUrl}
+            name={name}
+            brandLabel={category.brandLabel}
+            accentColor={accentColor}
+            template={template}
+            headingId={`category-heading-${category.id}`}
+            productCount={productCount}
+            productCountLabel={productCountLabel}
+          />
           {description && template !== 'COMPACT' && (
-            <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+            <p className="mb-3 text-sm leading-relaxed text-muted-foreground">
               {description}
             </p>
           )}
-        </div>
+        </>
       )}
 
       <div className={listClass} role="list" aria-label={name}>
