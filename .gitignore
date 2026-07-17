@@ -64,3 +64,4 @@ Thumbs.db
 
 # PlanFlow
 .planflow/
+.planflow/worktrees.json

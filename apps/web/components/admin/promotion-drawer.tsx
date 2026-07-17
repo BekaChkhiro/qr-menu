@@ -134,6 +134,7 @@ export function PromotionDrawer({
   const [saveError, setSaveError] = useState<string | null>(null);
   // T21.8 — single drawer-wide language scope; title + description switch together.
   const [activeLang, setActiveLang] = useState<LangCode>('KA');
+  const [isImageUploading, setIsImageUploading] = useState(false);
 
   const { data: categories } = useCategories(menuId);
 
@@ -165,6 +166,7 @@ export function PromotionDrawer({
       setActiveTab('details');
       setSaveError(null);
       setActiveLang('KA');
+      setIsImageUploading(false);
 
       const tr = promotion?.timeRestrictions;
       form.reset({
@@ -234,6 +236,8 @@ export function PromotionDrawer({
       descRuWatch,
     ],
   );
+
+  const canSave = (titleKaWatch || '').trim().length > 0;
 
   const titleFieldKey =
     activeLang === 'KA' ? 'titleKa' : activeLang === 'EN' ? 'titleEn' : 'titleRu';
@@ -468,6 +472,7 @@ export function PromotionDrawer({
                                 const val = e.target.value;
                                 field.onChange(val === '' ? null : val);
                               }}
+                              autoComplete="off"
                               className="h-[38px] flex-1 rounded-none border-0 bg-transparent px-3 text-right font-mono text-sm font-semibold tabular-nums focus-visible:ring-0 focus-visible:ring-offset-0"
                               data-testid="promotion-discount-value-input"
                             />
@@ -713,13 +718,25 @@ export function PromotionDrawer({
                     control={form.control}
                     name="imageUrl"
                     render={({ field }) => (
-                      <ImageUpload
-                        value={field.value}
-                        onChange={field.onChange}
-                        preset="promotion"
-                        aspectRatio="video"
-                        disabled={isLoading}
-                      />
+                      <>
+                        <ImageUpload
+                          value={field.value}
+                          onChange={field.onChange}
+                          preset="promotion"
+                          aspectRatio="video"
+                          disabled={isLoading}
+                          enableCropper={false}
+                          onUploadingChange={setIsImageUploading}
+                          testIdPrefix="promotion-image"
+                        />
+                        <input
+                          type="hidden"
+                          name="imageUrl"
+                          value={field.value ?? ''}
+                          data-testid="promotion-image-url"
+                          readOnly
+                        />
+                      </>
                     )}
                   />
                   <p className="mt-1.5 text-[12px] text-text-muted">{t('fields.bannerHint')}</p>
@@ -843,12 +860,21 @@ export function PromotionDrawer({
               type="submit"
               form={FORM_ID}
               size="sm"
-              disabled={isLoading}
+              disabled={isLoading || isImageUploading || !canSave}
               data-testid="promotion-drawer-save"
               data-saving={isLoading ? 'true' : 'false'}
+              data-uploading={isImageUploading ? 'true' : 'false'}
             >
-              {isLoading && <Loader2 className="mr-1.5 h-[13px] w-[13px] animate-spin" />}
-              {isLoading ? t('saving') : isEditing ? tActions('save') : t('saveNewPromotion')}
+              {(isLoading || isImageUploading) && (
+                <Loader2 className="mr-1.5 h-[13px] w-[13px] animate-spin" />
+              )}
+              {isImageUploading
+                ? t('uploadingImage')
+                : isLoading
+                  ? t('saving')
+                  : isEditing
+                    ? tActions('save')
+                    : t('saveNewPromotion')}
             </Button>
           </div>
         </div>

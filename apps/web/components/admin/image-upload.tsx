@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
-import { Upload, X, Loader2, ImageIcon, AlertCircle, Crop as CropIcon } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Upload, X, ImageIcon, AlertCircle, Crop as CropIcon } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,10 @@ interface ImageUploadProps {
   className?: string;
   aspectRatio?: 'square' | 'video' | 'wide';
   enableCropper?: boolean;
+  /** Notified whenever an upload starts or finishes. */
+  onUploadingChange?: (isUploading: boolean) => void;
+  /** data-testid prefix for testing (default: `image-upload`). */
+  testIdPrefix?: string;
 }
 
 const ASPECT_RATIOS = {
@@ -46,6 +50,8 @@ export function ImageUpload({
   className,
   aspectRatio = 'square',
   enableCropper = true,
+  onUploadingChange,
+  testIdPrefix = 'image-upload',
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -53,7 +59,7 @@ export function ImageUpload({
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
 
   const { preview, createPreview, clearPreview } = useFilePreview();
-  const { upload, isUploading } = useUpload({
+  const { upload, isUploading, progress } = useUpload({
     onSuccess: (data) => {
       onChange(data.url);
       clearPreview();
@@ -64,6 +70,10 @@ export function ImageUpload({
       clearPreview();
     },
   });
+
+  useEffect(() => {
+    onUploadingChange?.(isUploading);
+  }, [isUploading, onUploadingChange]);
 
   const uploadBlob = useCallback(
     async (blob: Blob, fileName: string) => {
@@ -194,6 +204,8 @@ export function ImageUpload({
           }
         }}
         aria-label={displayUrl ? 'Change image' : 'Upload image'}
+        data-testid={`${testIdPrefix}-dropzone`}
+        data-uploading={isUploading ? 'true' : 'false'}
       >
         <input
           ref={inputRef}
@@ -213,6 +225,8 @@ export function ImageUpload({
               fill
               className="object-cover"
               sizes="(max-width: 768px) 100vw, 400px"
+              data-testid={`${testIdPrefix}-preview`}
+              unoptimized={displayUrl.startsWith('blob:')}
             />
             {!isUploading && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity hover:opacity-100">
@@ -243,9 +257,30 @@ export function ImageUpload({
         )}
 
         {isUploading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/80">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Uploading...</p>
+          <div
+            className="absolute inset-x-0 bottom-0 flex flex-col gap-1.5 bg-gradient-to-t from-black/70 to-transparent px-3 pb-2 pt-6 text-white"
+            data-testid={`${testIdPrefix}-progress`}
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progress}
+            aria-label="Uploading image"
+          >
+            <div className="flex items-center justify-between text-[12px] font-medium">
+              <span>Uploading…</span>
+              <span
+                className="font-mono tabular-nums"
+                data-testid={`${testIdPrefix}-progress-percent`}
+              >
+                {progress}%
+              </span>
+            </div>
+            <div className="h-1 overflow-hidden rounded-full bg-white/25">
+              <div
+                className="h-full bg-white transition-[width] duration-150 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
         )}
       </div>
