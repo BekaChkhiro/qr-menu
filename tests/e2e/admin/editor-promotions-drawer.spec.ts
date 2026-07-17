@@ -121,15 +121,15 @@ test.describe('promotion drawer (T15.8)', () => {
 
     // Enable time restrictions
     await page.getByTestId('promotion-time-restrictions-toggle').click();
-    await expect(page.getByTestId('promotion-day-pills')).toBeVisible();
+    await expect(page.getByTestId('promotion-day-windows')).toBeVisible();
 
-    // Select Monday and Friday
-    await page.getByTestId('promotion-day-pill-mon').click();
-    await page.getByTestId('promotion-day-pill-fri').click();
+    // Enable Monday and Friday, each with its own window (T22.21 per-day)
+    await page.getByTestId('promotion-day-toggle-mon').click();
+    await page.getByTestId('promotion-day-toggle-fri').click();
 
-    // Set time range
-    await page.getByTestId('promotion-time-start').fill('18:00');
-    await page.getByTestId('promotion-time-end').fill('20:00');
+    // Set Monday's window
+    await page.getByTestId('promotion-day-start-mon').fill('18:00');
+    await page.getByTestId('promotion-day-end-mon').fill('20:00');
 
     // Switch to Appearance tab and upload is skipped in test (complex)
     await page.getByTestId('promotion-drawer-tab-appearance').click();
@@ -230,17 +230,18 @@ test.describe('promotion drawer (T15.8)', () => {
       page.getByTestId('promotion-discount-value-input'),
     ).toHaveValue('15');
 
-    // Time restrictions should be enabled with correct days
+    // Time restrictions enabled; legacy days+time migrated to per-day windows
+    // (T22.21 back-compat via toWindows).
     await expect(page.getByTestId('promotion-time-restrictions-toggle')).toBeChecked();
-    await expect(page.getByTestId('promotion-day-pill-sat')).toHaveAttribute(
+    await expect(page.getByTestId('promotion-day-toggle-sat')).toHaveAttribute(
       'data-active',
       'true',
     );
-    await expect(page.getByTestId('promotion-day-pill-sun')).toHaveAttribute(
+    await expect(page.getByTestId('promotion-day-toggle-sun')).toHaveAttribute(
       'data-active',
       'true',
     );
-    await expect(page.getByTestId('promotion-time-start')).toHaveValue('09:00');
-    await expect(page.getByTestId('promotion-time-end')).toHaveValue('13:00');
+    await expect(page.getByTestId('promotion-day-start-sat')).toHaveValue('09:00');
+    await expect(page.getByTestId('promotion-day-end-sat')).toHaveValue('13:00');
   });
 });

@@ -1485,7 +1485,8 @@
         "showTitleHint": "აჩვენე სათაური ბანერის ზემოდან",
         "comboProductsLabel": "კომბოს პროდუქტები",
         "comboProductsHint": "აირჩიე მინიმუმ 2 პროდუქტი",
-        "comboPriceLabel": "კომბო ფასი (₾)"
+        "comboPriceLabel": "კომბო ფასი (₾)",
+        "dayInactive": "გამორთული"
       }
     }
   },

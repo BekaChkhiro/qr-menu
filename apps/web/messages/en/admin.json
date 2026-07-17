@@ -1485,7 +1485,8 @@
         "showTitleHint": "Show the title on top of the banner",
         "comboProductsLabel": "Combo products",
         "comboProductsHint": "Pick at least 2 products",
-        "comboPriceLabel": "Combo price (₾)"
+        "comboPriceLabel": "Combo price (₾)",
+        "dayInactive": "Off"
       }
     }
   },

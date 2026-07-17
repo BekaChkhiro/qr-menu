@@ -1485,7 +1485,8 @@
         "showTitleHint": "Показывать заголовок поверх баннера",
         "comboProductsLabel": "Продукты комбо",
         "comboProductsHint": "Выберите минимум 2 продукта",
-        "comboPriceLabel": "Комбо-цена (₾)"
+        "comboPriceLabel": "Комбо-цена (₾)",
+        "dayInactive": "Выкл."
       }
     }
   },

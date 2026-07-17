@@ -293,11 +293,13 @@ export interface SerializedPublicPromotion {
   type: 'PERCENTAGE' | 'BANNER' | 'COMBO' | null;
   backgroundColor: string | null;
   showTitle: boolean;
+  // T22.21 — per-day windows; legacy rows may still carry the flat shape.
   timeRestrictions: {
-    enabled: boolean;
-    days: string[];
-    startTime: string;
-    endTime: string;
+    enabled?: boolean;
+    windows?: Record<string, { start: string; end: string }>;
+    days?: string[];
+    startTime?: string;
+    endTime?: string;
   } | null;
 }
 

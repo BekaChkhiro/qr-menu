@@ -73,12 +73,34 @@ interface PromotionFormValues {
   showTitle?: boolean;
   comboProductIds?: string[];
   comboPrice?: string | number | null;
+  // T22.21 — per-day time windows (Mon 12:00–14:00, Tue 09:00–11:00, …).
   timeRestrictions: {
     enabled: boolean;
-    days: string[];
-    startTime: string;
-    endTime: string;
+    windows: Record<string, { start: string; end: string }>;
   };
+}
+
+// Normalize a stored timeRestrictions value (legacy flat OR new windows) into
+// the per-day windows shape used by the form.
+function toWindows(
+  tr:
+    | {
+        enabled?: boolean;
+        days?: string[];
+        startTime?: string;
+        endTime?: string;
+        windows?: Record<string, { start: string; end: string }>;
+      }
+    | null
+    | undefined,
+): Record<string, { start: string; end: string }> {
+  if (tr?.windows && Object.keys(tr.windows).length > 0) return tr.windows;
+  if (tr?.days?.length) {
+    return Object.fromEntries(
+      tr.days.map((d) => [d, { start: tr.startTime ?? '09:00', end: tr.endTime ?? '18:00' }]),
+    );
+  }
+  return {};
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -184,7 +206,7 @@ export function PromotionDrawer({
       showTitle: true,
       comboProductIds: [],
       comboPrice: null,
-      timeRestrictions: { enabled: false, days: [], startTime: '09:00', endTime: '18:00' },
+      timeRestrictions: { enabled: false, windows: {} },
     },
   });
 
@@ -223,9 +245,7 @@ export function PromotionDrawer({
         comboPrice: promotion?.comboPrice ?? null,
         timeRestrictions: {
           enabled: tr?.enabled ?? false,
-          days: tr?.days ?? [],
-          startTime: tr?.startTime ?? '09:00',
-          endTime: tr?.endTime ?? '18:00',
+          windows: toWindows(tr),
         },
       });
     }
@@ -268,7 +288,7 @@ export function PromotionDrawer({
   const applyTo = form.watch('applyTo');
   const imageUrlWatch = form.watch('imageUrl');
   const timeEnabled = form.watch('timeRestrictions.enabled');
-  const timeDays = form.watch('timeRestrictions.days');
+  const timeWindows = form.watch('timeRestrictions.windows');
 
   // Header dots: language is "filled" once either its title or description has content.
   const titleKaWatch = form.watch('titleKa');
@@ -682,26 +702,38 @@ export function PromotionDrawer({
                   />
 
                   {timeEnabled && (
-                    <div className="mt-3 space-y-3">
-                      {/* Day pills */}
-                      <div className="flex gap-1.5" data-testid="promotion-day-pills">
-                        {WEEK_DAYS.map((day) => {
-                          const active = timeDays.includes(day.key);
-                          return (
+                    <div className="mt-3 space-y-2" data-testid="promotion-day-windows">
+                      {/* Per-day windows (T22.21): each day can carry its own
+                          start/end so operators can set e.g. Mon 12:00–14:00
+                          and Tue 09:00–11:00. */}
+                      {WEEK_DAYS.map((day) => {
+                        const win = timeWindows?.[day.key];
+                        const active = !!win;
+                        const setWindow = (next: { start: string; end: string } | null) => {
+                          const current = { ...(form.getValues('timeRestrictions.windows') || {}) };
+                          if (next) current[day.key] = next;
+                          else delete current[day.key];
+                          form.setValue('timeRestrictions.windows', current, { shouldValidate: true });
+                        };
+                        return (
+                          <div
+                            key={day.key}
+                            data-testid={`promotion-day-row-${day.key}`}
+                            data-active={active ? 'true' : 'false'}
+                            className={cn(
+                              'flex items-center gap-2.5 rounded-lg border p-2',
+                              active ? 'border-accent bg-card' : 'border-border',
+                            )}
+                          >
                             <button
-                              key={day.key}
                               type="button"
-                              onClick={() => {
-                                const current = form.getValues('timeRestrictions.days');
-                                const next = active
-                                  ? current.filter((d) => d !== day.key)
-                                  : [...current, day.key];
-                                form.setValue('timeRestrictions.days', next, { shouldValidate: true });
-                              }}
-                              data-testid={`promotion-day-pill-${day.key}`}
+                              onClick={() =>
+                                setWindow(active ? null : { start: '09:00', end: '18:00' })
+                              }
+                              data-testid={`promotion-day-toggle-${day.key}`}
                               data-active={active ? 'true' : 'false'}
                               className={cn(
-                                'flex h-8 w-8 items-center justify-center rounded-md border text-[11.5px] font-semibold transition-colors',
+                                'flex h-8 w-9 shrink-0 items-center justify-center rounded-md border text-[11.5px] font-semibold transition-colors',
                                 active
                                   ? 'border-text-default bg-text-default text-white'
                                   : 'border-border bg-card text-text-muted hover:bg-chip',
@@ -709,44 +741,38 @@ export function PromotionDrawer({
                             >
                               {day.label}
                             </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Time range */}
-                      <div className="flex items-center gap-2.5" data-testid="promotion-time-range">
-                        <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
-                          <Clock className="h-3.5 w-3.5 text-text-muted" strokeWidth={1.5} />
-                          <Controller
-                            control={form.control}
-                            name="timeRestrictions.startTime"
-                            render={({ field }) => (
-                              <input
-                                type="time"
-                                {...field}
-                                className="w-full bg-transparent text-[13px] font-mono tabular-nums text-text-default outline-none"
-                                data-testid="promotion-time-start"
-                              />
+                            {active ? (
+                              <div className="flex flex-1 items-center gap-2">
+                                <div className="flex flex-1 items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
+                                  <Clock className="h-3.5 w-3.5 text-text-muted" strokeWidth={1.5} />
+                                  <input
+                                    type="time"
+                                    value={win!.start}
+                                    onChange={(e) => setWindow({ start: e.target.value, end: win!.end })}
+                                    className="w-full bg-transparent text-[13px] font-mono tabular-nums text-text-default outline-none"
+                                    data-testid={`promotion-day-start-${day.key}`}
+                                  />
+                                </div>
+                                <span className="text-[12px] text-text-muted">{t('fields.timeTo')}</span>
+                                <div className="flex flex-1 items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
+                                  <Clock className="h-3.5 w-3.5 text-text-muted" strokeWidth={1.5} />
+                                  <input
+                                    type="time"
+                                    value={win!.end}
+                                    onChange={(e) => setWindow({ start: win!.start, end: e.target.value })}
+                                    className="w-full bg-transparent text-[13px] font-mono tabular-nums text-text-default outline-none"
+                                    data-testid={`promotion-day-end-${day.key}`}
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="flex-1 text-[12px] text-text-muted">
+                                {t('fields.dayInactive')}
+                              </span>
                             )}
-                          />
-                        </div>
-                        <span className="text-[12px] text-text-muted">{t('fields.timeTo')}</span>
-                        <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
-                          <Clock className="h-3.5 w-3.5 text-text-muted" strokeWidth={1.5} />
-                          <Controller
-                            control={form.control}
-                            name="timeRestrictions.endTime"
-                            render={({ field }) => (
-                              <input
-                                type="time"
-                                {...field}
-                                className="w-full bg-transparent text-[13px] font-mono tabular-nums text-text-default outline-none"
-                                data-testid="promotion-time-end"
-                              />
-                            )}
-                          />
-                        </div>
-                      </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

@@ -63,16 +63,42 @@ export type DiscountTypeValue = (typeof DiscountType)[keyof typeof DiscountType]
 export type ApplyToTypeValue = (typeof ApplyToType)[keyof typeof ApplyToType];
 export type WeekDayValue = (typeof WeekDay)[keyof typeof WeekDay];
 
-// ── Time restrictions schema ────────────────────────────────────────────────
+// ── Time restrictions schema (T22.21) ───────────────────────────────────────
+//
+// Per-day windows: each weekday can carry its own start/end (Mon 12:00–14:00,
+// Tue 09:00–11:00). The canonical shape is `{ enabled, windows }`. The legacy
+// flat shape `{ enabled, days[], startTime, endTime }` is still accepted on
+// read and normalized into `windows` so old rows keep working.
+const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+const HHMM = z.string().regex(/^\d{2}:\d{2}$/, 'Use HH:MM format');
 
-export const timeRestrictionsSchema = z.object({
-  enabled: z.boolean().default(false),
-  days: z.array(z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])).default([]),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/, 'Use HH:MM format').default('09:00'),
-  endTime: z.string().regex(/^\d{2}:\d{2}$/, 'Use HH:MM format').default('18:00'),
+const timeWindowSchema = z.object({
+  start: HHMM.default('09:00'),
+  end: HHMM.default('18:00'),
 });
 
+export const timeRestrictionsSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    windows: z.record(z.enum(WEEKDAYS), timeWindowSchema).optional(),
+    // legacy (accepted on read; migrated below)
+    days: z.array(z.enum(WEEKDAYS)).optional(),
+    startTime: HHMM.optional(),
+    endTime: HHMM.optional(),
+  })
+  .transform((v) => {
+    let windows = v.windows ?? {};
+    // Migrate legacy days[]+startTime+endTime → per-day windows.
+    if ((!v.windows || Object.keys(v.windows).length === 0) && v.days?.length) {
+      windows = Object.fromEntries(
+        v.days.map((d) => [d, { start: v.startTime ?? '09:00', end: v.endTime ?? '18:00' }]),
+      );
+    }
+    return { enabled: v.enabled, windows };
+  });
+
 export type TimeRestrictionsInput = z.infer<typeof timeRestrictionsSchema>;
+export type WeekdayKey = (typeof WEEKDAYS)[number];
 
 // ── Create promotion schema ─────────────────────────────────────────────────
 
