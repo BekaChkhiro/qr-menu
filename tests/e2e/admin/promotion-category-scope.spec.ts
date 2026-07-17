@@ -88,8 +88,17 @@ test.describe('T22.18 promotion category scope — public pricing', () => {
 
     // Drinks: a plain product (should get the discount) and one that already
     // carries a manual per-dish discount (should be left untouched — dish wins).
+    // The cocktail carries an image so the −N% ribbon renders — that badge is an
+    // overlay on the product image, so image-less cards show only the
+    // strikethrough + new price.
     await prismaTest.product.create({
-      data: { categoryId: drinks.id, nameKa: 'საფირმო კოქტეილი', price: 20, sortOrder: 0 },
+      data: {
+        categoryId: drinks.id,
+        nameKa: 'საფირმო კოქტეილი',
+        price: 20,
+        imageUrl: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+        sortOrder: 0,
+      },
     });
     await prismaTest.product.create({
       data: {

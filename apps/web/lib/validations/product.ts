@@ -111,7 +111,9 @@ const productExtras = {
   discountWindows: z
     .object({
       enabled: z.boolean(),
-      windows: z.record(
+      // Partial: `z.record` with an enum key is exhaustive in Zod 4 and would
+      // demand all seven days for a single-day discount window.
+      windows: z.partialRecord(
         z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']),
         z.object({
           start: z.string().regex(/^\d{2}:\d{2}$/, 'Use HH:MM format'),

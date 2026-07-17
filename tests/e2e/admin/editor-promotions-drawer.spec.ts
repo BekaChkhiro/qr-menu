@@ -98,10 +98,10 @@ test.describe('promotion drawer (T15.8)', () => {
     await expect(page.getByTestId('promotion-drawer')).toBeVisible();
 
     // Fill title (KA)
-    await page.getByTestId('promotion-title-ka-input').fill('Happy Hour');
+    await page.getByTestId('promotion-title-input').fill('Happy Hour');
 
     // Fill description (KA)
-    await page.getByTestId('promotion-description-ka-input').fill(
+    await page.getByTestId('promotion-description-input').fill(
       'Every evening 18:00–20:00 — cocktails 20% off.',
     );
 
@@ -116,8 +116,12 @@ test.describe('promotion drawer (T15.8)', () => {
 
     // Apply to: Category
     await page.getByTestId('promotion-apply-to-category').click();
-    // Category select should appear
+    // Category select should appear — and a category must actually be picked:
+    // applyTo=CATEGORY without categoryId is rejected by the schema, which would
+    // silently keep the drawer open on Save.
     await expect(page.getByTestId('promotion-category-select')).toBeVisible();
+    await page.getByTestId('promotion-category-select').click();
+    await page.getByRole('option').first().click();
 
     // Enable time restrictions
     await page.getByTestId('promotion-time-restrictions-toggle').click();
@@ -127,9 +131,16 @@ test.describe('promotion drawer (T15.8)', () => {
     await page.getByTestId('promotion-day-toggle-mon').click();
     await page.getByTestId('promotion-day-toggle-fri').click();
 
-    // Set Monday's window
-    await page.getByTestId('promotion-day-start-mon').fill('18:00');
-    await page.getByTestId('promotion-day-end-mon').fill('20:00');
+    // Set Monday's window. TimeField renders hour/minute as separate segments
+    // (T22.21), and mirrors the canonical 24h value on the group's data-value.
+    await page.getByTestId('promotion-day-start-mon-hour').fill('18');
+    await page.getByTestId('promotion-day-start-mon-minute').fill('00');
+    await page.getByTestId('promotion-day-end-mon-hour').fill('20');
+    await page.getByTestId('promotion-day-end-mon-minute').fill('00');
+    await expect(page.getByTestId('promotion-day-start-mon')).toHaveAttribute(
+      'data-value',
+      '18:00',
+    );
 
     // Switch to Appearance tab and upload is skipped in test (complex)
     await page.getByTestId('promotion-drawer-tab-appearance').click();
@@ -167,7 +178,7 @@ test.describe('promotion drawer (T15.8)', () => {
     await page.getByTestId('editor-promotions-new').click();
     await expect(page.getByTestId('promotion-drawer')).toBeVisible();
 
-    await page.getByTestId('promotion-title-ka-input').fill('Lunch Break');
+    await page.getByTestId('promotion-title-input').fill('Lunch Break');
     await page.getByTestId('promotion-type-combo').click();
 
     // Pick the first two products from the combo picker
@@ -260,7 +271,7 @@ test.describe('promotion drawer (T15.8)', () => {
     );
 
     // Verify pre-populated values
-    await expect(page.getByTestId('promotion-title-ka-input')).toHaveValue(
+    await expect(page.getByTestId('promotion-title-input')).toHaveValue(
       'Weekend Brunch',
     );
     await expect(
@@ -281,7 +292,13 @@ test.describe('promotion drawer (T15.8)', () => {
       'data-active',
       'true',
     );
-    await expect(page.getByTestId('promotion-day-start-sat')).toHaveValue('09:00');
-    await expect(page.getByTestId('promotion-day-end-sat')).toHaveValue('13:00');
+    await expect(page.getByTestId('promotion-day-start-sat')).toHaveAttribute(
+      'data-value',
+      '09:00',
+    );
+    await expect(page.getByTestId('promotion-day-end-sat')).toHaveAttribute(
+      'data-value',
+      '13:00',
+    );
   });
 });

@@ -47,9 +47,13 @@ test.describe('product drawer — basics tab (T14.2)', () => {
     return { user, menu };
   }
 
+  // Idempotent: the row may already be open (e.g. after openCreateDrawer), and
+  // blindly clicking the toggle would collapse it again.
   async function expandFirstCategory(page: Page) {
     const firstRow = page.getByTestId('category-row').first();
-    await firstRow.getByTestId('category-row-toggle').click();
+    if ((await firstRow.getAttribute('data-expanded')) !== 'true') {
+      await firstRow.getByTestId('category-row-toggle').click();
+    }
     await expect(firstRow).toHaveAttribute('data-expanded', 'true');
   }
 
@@ -158,11 +162,16 @@ test.describe('product drawer — basics tab (T14.2)', () => {
     // Drawer should close
     await expect(page.getByTestId('product-drawer')).toBeHidden();
 
-    // Expand category again and verify new product row appears
+    // Verify the NEW row appears. Assert by the created id from the POST body —
+    // the seed already contains a "ხაჭაპური აჭარული", so matching on name alone
+    // is ambiguous.
+    const created = (await response.json()).data as { id: string };
     await expandFirstCategory(page);
-    await expect(
-      page.getByTestId('products-list-rows').locator('[data-product-name="ხაჭაპური აჭარული"]')
-    ).toBeVisible();
+    const newRow = page
+      .getByTestId('products-list-rows')
+      .locator(`[data-product-id="${created.id}"]`);
+    await expect(newRow).toBeVisible();
+    await expect(newRow).toHaveAttribute('data-product-name', 'ხაჭაპური აჭარული');
   });
 
   // ── Functional: invalid price ──────────────────────────────────────────────
@@ -182,9 +191,12 @@ test.describe('product drawer — basics tab (T14.2)', () => {
     await expect(errorEl).toBeVisible();
     await expect(errorEl).toContainText('0');
 
-    // Input should have error styling (ring-danger-soft class)
-    const priceInput = page.getByTestId('product-basics-price-input');
-    await expect(priceInput).toHaveClass(/ring-danger-soft/);
+    // Error styling lives on the Input primitive's wrapper — `className` goes to
+    // the wrapper while `data-testid` lands on the inner <input>.
+    const priceWrapper = page
+      .getByTestId('product-basics-price-input')
+      .locator('xpath=..');
+    await expect(priceWrapper).toHaveClass(/ring-danger-soft/);
   });
 
   // ── Functional: discount toggle ─────────────────────────────────────────────
@@ -221,7 +233,7 @@ test.describe('product drawer — basics tab (T14.2)', () => {
     await openEditDrawerForFirstProduct(page);
 
     await page.getByTestId('product-basics-discount-toggle').click();
-    await page.getByTestId('product-basics-discount-mode-percent').click();
+    await page.getByTestId('product-discount-mode-percent').click();
 
     // Original 20 + 10% → computed sale 18
     await page.getByTestId('product-basics-discount-original').fill('20');

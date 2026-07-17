@@ -16,6 +16,19 @@ import { prismaTest } from '../fixtures/seed';
 const RUN_ID = `t22-22-${Date.now()}`;
 const cleanupUserIds: string[] = [];
 
+// T22.21 — windows gate visibility against café time, so the promotion must be
+// live *now* for this spec to reach the detail sheet. Use today's café weekday
+// with an all-day window: still exercises the hours row without racing a clock.
+const TZ = 'Asia/Tbilisi';
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+function cafeWeekdayToday(): string {
+  const short = new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short' }).format(
+    new Date(),
+  );
+  const idx = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(short);
+  return DAY_KEYS[idx < 0 ? 1 : idx];
+}
+
 test.afterAll(async () => {
   for (const id of cleanupUserIds) {
     await prismaTest.user.delete({ where: { id } }).catch(() => {});
@@ -59,7 +72,7 @@ test('tapping a promotion opens a detail sheet with hours; close dismisses it', 
       endDate: new Date(Date.now() + 7 * 86400_000),
       timeRestrictions: {
         enabled: true,
-        windows: { mon: { start: '18:00', end: '20:00' } },
+        windows: { [cafeWeekdayToday()]: { start: '00:00', end: '23:59' } },
       },
     },
   });
@@ -72,7 +85,7 @@ test('tapping a promotion opens a detail sheet with hours; close dismisses it', 
   await expect(sheet).toBeVisible();
   await expect(sheet).toContainText('ბედნიერი საათი');
   await expect(sheet).toContainText('-20%');
-  await expect(page.getByTestId('promotion-detail-hours')).toContainText('18:00–20:00');
+  await expect(page.getByTestId('promotion-detail-hours')).toContainText('00:00–23:59');
 
   await page.getByTestId('promotion-detail-close').click();
   await expect(sheet).toHaveCount(0);

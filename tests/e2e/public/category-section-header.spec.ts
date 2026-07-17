@@ -20,6 +20,15 @@ let catWithImageId: string;
 let catNoImageId: string;
 
 test.describe('T21.11 — public category section banner', () => {
+  // The middleware negotiates the locale from Accept-Language, and Playwright's
+  // Chrome sends en-US — which would render the English category names. Pin KA
+  // so these Georgian assertions test what they mean to.
+  test.beforeEach(async ({ context }) => {
+    await context.addCookies([
+      { name: 'NEXT_LOCALE', value: 'ka', domain: 'localhost', path: '/' },
+    ]);
+  });
+
   test.beforeAll(async () => {
     const user = await seedUser({ plan: 'STARTER', email, name: 'Nino Kapanadze' });
     userId = user.id;
@@ -115,9 +124,11 @@ test.describe('T21.11 — public category section banner', () => {
     // No <img> in a fallback banner
     await expect(banner.locator('img')).toHaveCount(0);
 
-    // Initial span shows the first Unicode character of "სასმელები"
+    // Initial span shows the first character of "სასმელები", uppercased — which
+    // for Georgian maps mkhedruli "ს" to mtavruli "Ს". This matches the existing
+    // CategoryAvatar convention (it uppercases its initial the same way).
     const initial = banner.locator('[data-testid="category-banner-initial"]');
-    await expect(initial).toContainText('ს');
+    await expect(initial).toContainText('Ს');
 
     const box = await banner.boundingBox();
     expect(box!.height).toBeGreaterThanOrEqual(120);

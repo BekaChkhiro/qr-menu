@@ -70,6 +70,13 @@ async function openPromotionsTabAndDrawer(page: Page, menuId: string) {
   await page.getByTestId('editor-promotions-new').click();
   await expect(page.getByTestId('promotion-drawer')).toBeVisible();
 
+  // Bring the drawer to a saveable baseline so these specs isolate UPLOAD
+  // behavior rather than the save guards: a KA title is always required, and a
+  // Banner promotion needs nothing else (a Percentage one would also demand a
+  // discount value — see T22.19).
+  await page.getByTestId('promotion-title-input').fill('ბედნიერი საათი');
+  await page.getByTestId('promotion-type-banner').click();
+
   // The banner uploader lives on the Appearance tab.
   await page.getByTestId('promotion-drawer-tab-appearance').click();
   await expect(page.getByTestId('promotion-image-dropzone')).toBeVisible();
@@ -78,11 +85,16 @@ async function openPromotionsTabAndDrawer(page: Page, menuId: string) {
 test.describe('T21.10 promotion upload performance', () => {
   test.describe.configure({ mode: 'serial' });
 
-  test.beforeEach(async (_, testInfo) => {
+  test.beforeEach(async ({ context }, testInfo) => {
     test.skip(
       testInfo.project.name !== 'desktop',
       'Promotion drawer is desktop-only — mobile variant lands in a later phase.',
     );
+    // Pin the admin locale so copy assertions ("Uploading image…") are stable —
+    // the drawer otherwise renders Georgian by default.
+    await context.addCookies([
+      { name: 'NEXT_LOCALE', value: 'en', domain: 'localhost', path: '/' },
+    ]);
   });
 
   test.afterAll(async () => {

@@ -80,7 +80,10 @@ const timeWindowSchema = z.object({
 export const timeRestrictionsSchema = z
   .object({
     enabled: z.boolean().default(false),
-    windows: z.record(z.enum(WEEKDAYS), timeWindowSchema).optional(),
+    // `z.record` with an enum key is EXHAUSTIVE in Zod 4 — it would demand all
+    // seven days and reject a Mon-only window. Windows are sparse by nature, so
+    // this must be a partial record.
+    windows: z.partialRecord(z.enum(WEEKDAYS), timeWindowSchema).optional(),
     // legacy (accepted on read; migrated below)
     days: z.array(z.enum(WEEKDAYS)).optional(),
     startTime: HHMM.optional(),

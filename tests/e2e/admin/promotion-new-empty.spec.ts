@@ -108,12 +108,42 @@ test.describe('T21.9 promotion form — empty defaults + Save guard', () => {
     const save = page.getByTestId('promotion-drawer-save');
     await expect(save).toBeDisabled();
 
+    // Banner promotions need nothing but the title, so this isolates the title
+    // guard. (Percentage — the default type — additionally requires a discount
+    // value; asserted separately below.)
+    await page.getByTestId('promotion-type-banner').click();
+
     // Typing the required title flips Save to enabled.
     await page.getByTestId('promotion-title-input').fill('Happy Hour');
     await expect(save).toBeEnabled();
 
     // Clearing the title disables Save again.
     await page.getByTestId('promotion-title-input').fill('');
+    await expect(save).toBeDisabled();
+  });
+
+  test('T22.19: a percentage promotion also requires a discount value', async ({
+    page,
+  }) => {
+    const email = `t21-9-pct-${RUN_ID}@test.local`;
+    const { menu } = await seedUserAndMenu(email, `linville-${RUN_ID}-pct`);
+
+    await loginAs(page, email);
+    await openNewPromotion(page, menu.id);
+
+    const save = page.getByTestId('promotion-drawer-save');
+    await page.getByTestId('promotion-type-percentage').click();
+
+    // Title alone is not enough — a percentage promotion with no % would save
+    // as a no-op that never discounts anything.
+    await page.getByTestId('promotion-title-input').fill('Happy Hour');
+    await expect(save).toBeDisabled();
+
+    await page.getByTestId('promotion-discount-value-input').fill('20');
+    await expect(save).toBeEnabled();
+
+    // Zeroing the discount disables Save again.
+    await page.getByTestId('promotion-discount-value-input').fill('0');
     await expect(save).toBeDisabled();
   });
 });
