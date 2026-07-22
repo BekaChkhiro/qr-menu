@@ -7,7 +7,7 @@
     },
     {
       "path": "/api/cron/schedule-menus",
-      "schedule": "0 * * * *"
+      "schedule": "0 20 * * *"
     }
   ]
 }
