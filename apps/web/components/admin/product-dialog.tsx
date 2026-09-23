@@ -15,8 +15,10 @@ import { ProductDrawerAllergensTab } from './product-drawer-allergens-tab';
 import { AllergensLocked } from './product-drawer/allergens-locked';
 import { ArLocked } from './product-drawer/ar-locked';
 import { ProductDrawerArTab } from './product-drawer-ar-tab';
-import { LangTabsInline, type LangCode } from './product-drawer/lang-tabs-inline';
+import { LangTabsInline, menuLanguages, type LangCode } from './product-drawer/lang-tabs-inline';
 import type { Product, Category } from '@/types/menu';
+import { useMenu } from '@/hooks/use-menus';
+import { normalizeWorkingHours } from '@/lib/menu/working-hours';
 
 const FORM_ID = 'product-drawer-form';
 
@@ -66,6 +68,12 @@ export function ProductDialog({
 }: ProductDialogProps) {
   const t = useTranslations('admin.products.drawer');
   const tActions = useTranslations('actions');
+
+  // T24.4 — the venue's opening hours pre-fill the dish-discount day windows.
+  const { data: menu } = useMenu(menuId);
+  const workingHours = normalizeWorkingHours(menu?.workingHours);
+  // T24.12 — only offer the languages this menu actually publishes.
+  const menuLangs = menuLanguages(menu?.enabledLanguages);
   const isEditing = !!product;
   const [activeTab, setActiveTab] = useState<DrawerTab>('basics');
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -244,21 +252,6 @@ export function ProductDialog({
           </SheetPrimitive.Close>
         </div>
 
-        {/* ── Drawer-wide language scope (T21.8) ───────────────────────── */}
-        <div
-          className="flex-shrink-0 border-b border-border-soft px-5 pt-2.5"
-          data-testid="product-drawer-lang-scope"
-          data-active-lang={activeLang}
-        >
-          <LangTabsInline
-            active={activeLang}
-            onChange={setActiveLang}
-            statuses={headerStatuses}
-            multilangUnlocked={multilangUnlocked}
-            data-testid="product-drawer-lang-tabs"
-          />
-        </div>
-
         {/* ── Tabs strip + body (Tabs root wraps trigger list & content) ── */}
         <Tabs
           value={activeTab}
@@ -362,6 +355,29 @@ export function ProductDialog({
                 activeLang={activeLang}
                 onLangStatusesChange={setLangStatuses}
                 onForceLang={setActiveLang}
+                workingHours={workingHours}
+                /* T24.20 — the strip used to sit in the drawer header above the
+                   tab bar, reading as if it scoped the whole product. It only
+                   scopes the name and description, so the form places it right
+                   above the Name field. T24.12 — nothing to switch on a
+                   Georgian-only menu, so it renders nothing there. */
+                langTabs={
+                  menuLangs.length > 1 ? (
+                    <div
+                      data-testid="product-drawer-lang-scope"
+                      data-active-lang={activeLang}
+                    >
+                      <LangTabsInline
+                        active={activeLang}
+                        onChange={setActiveLang}
+                        statuses={headerStatuses}
+                        multilangUnlocked={multilangUnlocked}
+                        availableLanguages={menuLangs}
+                        data-testid="product-drawer-lang-tabs"
+                      />
+                    </div>
+                  ) : null
+                }
               />
             </TabsContent>
 

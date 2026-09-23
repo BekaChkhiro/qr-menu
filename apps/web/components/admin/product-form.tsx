@@ -18,7 +18,8 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { LangCode } from './product-drawer/lang-tabs-inline';
-import { DayWindowsEditor } from './day-windows-editor';
+import { DayWindowsEditor, defaultDayWindows } from './day-windows-editor';
+import type { WorkingHoursDay } from '@/lib/menu/working-hours';
 import { TagsInput } from './product-drawer/tags-input';
 import { ProductImageField } from './product-drawer/product-image-field';
 import type { Product, Category } from '@/types/menu';
@@ -49,7 +50,15 @@ const productFormSchema = z.object({
   discountWindows: z
     .object({
       enabled: z.boolean(),
-      windows: z.record(z.string(), z.object({ start: z.string(), end: z.string() })),
+      windows: z.record(
+        z.string(),
+        z.object({
+          start: z.string(),
+          end: z.string(),
+          breakStart: z.string().nullish(),
+          breakEnd: z.string().nullish(),
+        }),
+      ),
     })
     .optional(),
   imageUrl: z.string().url('Invalid URL').optional().or(z.literal('')),
@@ -85,6 +94,14 @@ interface ProductFormProps {
   onLangStatusesChange?: (statuses: LangStatuses) => void;
   /** Fires when a KA validation error forces the drawer to swap back to KA on submit. */
   onForceLang?: (lang: LangCode) => void;
+  /** T24.4 — venue hours, used to pre-fill the discount day/hour windows. */
+  workingHours?: WorkingHoursDay[] | null;
+  /**
+   * T24.20 — the KA/EN/RU strip, rendered directly above the Name field rather
+   * than in the drawer header. The drawer still owns the language state; the
+   * form only decides where the control sits, next to the fields it governs.
+   */
+  langTabs?: React.ReactNode;
 }
 
 export function ProductForm({
@@ -101,6 +118,8 @@ export function ProductForm({
   activeLang = 'KA',
   onLangStatusesChange,
   onForceLang,
+  workingHours,
+  langTabs,
 }: ProductFormProps) {
   const t = useTranslations('admin.products.form');
   const tActions = useTranslations('actions');
@@ -230,6 +249,9 @@ export function ProductForm({
       : activeLang === 'EN'
         ? 'descriptionEn'
         : 'descriptionRu';
+  // T24.20 — read through `watch` with the ACTIVE key so the rendered value
+  // follows the language switcher instead of whatever was bound at mount.
+  const activeNameValue = watch(nameFieldKey) || '';
   const activeDescValue = watch(descFieldKey) || '';
 
   // Discount percentage pill
@@ -272,12 +294,34 @@ export function ProductForm({
     }
   };
 
+  // T24.11 — switching the discount on moves the price the operator already
+  // typed into "Original" and clears the sale field, because that is the
+  // direction the numbers actually flow: the existing price BECOMES the old
+  // price, and the new one is what still needs entering. Previously "Original"
+  // opened blank and the existing price sat in the sale field, so every
+  // discount started by retyping a number that was already on screen — and in
+  // percent mode the untouched sale field made the discount read as 0%.
   const handleDiscountToggle = (checked: boolean) => {
     setHasDiscount(checked);
-    if (!checked) {
-      setValue('oldPrice', '');
-      setPercentInput('');
+
+    if (checked) {
+      const currentPrice = (price || '').trim();
+      const currentOld = (oldPrice || '').trim();
+      if (currentPrice !== '' && currentOld === '') {
+        setValue('oldPrice', currentPrice, { shouldValidate: true });
+        setValue('price', '', { shouldValidate: false });
+      }
+      return;
     }
+
+    // Switching off: hand the original back to the price field rather than
+    // dropping it, so turning the toggle off twice never loses the number.
+    const original = (oldPrice || '').trim();
+    if (original !== '' && (price || '').trim() === '') {
+      setValue('price', original, { shouldValidate: true });
+    }
+    setValue('oldPrice', '');
+    setPercentInput('');
   };
 
   return (
@@ -305,8 +349,10 @@ export function ProductForm({
         />
 
         {/* ── 2. Name ───────────────────────────────────────────────────── */}
-        {/* Language scope (KA/EN/RU) is owned by the parent drawer header — */}
-        {/* the form just renders the field for the active language. */}
+        {/* T24.20 — the language scope sits right here, above the field it
+            governs. The parent drawer still owns the state; this form only
+            renders the control and the field for the active language. */}
+        {langTabs}
         <div className="mb-[22px]">
           <div className="mb-2 flex items-baseline justify-between">
             <span className="text-[12px] font-semibold uppercase tracking-[0.1px] text-text-default">
@@ -314,25 +360,30 @@ export function ProductForm({
             </span>
             <span className="text-[11px] text-text-subtle">{t('basicsHintName')}</span>
           </div>
-          <Controller
-            control={form.control}
-            name={nameFieldKey}
-            render={({ field }) => (
-              <Input
-                {...field}
-                value={field.value || ''}
-                data-testid="product-basics-name-input"
-                data-active-lang={activeLang}
-                placeholder={
-                  activeLang === 'KA'
-                    ? t('nameKaPlaceholder')
-                    : activeLang === 'EN'
-                    ? t('nameEnPlaceholder')
-                    : t('nameRuPlaceholder')
-                }
-                className={cn(errors.nameKa && activeLang === 'KA' && 'border-danger ring-[3px] ring-danger-soft')}
-              />
-            )}
+          {/* T24.20 — bound by watch/setValue rather than Controller or register.
+              Both of those bind a field name at MOUNT and do not re-read when
+              the name changes underneath them, so switching language left the
+              previous language's text in the box — and saved it there. Reading
+              through `watch(nameFieldKey)` re-subscribes on every render, so the
+              box always shows the language currently selected. */}
+          <Input
+            value={activeNameValue}
+            onChange={(e) =>
+              setValue(nameFieldKey, e.target.value, {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
+            }
+            data-testid="product-basics-name-input"
+            data-active-lang={activeLang}
+            placeholder={
+              activeLang === 'KA'
+                ? t('nameKaPlaceholder')
+                : activeLang === 'EN'
+                ? t('nameEnPlaceholder')
+                : t('nameRuPlaceholder')
+            }
+            className={cn(errors.nameKa && activeLang === 'KA' && 'border-danger ring-[3px] ring-danger-soft')}
           />
           {errors.nameKa && activeLang === 'KA' && (
             <p className="mt-1.5 flex items-center gap-1 text-[11.5px] text-danger">
@@ -350,31 +401,28 @@ export function ProductForm({
             </span>
           </div>
           <div className="relative">
-            <Controller
-              control={form.control}
-              name={descFieldKey}
-              render={({ field }) => (
-                <textarea
-                  {...field}
-                  value={field.value || ''}
-                  data-testid="product-basics-description-textarea"
-                  data-active-lang={activeLang}
-                  maxLength={500}
-                  placeholder={
-                    activeLang === 'KA'
-                      ? t('descriptionKaPlaceholder')
-                      : activeLang === 'EN'
-                      ? t('descriptionEnPlaceholder')
-                      : t('descriptionRuPlaceholder')
-                  }
-                  className={cn(
-                    'w-full resize-none rounded-md border border-border bg-card px-3 pb-6 pt-2.5 text-[13px] text-text-default placeholder:text-text-subtle',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1',
-                    'min-h-[72px]',
-                  )}
-                  rows={3}
-                />
+            {/* T24.20 — see the name field above: bound by watch/setValue. */}
+            <textarea
+              value={activeDescValue}
+              onChange={(e) =>
+                setValue(descFieldKey, e.target.value, { shouldDirty: true })
+              }
+              data-testid="product-basics-description-textarea"
+              data-active-lang={activeLang}
+              maxLength={500}
+              placeholder={
+                activeLang === 'KA'
+                  ? t('descriptionKaPlaceholder')
+                  : activeLang === 'EN'
+                  ? t('descriptionEnPlaceholder')
+                  : t('descriptionRuPlaceholder')
+              }
+              className={cn(
+                'w-full resize-none rounded-md border border-border bg-card px-3 pb-6 pt-2.5 text-[13px] text-text-default placeholder:text-text-subtle',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1',
+                'min-h-[72px]',
               )}
+              rows={3}
             />
             <span
               data-testid="product-basics-description-counter"
@@ -646,12 +694,18 @@ export function ProductForm({
                 <div className="flex items-center gap-2.5">
                   <Switch
                     checked={discountWindowsEnabled}
-                    onCheckedChange={(next) =>
+                    onCheckedChange={(next) => {
+                      const current = discountWindowsValue?.windows ?? {};
                       setValue('discountWindows', {
                         enabled: next,
-                        windows: discountWindowsValue?.windows ?? {},
-                      })
-                    }
+                        // T24.3 — limits start with EVERY day on (venue hours
+                        // when known); the operator switches off what's excluded.
+                        windows:
+                          next && Object.keys(current).length === 0
+                            ? defaultDayWindows(workingHours)
+                            : current,
+                      });
+                    }}
                     data-testid="product-discount-windows-toggle"
                     aria-label={t('discount.windowsToggle')}
                   />
@@ -675,6 +729,10 @@ export function ProductForm({
                       testIdPrefix="product-discount"
                       inactiveLabel={t('discount.dayInactive')}
                       toLabel={t('discount.timeTo')}
+                      workingHours={workingHours}
+                      addBreakLabel={t('discount.addBreak')}
+                      breakLabel={t('discount.breakLabel')}
+                      useVenueHoursLabel={t('discount.useVenueHours')}
                     />
                   </div>
                 )}

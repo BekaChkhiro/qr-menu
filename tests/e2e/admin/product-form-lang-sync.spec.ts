@@ -151,10 +151,11 @@ test.describe('T21.8 multilingual form sync — product drawer', () => {
     await expect(variationName).toHaveText('პატარა');
     await expect(variationName).toHaveAttribute('data-active-lang', 'KA');
 
-    // Click EN in the drawer header — title, description, and variation name
-    // must all switch to their EN values together.
+    // The language strip lives in Basics; its selection carries across tabs.
+    await page.getByTestId('product-drawer-tab-basics').click();
     await page.getByTestId('product-drawer-lang-tab-EN').click();
     await expect(langScope).toHaveAttribute('data-active-lang', 'EN');
+    await page.getByTestId('product-drawer-tab-variations').click();
     await expect(variationName).toHaveText('Small');
     await expect(variationName).toHaveAttribute('data-active-lang', 'EN');
 

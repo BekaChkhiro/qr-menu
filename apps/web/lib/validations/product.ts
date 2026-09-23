@@ -118,6 +118,9 @@ const productExtras = {
         z.object({
           start: z.string().regex(/^\d{2}:\d{2}$/, 'Use HH:MM format'),
           end: z.string().regex(/^\d{2}:\d{2}$/, 'Use HH:MM format'),
+          // T24.4 — optional mid-day break (split shift).
+          breakStart: z.string().regex(/^\d{2}:\d{2}$/, 'Use HH:MM format').nullish(),
+          breakEnd: z.string().regex(/^\d{2}:\d{2}$/, 'Use HH:MM format').nullish(),
         }),
       ),
     })
