@@ -7,6 +7,7 @@ import {
   pickLocalizedMenuName,
   applyPromotionPricing,
   applyDishDiscountWindows,
+  filterComboProducts,
   livePromotions,
   type SerializedPublicMenu,
 } from '@/lib/public-menu';
@@ -170,7 +171,7 @@ async function renderGuestMenu(args: RenderArgs) {
   void _omitPasswordHash;
   const menu = applyPromotionPricing(
     applyDishDiscountWindows(
-      JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu,
+      filterComboProducts(JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu),
     ),
   );
 

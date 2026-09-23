@@ -1,13 +1,11 @@
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/db';
 import {
   handleApiError,
   createSuccessResponse,
   createErrorResponse,
   ERROR_CODES,
 } from '@/lib/api';
-import { cacheGetOrSet, CACHE_KEYS, CACHE_TTL } from '@/lib/cache/redis';
-import { isWithinDateRange, isWithinWindows, type TimeWindowsValue } from '@/lib/promotions/time-windows';
+import { getPublicMenu, filterComboProducts, livePromotions, type SerializedPublicMenu } from '@/lib/public-menu';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -21,97 +19,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { slug } = await params;
 
-    // Try to get from cache first, or fetch from DB
-    const menu = await cacheGetOrSet(
-      CACHE_KEYS.publicMenu(slug),
-      async () => {
-        return prisma.menu.findUnique({
-          where: {
-            slug,
-            status: 'PUBLISHED',
-          },
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            description: true,
-            logoUrl: true,
-            primaryColor: true,
-            accentColor: true,
-            status: true,
-            publishedAt: true,
-            timezone: true,
-            categories: {
-              orderBy: { sortOrder: 'asc' },
-              select: {
-                id: true,
-                nameKa: true,
-                nameEn: true,
-                nameRu: true,
-                descriptionKa: true,
-                descriptionEn: true,
-                descriptionRu: true,
-                sortOrder: true,
-                products: {
-                  where: { isAvailable: true },
-                  orderBy: { sortOrder: 'asc' },
-                  select: {
-                    id: true,
-                    nameKa: true,
-                    nameEn: true,
-                    nameRu: true,
-                    descriptionKa: true,
-                    descriptionEn: true,
-                    descriptionRu: true,
-                    price: true,
-                    currency: true,
-                    imageUrl: true,
-                    allergens: true,
-                    sortOrder: true,
-                    variations: {
-                      orderBy: { sortOrder: 'asc' },
-                      select: {
-                        id: true,
-                        nameKa: true,
-                        nameEn: true,
-                        nameRu: true,
-                        price: true,
-                        sortOrder: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            promotions: {
-              where: {
-                isActive: true,
-                // Filter dates/hours after reading the cache, in the menu timezone.
-              },
-              orderBy: { startDate: 'asc' },
-              select: {
-                id: true,
-                titleKa: true,
-                titleEn: true,
-                titleRu: true,
-                descriptionKa: true,
-                descriptionEn: true,
-                descriptionRu: true,
-                imageUrl: true,
-                startDate: true,
-                endDate: true,
-                discountType: true,
-                discountValue: true,
-                applyTo: true,
-                categoryId: true,
-                timeRestrictions: true,
-              },
-            },
-          },
-        });
-      },
-      CACHE_TTL.PUBLIC_MENU
-    );
+    // Use the same cached shape as the public/preview pages.
+    const menu = await getPublicMenu(slug);
 
     if (!menu) {
       return createErrorResponse(
@@ -121,14 +30,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    const { passwordHash: _passwordHash, ...publicMenu } = menu;
+    void _passwordHash;
     const now = new Date();
+    const visibleMenu = filterComboProducts(
+      JSON.parse(JSON.stringify(publicMenu)) as SerializedPublicMenu,
+      now,
+    );
     return createSuccessResponse({
-      ...menu,
-      promotions: menu.promotions.filter(
-        (promotion) =>
-          isWithinDateRange(promotion, now, menu.timezone) &&
-          isWithinWindows(promotion.timeRestrictions as TimeWindowsValue | null, now, menu.timezone),
-      ),
+      ...visibleMenu,
+      promotions: livePromotions(visibleMenu, now),
     });
   } catch (error) {
     return handleApiError(error);

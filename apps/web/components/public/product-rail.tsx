@@ -87,7 +87,7 @@ export function ProductRail({
           </a>
         )}
       </div>
-      <div className="scrollbar-hide flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2">
+      <div className="scrollbar-hide mx-auto flex max-w-2xl snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2">
         {products.map((product) => {
           const price = toNumber(product.price);
           const oldPrice = product.oldPrice != null ? toNumber(product.oldPrice) : null;

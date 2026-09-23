@@ -144,6 +144,7 @@ export const publicMenuSelect = {
       categoryId: true,
       // T22.19/T22.20 — type + appearance for the public carousel variants.
       type: true,
+      comboProductId: true,
       backgroundColor: true,
       showTitle: true,
       timeRestrictions: true,
@@ -319,6 +320,7 @@ export interface SerializedPublicPromotion {
   categoryId: string | null;
   // T22.19/T22.20 — type + appearance.
   type: 'PERCENTAGE' | 'BANNER' | 'COMBO' | null;
+  comboProductId?: string | null;
   backgroundColor: string | null;
   showTitle: boolean;
   // T22.21 — per-day windows; legacy rows may still carry the flat shape.
@@ -386,6 +388,31 @@ export function livePromotions(
   now: Date = new Date(),
 ): SerializedPublicPromotion[] {
   return menu.promotions.filter((p) => isPromotionLive(p, menu.timezone, now));
+}
+
+/**
+ * Generated Offers products are public only while their promotion is live.
+ * The query includes only active promotions, so disabled/missing links also
+ * disappear. Run after cache reads, never store this time-dependent result.
+ * Return new category arrays so a cached menu can be evaluated again later.
+ */
+export function filterComboProducts(
+  menu: SerializedPublicMenu,
+  now: Date = new Date(),
+): SerializedPublicMenu {
+  const liveComboIds = new Set(
+    livePromotions(menu, now)
+      .filter((promotion) => promotion.type === 'COMBO')
+      .map((promotion) => promotion.comboProductId),
+  );
+  return {
+    ...menu,
+    categories: menu.categories
+      .map((category) => category.isSystemOffers
+        ? { ...category, products: category.products.filter((product) => liveComboIds.has(product.id)) }
+        : category)
+      .filter((category) => !category.isSystemOffers || category.products.length > 0),
+  };
 }
 
 // T22.23 — a dish discount can be restricted to certain days/hours. Outside its
