@@ -10,15 +10,48 @@ import { prisma } from '@/lib/db';
 // - Any other promotion (or a combo that lost its price) → remove a previously
 //   generated combo product, if one exists.
 
+/**
+ * T24.8 — the Offers category is never hand-ordered: it always sits at the very
+ * end of the menu. Creating a normal category after it used to leave Offers
+ * stranded in the middle, so every path that can disturb the order calls this
+ * to snap Offers back past the last regular category.
+ */
+export async function pushOffersCategoryLast(menuId: string): Promise<void> {
+  const offers = await prisma.category.findFirst({
+    where: { menuId, isSystemOffers: true },
+    select: { id: true, sortOrder: true },
+  });
+  if (!offers) return;
+
+  const lastRegular = await prisma.category.findFirst({
+    where: { menuId, isSystemOffers: false },
+    orderBy: { sortOrder: 'desc' },
+    select: { sortOrder: true },
+  });
+
+  const target = (lastRegular?.sortOrder ?? -1) + 1;
+  if (offers.sortOrder === target) return;
+
+  await prisma.category.update({
+    where: { id: offers.id },
+    data: { sortOrder: target },
+  });
+}
+
 async function getOrCreateOffersCategory(menuId: string): Promise<string> {
   const existing = await prisma.category.findFirst({
     where: { menuId, isSystemOffers: true },
     select: { id: true },
   });
-  if (existing) return existing.id;
+  if (existing) {
+    await pushOffersCategoryLast(menuId);
+    return existing.id;
+  }
 
+  // Sort past the last *regular* category — the Offers row itself must never
+  // be part of that measurement, or it drifts one slot further on every sync.
   const last = await prisma.category.findFirst({
-    where: { menuId },
+    where: { menuId, isSystemOffers: false },
     orderBy: { sortOrder: 'desc' },
     select: { sortOrder: true },
   });
@@ -56,6 +89,7 @@ export async function syncComboProduct(promotionId: string): Promise<void> {
       descriptionKa: true,
       descriptionEn: true,
       descriptionRu: true,
+      imageUrl: true,
       isActive: true,
       comboProductIds: true,
       comboPrice: true,
@@ -107,6 +141,10 @@ export async function syncComboProduct(promotionId: string): Promise<void> {
     descriptionRu: promo.descriptionRu || join((c) => c.nameRu),
     price: promo.comboPrice!,
     isAvailable: promo.isActive,
+    // T24.9 — the artwork the operator uploaded for the combo is the same
+    // picture the Offers card should show. Without this the combo appeared in
+    // the top banner carousel with a photo but as a blank card in the category.
+    imageUrl: promo.imageUrl,
   };
 
   // Update the linked product if it still exists, else (re)create + relink.

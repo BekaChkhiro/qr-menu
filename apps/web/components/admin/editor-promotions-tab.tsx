@@ -1,14 +1,16 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { format } from 'date-fns';
-import { enUS, ka, ru } from 'date-fns/locale';
+import { enUS, ka, ru, type Locale } from 'date-fns/locale';
 import { toast } from '@/components/ui/toast';
 import {
   Calendar,
   Check,
+  Copy,
   Eye,
   Pencil,
   Plus,
@@ -19,6 +21,7 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { StatusPill } from '@/components/ui/status-pill';
 import { PromotionCalendar } from './promotion-calendar';
 import {
@@ -43,12 +46,15 @@ import { PromotionDrawer } from './promotion-drawer';
 import {
   useCreatePromotion,
   useDeletePromotion,
+  useDuplicatePromotion,
   usePromotions,
+  useTogglePromotionActive,
   useUpdatePromotion,
 } from '@/hooks/use-promotions';
 import type { Promotion } from '@/types/menu';
 import type { CreatePromotionInput } from '@/lib/validations/promotion';
 import { cn } from '@/lib/utils';
+import { hasEnded, isScheduled } from '@/lib/promotions/time-windows';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -67,27 +73,6 @@ interface EditorPromotionsTabProps {
 
 const DATE_LOCALES = { ka, en: enUS, ru } as const;
 
-// Deterministic banner palette — cycles through the 4 variants from
-// qr-menu-design/components/promotions-page.jsx (happyhour / brunch / mother / easter).
-const BANNER_VARIANTS = [
-  {
-    bg: 'linear-gradient(135deg, #B8633D, #7A3F27)',
-    accent: 'rgba(255, 220, 190, 0.2)',
-  },
-  {
-    bg: 'linear-gradient(135deg, #7A8C5F, #4F5F3F)',
-    accent: 'rgba(230, 240, 210, 0.15)',
-  },
-  {
-    bg: 'linear-gradient(135deg, #B8423D, #7A2A27)',
-    accent: 'rgba(255, 190, 180, 0.2)',
-  },
-  {
-    bg: 'linear-gradient(135deg, #5D7A91, #3F5363)',
-    accent: 'rgba(200, 220, 240, 0.15)',
-  },
-] as const;
-
 function hashString(input: string): number {
   let h = 0;
   for (let i = 0; i < input.length; i++) {
@@ -96,15 +81,11 @@ function hashString(input: string): number {
   return Math.abs(h);
 }
 
-function pickBanner(id: string) {
-  return BANNER_VARIANTS[hashString(id) % BANNER_VARIANTS.length];
-}
-
+// T24.1 — dates are optional: a promotion with neither runs purely off its
+// on/off switch, so it can only ever be "active" or (switched off) "ended".
 function getPromotionStatus(promotion: Promotion, now: Date = new Date()): PromotionStatus {
-  const start = new Date(promotion.startDate);
-  const end = new Date(promotion.endDate);
-  if (!promotion.isActive || end.getTime() < now.getTime()) return 'ended';
-  if (start.getTime() > now.getTime()) return 'scheduled';
+  if (!promotion.isActive || hasEnded(promotion, now)) return 'ended';
+  if (isScheduled(promotion, now)) return 'scheduled';
   return 'active';
 }
 
@@ -128,8 +109,29 @@ function pickLocale(locale: string) {
   return DATE_LOCALES[locale as keyof typeof DATE_LOCALES] ?? enUS;
 }
 
+// T24.1 — either side of the validity window may be missing.
+function formatDateRange(
+  promotion: Promotion,
+  dateLocale: Locale,
+  tCard: (key: string, values?: Record<string, string | number>) => string,
+): string {
+  const start = promotion.startDate ? new Date(promotion.startDate) : null;
+  const end = promotion.endDate ? new Date(promotion.endDate) : null;
+  if (!start && !end) return tCard('noDates');
+  if (start && !end) {
+    return tCard('fromDate', { date: format(start, 'MMM d, yyyy', { locale: dateLocale }) });
+  }
+  if (!start && end) {
+    return tCard('untilDate', { date: format(end, 'MMM d, yyyy', { locale: dateLocale }) });
+  }
+  return `${format(start!, 'MMM d', { locale: dateLocale })} → ${format(end!, 'MMM d, yyyy', {
+    locale: dateLocale,
+  })}`;
+}
+
 // ── Promo banner ─────────────────────────────────────────────────────────────
 
+// T24.6/T24.21 — show authored artwork or colour, otherwise a neutral theme surface.
 function PromoBanner({
   promotion,
   title,
@@ -139,43 +141,57 @@ function PromoBanner({
   title: string;
   desaturate: boolean;
 }) {
-  const variant = pickBanner(promotion.id);
+  const imageUrl = promotion.imageUrl || null;
+  const bgColor = promotion.backgroundColor || null;
+  const isNeutral = !imageUrl && !bgColor;
+
   return (
     <div
-      className="relative aspect-[16/9] overflow-hidden rounded-t-lg"
+      className={cn(
+        'relative aspect-[16/9] overflow-hidden rounded-t-lg',
+        isNeutral && 'ring-1 ring-border',
+      )}
       style={{
-        background: variant.bg,
+        background: imageUrl ? undefined : (bgColor ?? 'hsl(var(--muted))'),
         filter: desaturate ? 'saturate(0.45)' : undefined,
       }}
       aria-hidden="true"
+      data-banner-source={imageUrl ? 'image' : bgColor ? 'color' : 'generated'}
+      data-testid={`editor-promotions-card-${promotion.id}-banner`}
     >
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: `repeating-linear-gradient(115deg, transparent 0 40px, ${variant.accent} 40px 42px)`,
-        }}
-      />
-      <div
-        className="absolute -right-[30px] -bottom-[30px] h-[140px] w-[140px] rounded-full border-2"
-        style={{ borderColor: variant.accent }}
-      />
-      <div
-        className="absolute -top-[20px] right-0 h-[100px] w-[100px] rounded-full"
-        style={{ background: variant.accent }}
-      />
-      <div
-        className="absolute inset-x-[18px] bottom-[14px] text-white"
-        style={{
-          fontFamily: "'Playfair Display', 'Times New Roman', serif",
-          fontWeight: 700,
-          fontSize: 26,
-          lineHeight: 1,
-          letterSpacing: -0.8,
-          textShadow: '0 2px 12px rgba(0, 0, 0, 0.2)',
-        }}
-      >
-        {title}
-      </div>
+      {imageUrl && (
+        <Image
+          src={imageUrl}
+          alt=""
+          fill
+          sizes="(max-width: 768px) 100vw, 400px"
+          className="object-cover"
+        />
+      )}
+
+      {/* Over a photo the title needs its own scrim to stay legible. */}
+      {imageUrl && (
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+      )}
+
+      {promotion.showTitle !== false && (
+        <div
+          className={cn(
+            'absolute inset-x-[18px] bottom-[14px]',
+            isNeutral ? 'text-foreground' : 'text-white',
+          )}
+          style={{
+            fontFamily: "'Playfair Display', 'Times New Roman', serif",
+            fontWeight: 700,
+            fontSize: 26,
+            lineHeight: 1,
+            letterSpacing: -0.8,
+            textShadow: isNeutral ? undefined : '0 2px 12px rgba(0, 0, 0, 0.35)',
+          }}
+        >
+          {title}
+        </div>
+      )}
     </div>
   );
 }
@@ -232,6 +248,12 @@ interface PromoCardProps {
   tKebab: (key: string) => string;
   onEdit: () => void;
   onDelete: () => void;
+  /** T24.2 — flip the promotion on/off straight from the card. */
+  onToggleActive: (next: boolean) => void;
+  isToggling?: boolean;
+  /** T24.7 — clone this promotion from the kebab menu. */
+  onDuplicate: () => void;
+  isDuplicating?: boolean;
 }
 
 function PromoCard({
@@ -243,14 +265,14 @@ function PromoCard({
   tKebab,
   onEdit,
   onDelete,
+  onToggleActive,
+  isToggling = false,
+  onDuplicate,
+  isDuplicating = false,
 }: PromoCardProps) {
   const title = localizedTitle(promotion, locale);
   const dateLocale = pickLocale(locale);
-  const dateRange = `${format(new Date(promotion.startDate), 'MMM d', { locale: dateLocale })} → ${format(
-    new Date(promotion.endDate),
-    'MMM d, yyyy',
-    { locale: dateLocale },
-  )}`;
+  const dateRange = formatDateRange(promotion, dateLocale, tCard);
   const scanLabel = approxScansLabel(promotion, status);
 
   return (
@@ -266,6 +288,19 @@ function PromoCard({
           data-testid={`editor-promotions-card-${promotion.id}-status`}
         >
           <StatusPill status={status} label={tStatus(status)} />
+        </div>
+        {/* T24.2 — on/off switch on the card itself, no drawer round-trip. */}
+        <div className="absolute top-3 right-3 flex items-center gap-2 rounded-full bg-white/85 px-2 py-1 backdrop-blur-sm">
+          <span className="text-[11px] font-semibold text-text-default">
+            {promotion.isActive ? tCard('switchOn') : tCard('switchOff')}
+          </span>
+          <Switch
+            checked={promotion.isActive}
+            onCheckedChange={onToggleActive}
+            disabled={isToggling}
+            aria-label={tCard('switchAriaLabel', { title })}
+            data-testid={`editor-promotions-card-${promotion.id}-active-switch`}
+          />
         </div>
       </div>
 
@@ -326,6 +361,9 @@ function PromoCard({
             <KebabMenuContent align="end">
               <KebabMenuItem icon={Pencil} onClick={onEdit}>
                 {tKebab('edit')}
+              </KebabMenuItem>
+              <KebabMenuItem icon={Copy} onClick={onDuplicate} disabled={isDuplicating}>
+                {tKebab('duplicate')}
               </KebabMenuItem>
               <KebabMenuSeparator />
               <KebabMenuItem tone="destructive" icon={Trash2} onClick={onDelete}>
@@ -400,6 +438,8 @@ export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocke
   const createPromotion = useCreatePromotion(menuId);
   const updatePromotion = useUpdatePromotion(menuId, dialogPromotion?.id ?? '');
   const deletePromotion = useDeletePromotion(menuId);
+  const toggleActive = useTogglePromotionActive(menuId);
+  const duplicatePromotion = useDuplicatePromotion(menuId);
 
   const annotated = React.useMemo(
     () =>
@@ -440,6 +480,24 @@ export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocke
       toast.success(tPromo('toast.updated'));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : tPromo('toast.updateError'));
+    }
+  };
+
+  const handleToggleActive = async (promotion: Promotion, next: boolean) => {
+    try {
+      await toggleActive.mutateAsync({ promotionId: promotion.id, isActive: next });
+      toast.success(next ? tPromo('toast.activated') : tPromo('toast.deactivated'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : tPromo('toast.updateError'));
+    }
+  };
+
+  const handleDuplicate = async (promotion: Promotion) => {
+    try {
+      await duplicatePromotion.mutateAsync(promotion.id);
+      toast.success(tPromo('toast.duplicated'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : tPromo('toast.duplicateError'));
     }
   };
 
@@ -570,10 +628,18 @@ export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocke
               locale={locale}
               status={status}
               tStatus={(key) => t(`status.${key}`)}
-              tCard={(key) => t(`card.${key}`)}
+              tCard={(key, values) => t(`card.${key}`, values)}
               tKebab={(key) => t(`kebab.${key}`)}
               onEdit={() => setDialogPromotion(promotion)}
               onDelete={() => setDeleteTarget(promotion)}
+              onToggleActive={(next) => handleToggleActive(promotion, next)}
+              isToggling={
+                toggleActive.isPending && toggleActive.variables?.promotionId === promotion.id
+              }
+              onDuplicate={() => handleDuplicate(promotion)}
+              isDuplicating={
+                duplicatePromotion.isPending && duplicatePromotion.variables === promotion.id
+              }
             />
           ))}
         </div>
@@ -596,8 +662,9 @@ export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocke
           prefillTitle
             ? ({
                 titleKa: prefillTitle,
-                startDate: new Date().toISOString(),
-                endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+                // T24.1 — templates start with no dates; the switch controls it.
+                startDate: null,
+                endDate: null,
                 isActive: true,
               } as unknown as Promotion)
             : undefined

@@ -23,13 +23,15 @@ import {
 } from '@/components/ui/select';
 import { Banner } from '@/components/ui/banner';
 import { ImageUpload } from './image-upload';
-import { LangTabsInline } from './product-drawer/lang-tabs-inline';
-import { DayWindowsEditor } from './day-windows-editor';
+import { LangTabsInline, menuLanguages } from './product-drawer/lang-tabs-inline';
+import { DayWindowsEditor, defaultDayWindows } from './day-windows-editor';
 import { cn } from '@/lib/utils';
 import { createPromotionSchema, type CreatePromotionInput } from '@/lib/validations/promotion';
 import type { Promotion } from '@/types/menu';
 import { useCategories } from '@/hooks/use-categories';
 import { useProducts } from '@/hooks/use-products';
+import { useMenu } from '@/hooks/use-menus';
+import { normalizeWorkingHours } from '@/lib/menu/working-hours';
 
 const FORM_ID = 'promotion-drawer-form';
 
@@ -60,8 +62,9 @@ interface PromotionFormValues {
   descriptionEn?: string | null;
   descriptionRu?: string | null;
   imageUrl?: string | null;
-  startDate: Date;
-  endDate: Date;
+  // T24.1 — optional: `null` means "no boundary" (runs until switched off).
+  startDate: Date | null;
+  endDate: Date | null;
   isActive: boolean;
   // T22.19 — top-level promotion type drives which fields show.
   type: PromotionType;
@@ -77,7 +80,10 @@ interface PromotionFormValues {
   // T22.21 — per-day time windows (Mon 12:00–14:00, Tue 09:00–11:00, …).
   timeRestrictions: {
     enabled: boolean;
-    windows: Record<string, { start: string; end: string }>;
+    windows: Record<
+      string,
+      { start: string; end: string; breakStart?: string | null; breakEnd?: string | null }
+    >;
   };
 }
 
@@ -90,11 +96,14 @@ function toWindows(
         days?: string[];
         startTime?: string;
         endTime?: string;
-        windows?: Record<string, { start: string; end: string }>;
+        windows?: Record<
+          string,
+          { start: string; end: string; breakStart?: string | null; breakEnd?: string | null }
+        >;
       }
     | null
     | undefined,
-): Record<string, { start: string; end: string }> {
+): Record<string, { start: string; end: string; breakStart?: string | null; breakEnd?: string | null }> {
   if (tr?.windows && Object.keys(tr.windows).length > 0) return tr.windows;
   if (tr?.days?.length) {
     return Object.fromEntries(
@@ -174,6 +183,17 @@ export function PromotionDrawer({
 
   const { data: categories } = useCategories(menuId);
   const { data: products } = useProducts(menuId);
+  // T24.4 — the venue's opening hours pre-fill the day/hour limit rules.
+  const { data: menu } = useMenu(menuId);
+  const workingHours = useMemo(
+    () => normalizeWorkingHours(menu?.workingHours),
+    [menu?.workingHours],
+  );
+  // T24.12 — only offer the languages this menu actually publishes.
+  const menuLangs = useMemo(
+    () => menuLanguages(menu?.enabledLanguages),
+    [menu?.enabledLanguages],
+  );
 
   const form = useForm<PromotionFormValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -186,8 +206,9 @@ export function PromotionDrawer({
       descriptionEn: '',
       descriptionRu: '',
       imageUrl: null,
-      startDate: new Date(),
-      endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      // T24.1 — no dates by default: a new promotion just runs once it's on.
+      startDate: null,
+      endDate: null,
       isActive: true,
       type: 'PERCENTAGE',
       discountType: null,
@@ -219,8 +240,8 @@ export function PromotionDrawer({
         descriptionEn: promotion?.descriptionEn || '',
         descriptionRu: promotion?.descriptionRu || '',
         imageUrl: promotion?.imageUrl || null,
-        startDate: promotion?.startDate ? new Date(promotion.startDate) : new Date(),
-        endDate: promotion?.endDate ? new Date(promotion.endDate) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        startDate: promotion?.startDate ? new Date(promotion.startDate) : null,
+        endDate: promotion?.endDate ? new Date(promotion.endDate) : null,
         isActive: promotion?.isActive ?? true,
         type: inferPromotionType(promotion),
         discountType: (promotion?.discountType as PromotionFormValues['discountType']) || null,
@@ -327,6 +348,9 @@ export function PromotionDrawer({
       : activeLang === 'EN'
         ? 'descriptionEn'
         : 'descriptionRu';
+  // T24.20 — read both through `watch` with the ACTIVE key so the rendered
+  // values follow the language switcher instead of the name bound at mount.
+  const activeTitle = (form.watch(titleFieldKey) as string | null | undefined) || '';
   const activeDescription =
     (form.watch(descFieldKey) as string | null | undefined) || '';
 
@@ -380,21 +404,6 @@ export function PromotionDrawer({
           </SheetPrimitive.Close>
         </div>
 
-        {/* ── Drawer-wide language scope (T21.8) ───────────────────────── */}
-        <div
-          className="flex-shrink-0 border-b border-border-soft px-5 pt-2.5"
-          data-testid="promotion-drawer-lang-scope"
-          data-active-lang={activeLang}
-        >
-          <LangTabsInline
-            active={activeLang}
-            onChange={setActiveLang}
-            statuses={langStatuses}
-            multilangUnlocked={multilangUnlocked}
-            data-testid="promotion-drawer-lang-tabs"
-          />
-        </div>
-
         {/* ── Tabs ─────────────────────────────────────────────────────── */}
         <Tabs
           value={activeTab}
@@ -434,13 +443,45 @@ export function PromotionDrawer({
             <form id={FORM_ID} onSubmit={form.handleSubmit(handleSubmit)}>
               {/* ── Details tab ───────────────────────────────────────── */}
               <TabsContent value="details" className="m-0 space-y-6 p-6 focus-visible:outline-none">
-                {/* Title — single input, language driven by the drawer header (T21.8) */}
+                {/* T24.20 — the language strip used to sit in the drawer header,
+                    above the tab bar, which read as if it scoped the whole
+                    promotion. It only ever scoped the title and description, so
+                    it belongs here: inside Details, directly above the Title it
+                    switches. T24.12 — hidden entirely on a Georgian-only menu. */}
+                {menuLangs.length > 1 && (
+                  <div
+                    data-testid="promotion-drawer-lang-scope"
+                    data-active-lang={activeLang}
+                  >
+                    <LangTabsInline
+                      active={activeLang}
+                      onChange={setActiveLang}
+                      statuses={langStatuses}
+                      multilangUnlocked={multilangUnlocked}
+                      availableLanguages={menuLangs}
+                      data-testid="promotion-drawer-lang-tabs"
+                    />
+                  </div>
+                )}
+
+                {/* Title — single input, language driven by the strip above (T24.20) */}
                 <div data-testid="promotion-drawer-title-field">
                   <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
                     {t('fields.titleLabel')}
                   </div>
+                  {/* T24.20 — bound by watch/setValue rather than register:
+                      register binds a field name at MOUNT and does not re-read
+                      when the name changes underneath it, so switching language
+                      left the previous language's text in the box — and saved it
+                      there. Reading through `watch` re-subscribes every render. */}
                   <Input
-                    {...form.register(titleFieldKey)}
+                    value={activeTitle}
+                    onChange={(e) =>
+                      form.setValue(titleFieldKey, e.target.value, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
                     placeholder={
                       activeLang === 'KA'
                         ? t('fields.titleKaPlaceholder')
@@ -456,13 +497,17 @@ export function PromotionDrawer({
                   )}
                 </div>
 
-                {/* Description — single textarea, language driven by the drawer header (T21.8) */}
+                {/* Description — single textarea, language driven by the strip above (T24.20) */}
                 <div data-testid="promotion-drawer-description-field">
                   <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
                     {t('fields.descriptionLabel')}
                   </div>
+                  {/* T24.20 — see the title field above: bound by watch/setValue. */}
                   <Textarea
-                    {...form.register(descFieldKey)}
+                    value={activeDescription}
+                    onChange={(e) =>
+                      form.setValue(descFieldKey, e.target.value, { shouldDirty: true })
+                    }
                     rows={3}
                     className="resize-none"
                     placeholder={
@@ -789,7 +834,19 @@ export function PromotionDrawer({
                         </div>
                         <Switch
                           checked={field.value}
-                          onCheckedChange={field.onChange}
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked);
+                            // T24.3 — switching limits on starts with EVERY day
+                            // active (venue hours when known); the operator then
+                            // switches off the days the offer must not run.
+                            if (checked && Object.keys(form.getValues('timeRestrictions.windows') || {}).length === 0) {
+                              form.setValue(
+                                'timeRestrictions.windows',
+                                defaultDayWindows(workingHours),
+                                { shouldValidate: true },
+                              );
+                            }
+                          }}
                           data-testid="promotion-time-restrictions-toggle"
                         />
                       </div>
@@ -806,6 +863,10 @@ export function PromotionDrawer({
                         testIdPrefix="promotion"
                         inactiveLabel={t('fields.dayInactive')}
                         toLabel={t('fields.timeTo')}
+                        workingHours={workingHours}
+                        addBreakLabel={t('fields.addBreak')}
+                        breakLabel={t('fields.breakLabel')}
+                        useVenueHoursLabel={t('fields.useVenueHours')}
                       />
                     </div>
                   )}
@@ -829,7 +890,11 @@ export function PromotionDrawer({
                           preset="promotion"
                           aspectRatio="video"
                           disabled={isLoading}
-                          enableCropper={false}
+                          // T24.16 — banners had no way to re-frame a photo, so
+                          // whatever Cloudinary's auto-gravity chose was final
+                          // and the edges of a carefully-composed image were
+                          // simply lost. Categories already ship this cropper.
+                          enableCropper
                           onUploadingChange={setIsImageUploading}
                           testIdPrefix="promotion-image"
                         />
@@ -893,11 +958,19 @@ export function PromotionDrawer({
                         return (
                           <div className="space-y-3">
                             <div
-                              className="flex h-24 items-center justify-center rounded-xl px-4 text-center"
-                              style={{ backgroundColor: value }}
+                              className={cn(
+                                'flex h-24 items-center justify-center rounded-xl px-4 text-center',
+                                !field.value && 'ring-1 ring-border',
+                              )}
+                              style={{ background: field.value || 'hsl(var(--muted))' }}
                               data-testid="promotion-bg-preview"
                             >
-                              <span className="text-[15px] font-semibold text-white drop-shadow">
+                              <span
+                                className={cn(
+                                  'text-[15px] font-semibold',
+                                  field.value ? 'text-white drop-shadow' : 'text-foreground',
+                                )}
+                              >
                                 {titleKaWatch || t('fields.titleKaPlaceholder')}
                               </span>
                             </div>
@@ -931,7 +1004,13 @@ export function PromotionDrawer({
 
               {/* ── Schedule tab ────────────────────────────────────────── */}
               <TabsContent value="schedule" className="m-0 space-y-6 p-6 focus-visible:outline-none">
-                {/* Date range */}
+                {/* Date range — T24.1: both sides optional. */}
+                <p
+                  className="text-[12px] leading-[1.45] text-text-muted"
+                  data-testid="promotion-drawer-dates-optional-hint"
+                >
+                  {t('fields.datesOptionalHint')}
+                </p>
                 <div className="grid gap-4 sm:grid-cols-2" data-testid="promotion-drawer-date-range">
                   <div>
                     <Label className="mb-2 block text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">

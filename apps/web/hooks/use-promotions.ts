@@ -100,6 +100,42 @@ export function useUpdatePromotion(menuId: string, promotionId: string) {
 }
 
 /**
+ * T24.2 — flip a promotion's on/off switch straight from its card, without
+ * opening the drawer. Bound to the menu rather than one promotion so a list of
+ * cards can share a single mutation.
+ */
+export function useTogglePromotionActive(menuId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<Promotion, ApiError, { promotionId: string; isActive: boolean }>({
+    mutationFn: ({ promotionId, isActive }) =>
+      api.put<Promotion>(`/menus/${menuId}/promotions/${promotionId}`, { isActive }),
+    onSuccess: (updatedPromotion, { promotionId }) => {
+      queryClient.setQueryData(queryKeys.promotions.detail(promotionId), updatedPromotion);
+      queryClient.invalidateQueries({ queryKey: queryKeys.promotions.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.menus.detail(menuId) });
+    },
+  });
+}
+
+/**
+ * T24.7 — duplicate a promotion. The server clones every authored field and
+ * returns the copy (switched off, appended to the end of the carousel).
+ */
+export function useDuplicatePromotion(menuId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<Promotion, ApiError, string>({
+    mutationFn: (promotionId) =>
+      api.post<Promotion>(`/menus/${menuId}/promotions/${promotionId}/duplicate`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.promotions.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.menus.detail(menuId) });
+    },
+  });
+}
+
+/**
  * Hook to delete a promotion
  */
 export function useDeletePromotion(menuId: string) {

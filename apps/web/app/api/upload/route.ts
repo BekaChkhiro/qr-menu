@@ -94,6 +94,9 @@ export async function POST(request: NextRequest) {
     const result = await uploadImage(buffer, {
       folder,
       preset: preset as ImagePreset,
+      // T24.17 — GIFs (and JPEGs, and WebPs) were all announced to Cloudinary
+      // as `image/png`, which is what broke animated GIF uploads.
+      mimeType: file.type,
     });
 
     return createSuccessResponse(

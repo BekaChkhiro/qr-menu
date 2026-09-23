@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { format, isPast, isFuture, isWithinInterval } from 'date-fns';
+import { format } from 'date-fns';
 import { ka, enUS, ru } from 'date-fns/locale';
 import { useLocale } from 'next-intl';
 import {
@@ -43,6 +43,7 @@ import {
 import { useUserPlan } from '@/hooks/use-user-plan';
 import type { Promotion } from '@/types/menu';
 import type { CreatePromotionInput } from '@/lib/validations/promotion';
+import { hasEnded, isScheduled } from '@/lib/promotions/time-windows';
 
 interface PromotionsListProps {
   menuId: string;
@@ -56,28 +57,15 @@ const dateLocales = {
 
 type PromotionStatus = 'active' | 'scheduled' | 'expired' | 'inactive';
 
+// T24.1 — either boundary may be absent; a missing one never gates the status.
+// T24.14 — day-inclusive: the shared helpers treat a picked date as the whole
+// café-local day, so "ends today" stays active until midnight rather than
+// expiring at 04:00.
 function getPromotionStatus(promotion: Promotion): PromotionStatus {
-  const now = new Date();
-  const startDate = new Date(promotion.startDate);
-  const endDate = new Date(promotion.endDate);
-
-  if (!promotion.isActive) {
-    return 'inactive';
-  }
-
-  if (isPast(endDate)) {
-    return 'expired';
-  }
-
-  if (isFuture(startDate)) {
-    return 'scheduled';
-  }
-
-  if (isWithinInterval(now, { start: startDate, end: endDate })) {
-    return 'active';
-  }
-
-  return 'inactive';
+  if (!promotion.isActive) return 'inactive';
+  if (hasEnded(promotion)) return 'expired';
+  if (isScheduled(promotion)) return 'scheduled';
+  return 'active';
 }
 
 function getStatusBadge(status: PromotionStatus) {
@@ -163,7 +151,9 @@ export function PromotionsList({ menuId }: PromotionsListProps) {
     }
   };
 
-  const formatDate = (date: string) => {
+  // T24.1 — an absent boundary renders as an em-dash, not "Invalid Date".
+  const formatDate = (date: string | null) => {
+    if (!date) return '—';
     return format(new Date(date), 'PP', {
       locale: dateLocales[locale as keyof typeof dateLocales] || enUS,
     });

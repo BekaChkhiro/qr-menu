@@ -12,6 +12,7 @@ import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 import { logActivity } from '@/lib/activity/log';
 import { syncComboProduct, deleteComboProductFor } from '@/lib/promotions/combo';
+import { isWithinDateRange } from '@/lib/promotions/time-windows';
 
 interface RouteParams {
   params: Promise<{ id: string; pid: string }>;
@@ -105,7 +106,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Verify menu exists and belongs to user
     const menu = await prisma.menu.findUnique({
       where: { id: menuId },
-      select: { userId: true, slug: true },
+      select: { userId: true, slug: true, timezone: true },
     });
 
     if (!menu) {
@@ -144,11 +145,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
     const data = updatePromotionSchema.parse(body);
 
-    // For partial updates, we need to validate dates together
-    const updatedStartDate = data.startDate ?? existingPromotion.startDate;
-    const updatedEndDate = data.endDate ?? existingPromotion.endDate;
+    // For partial updates, we need to validate dates together. `undefined` =
+    // "not sent, keep stored value"; `null` = "explicitly cleared" (T24.1).
+    const updatedStartDate =
+      data.startDate === undefined ? existingPromotion.startDate : data.startDate;
+    const updatedEndDate =
+      data.endDate === undefined ? existingPromotion.endDate : data.endDate;
 
-    if (updatedEndDate <= updatedStartDate) {
+    if (updatedStartDate && updatedEndDate && updatedEndDate <= updatedStartDate) {
       return createErrorResponse(
         ERROR_CODES.VALIDATION_ERROR,
         'End date must be after start date',
@@ -185,14 +189,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // PROMOTION_ENDED: flipped from active → inactive, or endDate moved to the past
     const now = new Date();
-    const wasActive =
-      existingPromotion.isActive &&
-      existingPromotion.startDate <= now &&
-      existingPromotion.endDate >= now;
-    const isNowEnded =
-      !promotion!.isActive ||
-      promotion!.endDate < now ||
-      promotion!.startDate > now;
+    const wasActive = existingPromotion.isActive && isWithinDateRange(existingPromotion, now, menu.timezone);
+    const isNowEnded = !promotion!.isActive || !isWithinDateRange(promotion!, now, menu.timezone);
     if (wasActive && isNowEnded) {
       await logActivity({
         userId: session.user.id,

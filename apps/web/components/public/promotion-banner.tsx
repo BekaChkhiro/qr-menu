@@ -17,8 +17,9 @@ interface Promotion {
   descriptionEn: string | null;
   descriptionRu: string | null;
   imageUrl: string | null;
-  startDate: string | Date;
-  endDate: string | Date;
+  // T24.1 — optional validity window; null = runs until switched off.
+  startDate: string | Date | null;
+  endDate: string | Date | null;
 }
 
 interface PromotionBannerProps {
@@ -48,7 +49,9 @@ function getPromotionDescription(promotion: Promotion, locale: Locale): string |
   }
 }
 
-function getDaysRemaining(endDate: string | Date): number {
+/** Days until the promotion ends, or null when it has no end date (T24.1). */
+function getDaysRemaining(endDate: string | Date | null): number | null {
+  if (!endDate) return null;
   const end = new Date(endDate);
   const now = new Date();
   const diffTime = end.getTime() - now.getTime();
@@ -76,8 +79,8 @@ export function PromotionBanner({ promotion, locale }: PromotionBannerProps) {
   const title = getPromotionTitle(promotion, locale);
   const description = getPromotionDescription(promotion, locale);
   const daysRemaining = getDaysRemaining(promotion.endDate);
-  const endsInText = getEndsInText(daysRemaining, locale);
-  const isUrgent = daysRemaining <= 1;
+  const endsInText = daysRemaining === null ? null : getEndsInText(daysRemaining, locale);
+  const isUrgent = daysRemaining !== null && daysRemaining <= 1;
 
   return (
     <Card
@@ -129,15 +132,17 @@ export function PromotionBanner({ promotion, locale }: PromotionBannerProps) {
                     {description}
                   </p>
                 )}
-                <div className={cn(
-                  'flex items-center gap-1.5 mt-2 text-xs font-medium',
-                  isUrgent
-                    ? 'text-orange-600 dark:text-orange-400 animate-pulse-urgent'
-                    : 'text-muted-foreground'
-                )}>
-                  <Clock className="h-3 w-3" />
-                  <span>{endsInText}</span>
-                </div>
+                {endsInText && (
+                  <div className={cn(
+                    'flex items-center gap-1.5 mt-2 text-xs font-medium',
+                    isUrgent
+                      ? 'text-orange-600 dark:text-orange-400 animate-pulse-urgent'
+                      : 'text-muted-foreground'
+                  )}>
+                    <Clock className="h-3 w-3" />
+                    <span>{endsInText}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

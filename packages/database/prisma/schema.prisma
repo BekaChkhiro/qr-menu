@@ -347,6 +347,17 @@ model Menu {
   // T22.25 — show active promotions as a dismissible pop-up on menu open
   promoPopupEnabled Boolean       @default(false)
 
+  // T24.19 — the "Most Ordered" rail at the top of the public menu is opt-out:
+  // it has always rendered, so existing menus keep it until the owner says no.
+  featuredEnabled   Boolean       @default(true)
+
+  // T24.4 — the venue's opening / closing hours, with an optional break
+  // (split shift). Shape: [{ day: 'mon', closed: false, open: '09:00',
+  // close: '23:00', breakStart: '15:00'|null, breakEnd: '17:00'|null }, ...].
+  // Surfaced on the public menu footer and used to pre-fill promotion time
+  // windows so an offer can never run while the venue is shut.
+  workingHours    Json?
+
   // T22.21 — the café's local timezone. Day/hour windows for promotions and
   // dish discounts are evaluated against this, not the server's or visitor's
   // clock. Georgia has a single, DST-free zone, hence the default.
@@ -601,9 +612,11 @@ model Promotion {
   // Carousel order
   sortOrder   Int       @default(0)
 
-  // Validity period
-  startDate   DateTime
-  endDate     DateTime
+  // Validity period — optional (T24.1). A promotion with no dates is
+  // "always on": it runs until the owner switches it off. Only one side may be
+  // set too (start-only = open-ended, end-only = runs until that date).
+  startDate   DateTime?
+  endDate     DateTime?
 
   // Visibility
   isActive    Boolean   @default(true)

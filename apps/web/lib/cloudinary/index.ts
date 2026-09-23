@@ -26,13 +26,20 @@ export const IMAGE_PRESETS = {
     quality: 'auto',
     format: 'auto',
   },
+  // T24.16 — 16:9, not 2:1. Every surface that renders a promotion banner (the
+  // public carousel and detail sheet, the admin card, the upload preview) is
+  // 16/9, so storing 1200×600 guaranteed the sides were cropped on display —
+  // even for someone who uploaded exactly the size the hint asked for.
   promotion: {
     width: 1200,
-    height: 600,
+    height: 675,
     crop: 'fill',
     gravity: 'auto',
     quality: 'auto',
     format: 'auto',
+    // Keep animated GIFs animated: without this a resize transformation
+    // collapses the upload to its first frame.
+    flags: 'animated',
   },
   logo: {
     width: 200,
@@ -65,13 +72,24 @@ export async function uploadImage(
     folder?: string;
     preset?: ImagePreset;
     publicId?: string;
+    /**
+     * T24.17 — the uploaded file's real MIME type. A Buffer was previously
+     * always wrapped in a `data:image/png` URI regardless of what it actually
+     * was, which mislabels every GIF, JPEG and WebP we send.
+     */
+    mimeType?: string;
   } = {}
 ): Promise<{ url: string; publicId: string }> {
   if (!isCloudinaryConfigured()) {
     throw new Error('Cloudinary is not configured');
   }
 
-  const { folder = 'digital-menu', preset = 'product', publicId } = options;
+  const {
+    folder = 'digital-menu',
+    preset = 'product',
+    publicId,
+    mimeType = 'image/png',
+  } = options;
   const transformation = IMAGE_PRESETS[preset];
 
   const uploadOptions: Record<string, unknown> = {
@@ -86,7 +104,7 @@ export async function uploadImage(
   }
 
   const result = await cloudinary.uploader.upload(
-    typeof file === 'string' ? file : `data:image/png;base64,${file.toString('base64')}`,
+    typeof file === 'string' ? file : `data:${mimeType};base64,${file.toString('base64')}`,
     uploadOptions
   );
 

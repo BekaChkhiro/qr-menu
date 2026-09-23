@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CategorySection } from '@/components/public/category-section';
 import { PromotionBanner } from '@/components/public/promotion-banner';
+import { isWithinDateRange, isWithinWindows } from '@/lib/promotions/time-windows';
 import type { MenuWithDetails, Category, Product, Promotion } from '@/types/menu';
 import type { Locale } from '@/i18n/config';
 
@@ -21,14 +22,13 @@ type CategoryWithProducts = Omit<Category, 'products'> & { products: Product[] }
 
 // --- Data transformation ---
 
-function filterActivePromotions(promotions: Promotion[]): Promotion[] {
+function filterActivePromotions(promotions: Promotion[], timezone: string | undefined): Promotion[] {
   const now = new Date();
-  return promotions.filter((p) => {
-    if (!p.isActive) return false;
-    const start = new Date(p.startDate);
-    const end = new Date(p.endDate);
-    return now >= start && now <= end;
-  });
+  // T24.1 — a promotion with no dates is live whenever its switch is on.
+  return promotions.filter(
+    (p) => p.isActive && isWithinDateRange(p, now, timezone) &&
+      isWithinWindows(p.timeRestrictions, now, timezone),
+  );
 }
 
 function filterCategories(categories: Category[]): CategoryWithProducts[] {
@@ -152,8 +152,8 @@ function PreviewFooter({ locale }: { locale: Locale }) {
 
 export function MenuPreviewContent({ menu, locale }: MenuPreviewContentProps) {
   const activePromotions = useMemo(
-    () => filterActivePromotions(menu.promotions ?? []),
-    [menu.promotions],
+    () => filterActivePromotions(menu.promotions ?? [], menu.timezone),
+    [menu.promotions, menu.timezone],
   );
 
   const visibleCategories = useMemo(

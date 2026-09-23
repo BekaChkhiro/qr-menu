@@ -1,3 +1,4 @@
+import type { WorkingHoursDay } from '@/lib/menu/working-hours';
 export type MenuStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 export type Language = 'KA' | 'EN' | 'RU';
 export type AllergenDisplay = 'TEXT' | 'ICON' | 'WARNING';
@@ -75,6 +76,8 @@ export interface Menu {
   showDiscount: boolean;
   // T22.25 — show active promotions as a dismissible pop-up on public menu open
   promoPopupEnabled?: boolean;
+  // T24.19 — show the "Most Ordered" rail at the top of the public menu.
+  featuredEnabled?: boolean;
 
   // Layout & visual style
   splitByType: boolean;
@@ -82,6 +85,12 @@ export interface Menu {
   menuTemplate: MenuTemplate;
   productCardStyle: ProductCardStyle;
   productTouchEffect: ProductTouchEffect;
+
+  // Venue timezone returned by the menu API (legacy fixtures may omit it).
+  timezone?: string;
+
+  // T24.4 — venue working hours (+ optional break); see lib/menu/working-hours.
+  workingHours?: WorkingHoursDay[] | null;
 
   // Header info
   address: string | null;
@@ -176,7 +185,10 @@ export interface Product {
   // T22.23 — optional per-day windows restricting when the discount applies
   discountWindows?: {
     enabled: boolean;
-    windows: Record<string, { start: string; end: string }>;
+    windows: Record<
+      string,
+      { start: string; end: string; breakStart?: string | null; breakEnd?: string | null }
+    >;
   } | null;
   currency: string;
   imageUrl: string | null;
@@ -230,8 +242,9 @@ export interface Promotion {
   descriptionEn: string | null;
   descriptionRu: string | null;
   imageUrl: string | null;
-  startDate: string;
-  endDate: string;
+  // T24.1 — optional validity window; null on either side = open-ended.
+  startDate: string | null;
+  endDate: string | null;
   isActive: boolean;
   sortOrder: number;
   discountType: string | null;

@@ -82,13 +82,15 @@ export function PromotionCalendar({ promotions, locale = 'ka' }: PromotionCalend
       Array.from({ length: 7 }, (_, d) => addDays(gridStart, w * 7 + d)),
     );
 
-    // Only promotions with a usable range, in a stable order.
+    // Only promotions with a usable range, in a stable order. T24.1 — a missing
+    // boundary is open-ended, so the bar runs to the edge of the visible grid.
+    const gridEnd = weekList[weekList.length - 1][6];
     const ranges = promotions
       .map((p, i) => ({
         id: p.id,
         title: p.titleKa,
-        from: atMidnight(new Date(p.startDate)),
-        to: atMidnight(new Date(p.endDate)),
+        from: p.startDate ? atMidnight(new Date(p.startDate)) : atMidnight(gridStart),
+        to: p.endDate ? atMidnight(new Date(p.endDate)) : atMidnight(gridEnd),
         tone: BAR_TONES[i % BAR_TONES.length],
       }))
       .filter((r) => !Number.isNaN(r.from.getTime()) && !Number.isNaN(r.to.getTime()))

@@ -558,6 +558,32 @@
         "discard": "Discard",
         "saved": "Menu settings saved",
         "saveFailed": "Could not save settings"
+      },
+      "workingHours": {
+        "label": "Working hours",
+        "helper": "Opening and closing times for the venue, with an optional mid-day break. Shown at the bottom of the public menu and used to pre-fill promotion time limits.",
+        "toggleTitle": "Show working hours",
+        "toggleHint": "When off, no hours are published and promotion limits start from a plain 09:00–18:00.",
+        "closed": "Closed",
+        "to": "to",
+        "addBreak": "Add break",
+        "breakLabel": "Break",
+        "removeBreak": "Remove break",
+        "openAriaLabel": "Open on {day}",
+        "save": "Save hours",
+        "saving": "Saving…",
+        "saved": "Working hours saved",
+        "saveFailed": "Failed to save working hours",
+        "discard": "Discard",
+        "days": {
+          "mon": "Mon",
+          "tue": "Tue",
+          "wed": "Wed",
+          "thu": "Thu",
+          "fri": "Fri",
+          "sat": "Sat",
+          "sun": "Sun"
+        }
       }
     },
     "promotions": {
@@ -580,11 +606,18 @@
       },
       "card": {
         "appliedToMenu": "Applies to menu",
-        "scansLabel": "scans · 7d"
+        "scansLabel": "scans · 7d",
+        "noDates": "Always on",
+        "fromDate": "From {date}",
+        "untilDate": "Until {date}",
+        "switchOn": "On",
+        "switchOff": "Off",
+        "switchAriaLabel": "Toggle {title}"
       },
       "kebab": {
         "menuLabel": "Promotion actions",
         "edit": "Edit",
+        "duplicate": "Duplicate",
         "delete": "Delete",
         "cancel": "Cancel",
         "deleting": "Deleting…"
@@ -874,6 +907,10 @@
         "promoPopup": {
           "label": "Promotions pop-up",
           "description": "Show active promotions in a pop-up when the menu opens."
+        },
+        "featured": {
+          "label": "“Most Ordered” rail",
+          "description": "Show a highlighted row of popular dishes above the menu."
         }
       }
     },
@@ -1336,7 +1373,10 @@
         "windowsToggle": "Discount only on certain days & hours",
         "windowsHelp": "When on, the discount applies only within the selected days and hours.",
         "dayInactive": "Off",
-        "timeTo": "to"
+        "timeTo": "to",
+        "addBreak": "Add break",
+        "breakLabel": "Break",
+        "useVenueHours": "Use venue hours"
       },
       "tagsLabel": "Tags",
       "tagsPlaceholder": "Add tag…",
@@ -1407,7 +1447,7 @@
       "startDate": "Start Date",
       "endDate": "End Date",
       "image": "Promotion Image",
-      "imageHint": "Upload a banner image for the promotion. Recommended size: 1200x600 pixels.",
+      "imageHint": "Upload a banner image for the promotion. Recommended size: 1200×675 pixels.",
       "isActive": "Active",
       "isActiveHint": "When enabled, the promotion will be visible to customers within the date range."
     },
@@ -1421,10 +1461,15 @@
       "deleted": "Promotion deleted successfully",
       "createError": "Failed to create promotion",
       "updateError": "Failed to update promotion",
-      "deleteError": "Failed to delete promotion"
+      "deleteError": "Failed to delete promotion",
+      "activated": "Promotion switched on",
+      "deactivated": "Promotion switched off",
+      "duplicated": "Promotion duplicated — the copy is switched off",
+      "duplicateError": "Failed to duplicate promotion"
     },
     "drawer": {
       "addTitle": "New promotion",
+      "addSubtitle": "Fill in the details — dates are optional",
       "editTitle": "Edit promotion",
       "editSubtitle": "{title}",
       "closeLabel": "Close",
@@ -1469,7 +1514,7 @@
         "timeRestrictionsToggleHint": "When off, runs all day every day within the dates.",
         "timeTo": "to",
         "bannerLabel": "Banner image",
-        "bannerHint": "Upload a 16:9 banner image. Recommended: 1200×600 pixels.",
+        "bannerHint": "Upload a 16:9 banner image. Recommended: 1200×675 pixels. GIFs work too.",
         "startDate": "Start date",
         "endDate": "End date",
         "isActive": "Active",
@@ -1496,7 +1541,11 @@
         "comboProductsLabel": "Combo products",
         "comboProductsHint": "Pick at least 2 products",
         "comboPriceLabel": "Combo price (₾)",
-        "dayInactive": "Off"
+        "dayInactive": "Off",
+        "datesOptionalHint": "Dates are optional — leave them empty and the promotion runs until you switch it off.",
+        "addBreak": "Add break",
+        "breakLabel": "Break",
+        "useVenueHours": "Use venue hours"
       }
     }
   },

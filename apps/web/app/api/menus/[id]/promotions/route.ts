@@ -13,6 +13,7 @@ import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 import { logActivity } from '@/lib/activity/log';
 import { syncComboProduct } from '@/lib/promotions/combo';
+import { isWithinDateRange, notExpiredWhere } from '@/lib/promotions/time-windows';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const where: {
       menuId: string;
       isActive?: boolean;
-      endDate?: { gte: Date };
+      OR?: Array<{ endDate: null } | { endDate: { gte: Date } }>;
     } = { menuId };
 
     if (isActive !== undefined) {
@@ -83,7 +84,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     if (!includeExpired) {
-      where.endDate = { gte: new Date() };
+      // T24.1 — open-ended promotions have no end date and never expire.
+      Object.assign(where, notExpiredWhere());
     }
 
     // Fetch promotions
@@ -119,7 +121,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Verify menu exists and belongs to user
     const menu = await prisma.menu.findUnique({
       where: { id: menuId },
-      select: { userId: true, slug: true },
+      select: { userId: true, slug: true, timezone: true },
     });
 
     if (!menu) {
@@ -190,11 +192,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Only log PROMOTION_STARTED for actively-running promotions (start <= now <= end)
     const now = new Date();
-    if (
-      promotion.isActive &&
-      promotion.startDate <= now &&
-      promotion.endDate >= now
-    ) {
+    if (promotion.isActive && isWithinDateRange(promotion, now, menu.timezone)) {
       await logActivity({
         userId: session.user.id,
         menuId,

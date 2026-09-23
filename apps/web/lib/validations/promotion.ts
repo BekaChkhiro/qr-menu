@@ -30,6 +30,19 @@ const nullableNumber = z
     return isNaN(n) ? null : n;
   });
 
+// T24.1 — promotion validity dates are optional. `null` / `""` explicitly CLEAR
+// the boundary; an absent key stays `undefined` so a PATCH that never mentions
+// the field leaves the stored date untouched.
+const optionalDate = z
+  .union([z.string(), z.date()])
+  .nullish()
+  .transform((v) => {
+    if (v === undefined) return undefined;
+    if (v === null || v === '') return null;
+    const d = v instanceof Date ? v : new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  });
+
 // T22.19/T22.20/T22.24 — shared appearance + type + combo fields.
 const promotionExtraFields = {
   type: z.enum(['PERCENTAGE', 'BANNER', 'COMBO']).optional().nullable(),
@@ -75,6 +88,9 @@ const HHMM = z.string().regex(/^\d{2}:\d{2}$/, 'Use HH:MM format');
 const timeWindowSchema = z.object({
   start: HHMM.default('09:00'),
   end: HHMM.default('18:00'),
+  // T24.4 — optional mid-day break carved out of the window (split shift).
+  breakStart: HHMM.nullish(),
+  breakEnd: HHMM.nullish(),
 });
 
 export const timeRestrictionsSchema = z
@@ -137,8 +153,10 @@ export const createPromotionSchema = z
       .nullable()
       .optional(),
     imageUrl: z.string().url('Invalid image URL').nullable().optional(),
-    startDate: z.coerce.date(),
-    endDate: z.coerce.date(),
+    // T24.1 — dates are optional. "" / null → no date, i.e. the promotion runs
+    // until its `isActive` switch is turned off.
+    startDate: optionalDate,
+    endDate: optionalDate,
     isActive: z.boolean().default(true),
     sortOrder: z.number().int().nonnegative().optional(),
 
@@ -158,7 +176,7 @@ export const createPromotionSchema = z
     timeRestrictions: timeRestrictionsSchema.optional().nullable(),
     ...promotionExtraFields,
   })
-  .refine((data) => data.endDate > data.startDate, {
+  .refine((data) => !data.startDate || !data.endDate || data.endDate > data.startDate, {
     message: 'End date must be after start date',
     path: ['endDate'],
   })
@@ -215,8 +233,8 @@ export const updatePromotionSchema = z
       .nullable()
       .optional(),
     imageUrl: z.string().url('Invalid image URL').nullable().optional(),
-    startDate: z.coerce.date().optional(),
-    endDate: z.coerce.date().optional(),
+    startDate: optionalDate,
+    endDate: optionalDate,
     isActive: z.boolean().optional(),
     sortOrder: z.number().int().nonnegative().optional(),
 

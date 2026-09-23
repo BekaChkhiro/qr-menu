@@ -95,6 +95,34 @@ function isCarded(p: Promotion): boolean {
   return Boolean(p.imageUrl) || p.type === 'BANNER';
 }
 
+/**
+ * T24.13 — centre a slide by scrolling the TRACK only.
+ *
+ * `slide.scrollIntoView()` walks up and scrolls every scrollable ancestor,
+ * the page included. Once the visitor had scrolled down past the carousel the
+ * banner sat off-screen, so each auto-advance yanked the whole menu back to the
+ * top to bring it into view. Writing `scrollLeft` on the track cannot move the
+ * page, which is the entire point.
+ *
+ * Offsets come from bounding rects rather than `offsetLeft` so the maths holds
+ * regardless of which ancestor happens to be the slide's offsetParent.
+ */
+function centerSlide(track: HTMLElement | null, idx: number): void {
+  if (!track) return;
+  const slide = track.querySelectorAll<HTMLElement>('[data-promo-slide]')[idx];
+  if (!slide) return;
+
+  const trackRect = track.getBoundingClientRect();
+  const slideRect = slide.getBoundingClientRect();
+  const delta = slideRect.left - trackRect.left - (trackRect.width - slideRect.width) / 2;
+  const left = Math.max(
+    0,
+    Math.min(track.scrollLeft + delta, track.scrollWidth - track.clientWidth),
+  );
+
+  track.scrollTo({ left, behavior: 'smooth' });
+}
+
 export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps) {
   const slides = promotions.filter(isCarded);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -136,12 +164,7 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
   }, [slides.length]);
 
   const scrollToIndex = (idx: number) => {
-    const track = trackRef.current;
-    if (!track) return;
-    const slide = track.querySelectorAll<HTMLElement>('[data-promo-slide]')[idx];
-    if (slide) {
-      slide.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }
+    centerSlide(trackRef.current, idx);
   };
 
   const handlePrev = () => {
@@ -163,8 +186,7 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
       const track = trackRef.current;
       if (!track) return;
       const next = (activeIndexRef.current + 1) % slides.length;
-      const slide = track.querySelectorAll<HTMLElement>('[data-promo-slide]')[next];
-      slide?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      centerSlide(track, next);
     }, AUTO_ADVANCE_MS);
     return () => clearInterval(id);
   }, [slides.length, expanded]);
@@ -194,6 +216,7 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
           {slides.map((promo, i) => {
             const title = getTitle(promo, locale);
             const showTitle = promo.showTitle ?? true;
+            const isNeutral = !promo.imageUrl && !promo.backgroundColor;
             return (
               <button
                 key={promo.id}
@@ -201,14 +224,16 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
                 data-promo-slide
                 data-testid={`promotion-slide-${promo.id}`}
                 onClick={() => setExpanded(promo)}
-                className="relative aspect-[16/9] w-[70%] shrink-0 cursor-pointer snap-center overflow-hidden rounded-[var(--menu-radius-card)] text-left shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--menu-primary)]"
+                className={cn(
+                  "relative aspect-[16/9] w-[70%] shrink-0 cursor-pointer snap-center overflow-hidden rounded-[var(--menu-radius-card)] text-left shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--menu-primary)]",
+                  isNeutral && 'ring-1 ring-border',
+                )}
                 style={
                   promo.imageUrl
                     ? undefined
                     : {
-                        background:
-                          promo.backgroundColor ||
-                          'linear-gradient(135deg, #7A8C5F, #4F5F3F)',
+                        // T24.21 — unstyled title-only banners use the neutral theme surface.
+                        background: promo.backgroundColor || 'hsl(var(--muted))',
                       }
                 }
                 aria-label={title}
@@ -237,10 +262,13 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
                     )}
                   </>
                 ) : (
-                  /* Variant 3 — title-only card on the chosen background color */
+                  /* T24.21 — only an explicitly chosen colour uses white title text. */
                   <div className="flex h-full items-center justify-center px-4 text-center">
                     <span
-                      className="text-[16px] font-semibold leading-snug text-white drop-shadow"
+                      className={cn(
+                        'text-[16px] font-semibold leading-snug',
+                        isNeutral ? 'text-foreground' : 'text-white drop-shadow',
+                      )}
                       data-testid="promotion-slide-title"
                     >
                       {title}

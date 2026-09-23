@@ -7,6 +7,7 @@ import {
   ERROR_CODES,
 } from '@/lib/api';
 import { cacheGetOrSet, CACHE_KEYS, CACHE_TTL } from '@/lib/cache/redis';
+import { isWithinDateRange, isWithinWindows, type TimeWindowsValue } from '@/lib/promotions/time-windows';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             accentColor: true,
             status: true,
             publishedAt: true,
+            timezone: true,
             categories: {
               orderBy: { sortOrder: 'asc' },
               select: {
@@ -84,8 +86,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             promotions: {
               where: {
                 isActive: true,
-                startDate: { lte: new Date() },
-                endDate: { gte: new Date() },
+                // Filter dates/hours after reading the cache, in the menu timezone.
               },
               orderBy: { startDate: 'asc' },
               select: {
@@ -120,7 +121,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    return createSuccessResponse(menu);
+    const now = new Date();
+    return createSuccessResponse({
+      ...menu,
+      promotions: menu.promotions.filter(
+        (promotion) =>
+          isWithinDateRange(promotion, now, menu.timezone) &&
+          isWithinWindows(promotion.timeRestrictions as TimeWindowsValue | null, now, menu.timezone),
+      ),
+    });
   } catch (error) {
     return handleApiError(error);
   }

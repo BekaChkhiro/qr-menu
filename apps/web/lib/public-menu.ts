@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { cacheGetOrSet, CACHE_KEYS, CACHE_TTL } from '@/lib/cache/redis';
-import { isWithinWindows } from '@/lib/promotions/time-windows';
+import { isWithinWindows, isWithinDateRange } from '@/lib/promotions/time-windows';
+import type { WorkingHoursDay } from '@/lib/menu/working-hours';
 
 // Shared select shape for menu fetch queries — kept identical between the
 // public page (`/m/[slug]`) and the table-mode page (`/m/[slug]/t/[code]`).
@@ -28,6 +29,10 @@ export const publicMenuSelect = {
   showNutrition: true,
   showDiscount: true,
   promoPopupEnabled: true,
+  // T24.19 — opt-out switch for the "Most Ordered" rail.
+  featuredEnabled: true,
+  // T24.4 — venue opening hours (+ optional break), rendered in the footer.
+  workingHours: true,
   timezone: true,
   splitByType: true,
   menuLayout: true,
@@ -60,6 +65,9 @@ export const publicMenuSelect = {
       brandLabel: true,
       type: true,
       sortOrder: true,
+      // T24.18 — the auto-managed Offers category also gets a rail of its own
+      // at the top of the menu, so the public page has to recognise it.
+      isSystemOffers: true,
       products: {
         where: { isAvailable: true },
         orderBy: { sortOrder: 'asc' as const },
@@ -112,8 +120,8 @@ export const publicMenuSelect = {
   promotions: {
     where: {
       isActive: true,
-      startDate: { lte: new Date() },
-      endDate: { gte: new Date() },
+      // T24.14 — dates/hours are filtered at runtime in the menu timezone,
+      // after cache reads; never freeze a date in this module-level query.
     },
     orderBy: [{ sortOrder: 'asc' as const }, { startDate: 'asc' as const }],
     select: {
@@ -202,6 +210,10 @@ export interface SerializedPublicMenu {
   showNutrition: boolean;
   showDiscount: boolean;
   promoPopupEnabled: boolean;
+  // T24.19 — false hides the "Most Ordered" rail.
+  featuredEnabled: boolean;
+  // T24.4 — venue opening hours; see lib/menu/working-hours.ts for the shape.
+  workingHours: WorkingHoursDay[] | null;
   // T22.21 — café-local timezone that day/hour windows are evaluated against.
   timezone: string;
   splitByType: boolean;
@@ -236,6 +248,8 @@ export interface SerializedPublicCategory {
   brandLabel: string | null;
   type: 'FOOD' | 'DRINK' | 'OTHER';
   sortOrder: number;
+  // T24.18 — true for the combo-generated "Offers / შეთავაზება" category.
+  isSystemOffers: boolean;
   products: SerializedPublicProduct[];
 }
 
@@ -294,8 +308,9 @@ export interface SerializedPublicPromotion {
   descriptionEn: string | null;
   descriptionRu: string | null;
   imageUrl: string | null;
-  startDate: string;
-  endDate: string;
+  // T24.1 — optional validity window; null on either side = open-ended.
+  startDate: string | null;
+  endDate: string | null;
   sortOrder: number;
   // T22.18 — scope + discount config (null on legacy banner-only promotions).
   discountType: 'PERCENTAGE' | 'FIXED_AMOUNT' | 'FREE_ADDON' | null;
@@ -353,10 +368,15 @@ function discountedPrice(
 // evaluated against the café's local clock. Used for both the carousel and the
 // price transform so a "Mon 12:00–14:00" promotion is genuinely off at 15:00.
 export function isPromotionLive(
-  promo: Pick<SerializedPublicPromotion, 'timeRestrictions'>,
+  promo: Pick<SerializedPublicPromotion, 'timeRestrictions' | 'startDate' | 'endDate'>,
   timezone: string,
   now: Date = new Date(),
 ): boolean {
+  // T24.1 — open-ended dates are allowed. All active rows are fetched/cached;
+  // evaluate their validity against the current request time here.
+  // T24.14 — evaluated against the café's day, not UTC's, so "ends today" runs
+  // through the café's midnight.
+  if (!isWithinDateRange(promo, now, timezone)) return false;
   return isWithinWindows(promo.timeRestrictions, now, timezone);
 }
 
