@@ -50,6 +50,11 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
   const [promoPopupEnabled, setPromoPopupEnabled] = useState<boolean>(
     menu.promoPopupEnabled ?? false,
   );
+  // T24.19 — the "Most Ordered" rail is opt-out: it shipped always-on, so an
+  // untouched menu keeps showing it.
+  const [featuredEnabled, setFeaturedEnabled] = useState<boolean>(
+    menu.featuredEnabled ?? true,
+  );
 
   const prevMenuIdRef = useRef(menu.id);
   useEffect(() => {
@@ -60,6 +65,7 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
       setShowNutrition(menu.showNutrition ?? DEFAULT_SHOW_NUTRITION);
       setShowDiscount(menu.showDiscount ?? DEFAULT_SHOW_DISCOUNT);
       setPromoPopupEnabled(menu.promoPopupEnabled ?? false);
+      setFeaturedEnabled(menu.featuredEnabled ?? true);
     }
   }, [
     menu.id,
@@ -68,6 +74,7 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
     menu.showNutrition,
     menu.showDiscount,
     menu.promoPopupEnabled,
+    menu.featuredEnabled,
   ]);
 
   const save = async (patch: Parameters<typeof updateMenu.mutateAsync>[0]) => {
@@ -103,6 +110,11 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
   const handlePromoPopupChange = (next: boolean) => {
     setPromoPopupEnabled(next);
     void save({ promoPopupEnabled: next });
+  };
+
+  const handleFeaturedChange = (next: boolean) => {
+    setFeaturedEnabled(next);
+    void save({ featuredEnabled: next });
   };
 
   return (
@@ -210,6 +222,15 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
             description={t('promoPopup.description')}
             checked={promoPopupEnabled}
             onCheckedChange={handlePromoPopupChange}
+          />
+
+          {/* "Most Ordered" rail switch (T24.19) */}
+          <SwitchRow
+            testId="content-featured-switch"
+            label={t('featured.label')}
+            description={t('featured.description')}
+            checked={featuredEnabled}
+            onCheckedChange={handleFeaturedChange}
           />
         </div>
       </div>

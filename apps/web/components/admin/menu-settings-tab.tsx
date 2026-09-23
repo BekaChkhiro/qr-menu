@@ -9,6 +9,7 @@ import { SeoSection } from '@/components/admin/seo-section';
 import { SharePreviewCard } from '@/components/admin/share-preview-card';
 import { MenuAdvancedSection } from '@/components/admin/menu-advanced-section';
 import { MenuLocationContactSection } from '@/components/admin/menu-location-contact-section';
+import { MenuWorkingHoursSection } from '@/components/admin/menu-working-hours-section';
 import { SharedTableSection } from '@/components/admin/shared-table-section';
 import { SharedTableLocked } from '@/components/admin/shared-table-locked';
 import { useUserPlan } from '@/hooks/use-user-plan';
@@ -109,6 +110,11 @@ export function MenuSettingsTab({ menu }: MenuSettingsTabProps) {
             onMetaDescriptionChange={handleMetaDescriptionChange}
             onShareImageChange={handleShareImageChange}
           />
+        </Section>
+
+        {/* Working hours (T24.4) — feeds the public footer + promotion limits */}
+        <Section label={t('workingHours.label')} helper={t('workingHours.helper')}>
+          <MenuWorkingHoursSection menu={menu} />
         </Section>
 
         {/* Location & contact (T20.4) */}

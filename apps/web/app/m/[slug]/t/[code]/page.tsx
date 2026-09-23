@@ -17,7 +17,9 @@ import { MenuInfoWidget } from '@/components/public/menu-info-widget';
 import { MenuBody } from '@/components/public/menu-body';
 import { PromotionCarousel } from '@/components/public/promotion-carousel';
 import { FeaturedCarousel } from '@/components/public/featured-carousel';
+import { OffersCarousel } from '@/components/public/offers-carousel';
 import { MenuFooter } from '@/components/public/menu-footer';
+import { normalizeWorkingHours } from '@/lib/menu/working-hours';
 import { JoinTableForm } from '@/components/public/join-table-form';
 import { TableModeProvider, type TableSelection } from '@/components/public/table-mode-provider';
 import { TableGuestTray, type TrayProductInfo } from '@/components/public/table-guest-tray';
@@ -229,6 +231,9 @@ async function renderGuestMenu(args: RenderArgs) {
     )
     .slice(0, 8);
 
+  // T24.18 — Offers rail above the body; the category itself still sits last.
+  const offersCategory = categoriesWithProducts.find((c) => c.isSystemOffers);
+
   const currencySymbol = menu.currencySymbol || '₾';
 
   const displaySettings = {
@@ -304,7 +309,17 @@ async function renderGuestMenu(args: RenderArgs) {
 
         {hasPromotions && <PromotionCarousel promotions={activePromotions} locale={args.locale} />}
 
-        {featuredProducts.length > 0 && (
+        {offersCategory && (
+          <OffersCarousel
+            products={offersCategory.products}
+            categoryId={offersCategory.id}
+            locale={args.locale}
+            settings={displaySettings}
+          />
+        )}
+
+        {/* T24.19 — opt-out per menu; legacy menus default to shown. */}
+        {menu.featuredEnabled !== false && featuredProducts.length > 0 && (
           <FeaturedCarousel
             products={featuredProducts}
             locale={args.locale}
@@ -322,7 +337,6 @@ async function renderGuestMenu(args: RenderArgs) {
             layout={menuLayout}
             splitByType={splitByType}
             template={menuTemplate}
-            accentColor={menu.accentColor}
           />
         ) : (
           <main id="main-content" className="px-4 pb-8" tabIndex={-1}>
@@ -347,6 +361,7 @@ async function renderGuestMenu(args: RenderArgs) {
           hasAllergens={categoriesWithProducts.some((c) =>
             c.products.some((p) => p.allergens.length > 0)
           )}
+          workingHours={normalizeWorkingHours(menu.workingHours)}
         />
       </div>
 

@@ -26,7 +26,6 @@ interface CategorySectionProps {
   index?: number;
   settings: PublicDisplaySettings;
   template?: MenuTemplate;
-  accentColor?: string | null;
 }
 
 function getCategoryName(category: Category, locale: Locale): string {
@@ -52,10 +51,10 @@ function getCategoryDescription(category: Category, locale: Locale): string | nu
 }
 
 interface BannerProps {
-  iconUrl?: string | null;
+  /** T24.5 — required: a category with no image renders no banner at all. */
+  iconUrl: string;
   name: string;
   brandLabel?: string | null;
-  accentColor?: string | null;
   template: MenuTemplate;
   headingId: string;
   productCount: number;
@@ -66,19 +65,12 @@ function CategoryBannerHeader({
   iconUrl,
   name,
   brandLabel,
-  accentColor,
   template,
   headingId,
   productCount,
   productCountLabel,
 }: BannerProps) {
   const isCompact = template === 'COMPACT';
-
-  const fallbackStyle = accentColor
-    ? {
-        background: `linear-gradient(135deg, color-mix(in srgb, ${accentColor} 20%, hsl(240 6% 15%)), color-mix(in srgb, ${accentColor} 55%, hsl(240 6% 8%)))`,
-      }
-    : undefined;
 
   return (
     <div
@@ -88,30 +80,14 @@ function CategoryBannerHeader({
       )}
       data-testid="category-banner"
     >
-      {iconUrl ? (
-        <Image
-          src={iconUrl}
-          alt=""
-          fill
-          sizes="(max-width: 672px) 100vw, 672px"
-          className="object-cover"
-          aria-hidden
-        />
-      ) : (
-        <div
-          className={cn('absolute inset-0', !accentColor && 'bg-muted')}
-          style={fallbackStyle}
-          aria-hidden
-        >
-          <span
-            className="absolute inset-0 flex items-center justify-center select-none font-bold leading-none text-white opacity-20"
-            style={{ fontSize: 'clamp(3rem, 15vw, 8rem)' }}
-            data-testid="category-banner-initial"
-          >
-            {[...name.trim()][0]?.toUpperCase() ?? '?'}
-          </span>
-        </div>
-      )}
+      <Image
+        src={iconUrl}
+        alt=""
+        fill
+        sizes="(max-width: 672px) 100vw, 672px"
+        className="object-cover"
+        aria-hidden
+      />
 
       {/* Bottom-up gradient overlay for text legibility */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
@@ -152,7 +128,6 @@ export function CategorySection({
   index = 0,
   settings,
   template = 'CLASSIC',
-  accentColor,
 }: CategorySectionProps) {
   const name = getCategoryName(category, locale);
   const description = getCategoryDescription(category, locale);
@@ -202,6 +177,43 @@ export function CategorySection({
             </p>
           )}
         </div>
+      ) : !category.iconUrl ? (
+        // ── T24.5 — no image uploaded: no banner at all. A plain title + item
+        // count reads better than a placeholder block with a giant initial.
+        <>
+          <div
+            className={cn('mb-3 flex items-baseline justify-between gap-3', template === 'COMPACT' && 'mb-2')}
+            data-testid="category-plain-header"
+          >
+            <div className="min-w-0">
+              {category.brandLabel && (
+                <div className="mb-0.5 truncate text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                  {category.brandLabel}
+                </div>
+              )}
+              <h2
+                id={`category-heading-${category.id}`}
+                className={cn(
+                  'truncate font-bold leading-tight tracking-tight',
+                  template === 'COMPACT' ? 'text-base' : 'text-xl',
+                )}
+                style={{ fontFamily: 'var(--heading-font)' }}
+              >
+                {name}
+              </h2>
+            </div>
+            <span
+              className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground"
+              aria-label={`${productCount} ${productCountLabel}`}
+              data-testid="category-plain-header-count"
+            >
+              {productCount}
+            </span>
+          </div>
+          {description && template !== 'COMPACT' && (
+            <p className="mb-3 text-sm leading-relaxed text-muted-foreground">{description}</p>
+          )}
+        </>
       ) : (
         // ── Classic / Compact: full-width banner header (T21.11) ──
         <>
@@ -209,7 +221,6 @@ export function CategorySection({
             iconUrl={category.iconUrl}
             name={name}
             brandLabel={category.brandLabel}
-            accentColor={accentColor}
             template={template}
             headingId={`category-heading-${category.id}`}
             productCount={productCount}

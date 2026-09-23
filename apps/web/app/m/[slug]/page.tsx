@@ -19,7 +19,9 @@ import { MenuBody } from '@/components/public/menu-body';
 import { PromotionCarousel } from '@/components/public/promotion-carousel';
 import { PromotionPopup } from '@/components/public/promotion-popup';
 import { FeaturedCarousel } from '@/components/public/featured-carousel';
+import { OffersCarousel } from '@/components/public/offers-carousel';
 import { MenuFooter } from '@/components/public/menu-footer';
+import { normalizeWorkingHours } from '@/lib/menu/working-hours';
 import { ViewTracker } from '@/components/public/view-tracker';
 import { MenuPasswordGate } from '@/components/public/menu-password-gate';
 import { CreateTableLauncher } from '@/components/public/create-table-launcher';
@@ -151,6 +153,10 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
     )
     .slice(0, 8);
 
+  // T24.18 — the combo-generated Offers category is mirrored as a rail above the
+  // menu body. It still renders as the last category too (T24.8).
+  const offersCategory = categoriesWithProducts.find((c) => c.isSystemOffers);
+
   const currencySymbol = menu.currencySymbol || '₾';
 
   const displaySettings = {
@@ -220,7 +226,17 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         <PromotionPopup menuId={menu.id} promotions={activePromotions} locale={locale} />
       )}
 
-      {featuredProducts.length > 0 && (
+      {offersCategory && (
+        <OffersCarousel
+          products={offersCategory.products}
+          categoryId={offersCategory.id}
+          locale={locale}
+          settings={displaySettings}
+        />
+      )}
+
+      {/* T24.19 — opt-out per menu; legacy menus default to shown. */}
+      {menu.featuredEnabled !== false && featuredProducts.length > 0 && (
         <FeaturedCarousel products={featuredProducts} locale={locale} settings={displaySettings} />
       )}
 
@@ -234,7 +250,6 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
           layout={menuLayout}
           splitByType={splitByType}
           template={menuTemplate}
-          accentColor={menu.accentColor}
         />
       ) : (
         <main id="main-content" className="px-4 pb-8" tabIndex={-1}>
@@ -259,6 +274,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         hasAllergens={categoriesWithProducts.some((c) =>
           c.products.some((p) => p.allergens.length > 0)
         )}
+        workingHours={normalizeWorkingHours(menu.workingHours)}
       />
 
       {!isPreview && menu.sharedTableEnabled && (

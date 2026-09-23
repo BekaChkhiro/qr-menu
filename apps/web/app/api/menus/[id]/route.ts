@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
+import { Prisma } from '@prisma/client';
 import { auth } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
 import {
@@ -12,6 +13,7 @@ import { updateMenuSchema } from '@/lib/validations';
 import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 import { sanitizeMenuResponse } from '@/lib/menu-visibility';
+import { notExpiredWhere } from '@/lib/promotions/time-windows';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -57,7 +59,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         promotions: {
           where: {
             isActive: true,
-            endDate: { gte: new Date() },
+            // T24.1 — a promotion with no end date never expires.
+            ...notExpiredWhere(),
           },
           orderBy: { startDate: 'asc' },
         },
@@ -177,6 +180,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // the persisted fields here.
     const { visibility, password, ...patch } = data;
     const updatePayload: Record<string, unknown> = { ...patch };
+    // Json? needs an explicit database-null sentinel to clear the column.
+    if (patch.workingHours === null) updatePayload.workingHours = Prisma.DbNull;
 
     // T21.2 — keep the legacy `name` column in lockstep with `nameKa`.
     // When a client sends `nameKa`, mirror it into `name`; when a legacy

@@ -111,27 +111,25 @@ test.describe('T21.11 — public category section banner', () => {
     expect(box!.height).toBeGreaterThanOrEqual(120);
   });
 
-  test('category without iconUrl — banner shows gradient fallback with initial letter', async ({
+  // T24.5 — no image uploaded means NO banner at all: just the name and the
+  // number of products, which reads better than a placeholder block.
+  test('category without iconUrl — renders a plain name + count header, no banner', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`/m/${slug}`);
 
     const section = page.locator(`#category-${catNoImageId}`);
-    const banner = section.locator('[data-testid="category-banner"]');
-    await expect(banner).toBeVisible();
+    await expect(section.locator('[data-testid="category-banner"]')).toHaveCount(0);
 
-    // No <img> in a fallback banner
-    await expect(banner.locator('img')).toHaveCount(0);
+    const header = section.locator('[data-testid="category-plain-header"]');
+    await expect(header).toBeVisible();
+    await expect(header.locator('h2')).toContainText('სასმელები');
+    await expect(header.locator('[data-testid="category-plain-header-count"]')).toHaveText('1');
 
-    // Initial span shows the first character of "სასმელები", uppercased — which
-    // for Georgian maps mkhedruli "ს" to mtavruli "Ს". This matches the existing
-    // CategoryAvatar convention (it uppercases its initial the same way).
-    const initial = banner.locator('[data-testid="category-banner-initial"]');
-    await expect(initial).toContainText('Ს');
-
-    const box = await banner.boundingBox();
-    expect(box!.height).toBeGreaterThanOrEqual(120);
+    // A plain header is a text row, not a 120px+ banner block.
+    const box = await header.boundingBox();
+    expect(box!.height).toBeLessThan(120);
   });
 
   test('category name overlay is visible on top of the banner', async ({ page }) => {

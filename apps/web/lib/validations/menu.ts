@@ -70,6 +70,25 @@ export const createMenuFromTemplateSchema = z.object({
 });
 
 // Update menu schema — all fields optional
+// T24.4 — one entry per weekday on `Menu.workingHours`.
+const workingHoursTime = z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Use HH:MM format');
+
+const workingHoursDaySchema = z
+  .object({
+    day: z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']),
+    closed: z.boolean().default(false),
+    open: workingHoursTime.default('09:00'),
+    close: workingHoursTime.default('23:00'),
+    breakStart: workingHoursTime.nullish(),
+    breakEnd: workingHoursTime.nullish(),
+  })
+  .transform((d) => ({
+    ...d,
+    // A half-filled break is no break — keeps the stored shape unambiguous.
+    breakStart: d.breakStart && d.breakEnd ? d.breakStart : null,
+    breakEnd: d.breakStart && d.breakEnd ? d.breakEnd : null,
+  }));
+
 export const updateMenuSchema = z.object({
   // Legacy single-language name kept in lockstep with `nameKa` for backward
   // compatibility (SEO fallbacks, audit log payloads). New clients should
@@ -134,6 +153,13 @@ export const updateMenuSchema = z.object({
   menuTemplate: z.enum(menuTemplateValues).optional(),
   productCardStyle: z.enum(productCardStyleValues).optional(),
   productTouchEffect: z.enum(productTouchEffectValues).optional(),
+
+  // T24.19 — show/hide the "Most Ordered" rail on the public menu.
+  featuredEnabled: z.boolean().optional(),
+
+  // T24.4 — venue working hours (+ optional mid-day break). Always sent as the
+  // full seven-day array; `closed: true` is how a day is switched off.
+  workingHours: z.array(workingHoursDaySchema).max(7).nullish(),
 
   // Header info
   address: z.string().max(500).nullable().optional(),

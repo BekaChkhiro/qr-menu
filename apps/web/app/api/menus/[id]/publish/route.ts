@@ -11,6 +11,7 @@ import { publishMenuSchema } from '@/lib/validations';
 import { invalidateMenuCache, cacheSet, CACHE_KEYS, CACHE_TTL } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 import { logActivity } from '@/lib/activity/log';
+import { notExpiredWhere } from '@/lib/promotions/time-windows';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -98,7 +99,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         promotions: {
           where: {
             isActive: true,
-            endDate: { gte: new Date() },
+            // T24.1 — a promotion with no end date never expires.
+            ...notExpiredWhere(),
           },
           orderBy: { startDate: 'asc' },
         },

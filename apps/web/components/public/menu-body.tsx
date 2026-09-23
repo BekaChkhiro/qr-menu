@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Utensils, CupSoda, LayoutGrid } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CategoryNav } from './category-nav';
 import { CategorySection } from './category-section';
+import { JUMP_TO_CATEGORY_EVENT } from './jump-to-category';
 import type { Locale } from '@/i18n/config';
 import type { PublicDisplaySettings, PublicProduct } from './product-card';
 import type { MenuTemplate } from '@/types/menu';
@@ -36,11 +37,6 @@ interface MenuBodyProps {
   layout: MenuLayout;
   splitByType: boolean;
   template?: MenuTemplate;
-  /**
-   * Menu accent color (hex). Used by `CategoryAvatar` to tint the letter
-   * fallback when a category has no `iconUrl` (T21.7).
-   */
-  accentColor?: string | null;
 }
 
 function getName(cat: PublicCategory, locale: Locale): string {
@@ -63,7 +59,6 @@ export function MenuBody({
   layout,
   splitByType,
   template = 'CLASSIC',
-  accentColor,
 }: MenuBodyProps) {
   const [showGrid, setShowGrid] = useState(layout === 'CATEGORIES_FIRST');
   const [activeType, setActiveType] = useState<CategoryType | 'ALL'>('ALL');
@@ -100,6 +95,25 @@ export function MenuBody({
       });
     });
   };
+
+  // T24.18 — the Offers rail sits above this component and its "see all" has to
+  // reach a section only this component can reveal: under CATEGORIES_FIRST the
+  // sections are not mounted yet, and a Foods/Drinks filter can hide the target.
+  // Claiming the event with preventDefault tells the rail not to fall back to a
+  // raw scroll that would land nowhere.
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const categoryId = (event as CustomEvent<string>).detail;
+      if (!categoryId || !categories.some((c) => c.id === categoryId)) return;
+      event.preventDefault();
+      setActiveType('ALL');
+      jumpToCategory(categoryId);
+    };
+    window.addEventListener(JUMP_TO_CATEGORY_EVENT, handler);
+    return () => window.removeEventListener(JUMP_TO_CATEGORY_EVENT, handler);
+    // `jumpToCategory` only closes over `menuId`/`trackViews`, both stable here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories, menuId, trackViews]);
 
   // ── Category grid entry (CATEGORIES_FIRST mode) ──
   if (showGrid) {
@@ -218,7 +232,6 @@ export function MenuBody({
                   index={index}
                   settings={settings}
                   template={template}
-                  accentColor={accentColor}
                 />
               ))}
             </div>
