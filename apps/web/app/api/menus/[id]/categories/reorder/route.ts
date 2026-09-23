@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth/auth';
 import { prisma } from '@/lib/db';
+import { pushOffersCategoryLast } from '@/lib/promotions/combo';
 import {
   handleApiError,
   createSuccessResponse,
@@ -89,6 +90,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         })
       )
     );
+
+    // T24.8 — manual reordering must keep the system Offers category last.
+    await pushOffersCategoryLast(menuId);
 
     // Fetch updated categories
     const updatedCategories = await prisma.category.findMany({

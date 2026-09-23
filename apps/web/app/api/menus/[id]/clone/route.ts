@@ -186,6 +186,11 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
             descriptionEn: category.descriptionEn,
             descriptionRu: category.descriptionRu,
             type: category.type,
+            // T24.10 — carry the category artwork across. Products already
+            // cloned their imageUrl; categories silently lost theirs, so a
+            // cloned menu came back with every banner blank.
+            iconUrl: category.iconUrl,
+            brandLabel: category.brandLabel,
             sortOrder: catIndex,
           },
         });

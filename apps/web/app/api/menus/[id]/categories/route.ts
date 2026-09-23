@@ -12,6 +12,7 @@ import { canCreateCategory } from '@/lib/auth/permissions';
 import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 import { logActivity } from '@/lib/activity/log';
+import { pushOffersCategoryLast } from '@/lib/promotions/combo';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -151,10 +152,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // without an upload; normalise to `null` before persisting.
     const normalisedIconUrl = data.iconUrl === '' ? null : data.iconUrl;
 
-    // If sortOrder not provided, put at the end
+    // If sortOrder not provided, put at the end of the *regular* categories.
+    // T24.8 — counting every row (including the auto-managed Offers category)
+    // handed the new category a slot after Offers, which then read as sitting
+    // in the middle of the menu. Offers is re-pinned to last just below.
     const sortOrder =
       data.sortOrder ??
-      (await prisma.category.count({ where: { menuId } }));
+      (await prisma.category.count({ where: { menuId, isSystemOffers: false } }));
 
     // Create category
     const category = await prisma.category.create({
@@ -170,6 +174,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         },
       },
     });
+
+    // T24.8 — keep the auto-managed Offers category pinned to the very end.
+    await pushOffersCategoryLast(menuId);
 
     // Invalidate cache
     await invalidateMenuCache(menuId, menu.slug);
