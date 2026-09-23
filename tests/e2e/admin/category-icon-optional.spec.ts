@@ -74,7 +74,7 @@ async function openContentTab(page: Page, menuId: string) {
 test.describe('T21.7 category icon optional + crop/zoom', () => {
   test.describe.configure({ mode: 'serial' });
 
-  test.beforeEach(async (_, testInfo) => {
+  test.beforeEach(async ({}, testInfo) => {
     test.skip(
       testInfo.project.name !== 'desktop',
       'Editor tabs are desktop-only — mobile coverage lives in editor-mobile.spec.ts.',

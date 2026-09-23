@@ -4,6 +4,9 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "module": "esnext",
     "moduleResolution": "bundler",
+    "paths": {
+      "@/*": ["./apps/web/*"]
+    },
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
