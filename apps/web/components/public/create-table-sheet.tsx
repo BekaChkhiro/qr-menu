@@ -27,63 +27,51 @@ const COPY: Record<
     description: string;
     nameLabel: string;
     namePlaceholder: string;
-    pinLabel: string;
-    pinHint: string;
     capLabel: (n: number) => string;
     submit: string;
     submitting: string;
     cancel: string;
     nameTooLong: string;
-    pinFormat: string;
     serverError: string;
   }
 > = {
   ka: {
     title: 'მაგიდის შექმნა',
     description:
-      'შექმენით სათაო მაგიდა — მეგობრები შემოგიერთდებიან QR კოდითა და PIN-ით.',
+      'შექმენით სათაო მაგიდა — მეგობრები შემოგიერთდებიან QR კოდით.',
     nameLabel: 'თქვენი სახელი',
     namePlaceholder: 'მაგ. ნინო',
-    pinLabel: '4-ციფრიანი PIN',
-    pinHint: 'მეგობრებს გადაეცით ეს PIN, რომ შეუერთდნენ',
     capLabel: (n) => `სტუმრების ლიმიტი — ${n}`,
     submit: 'მაგიდის შექმნა',
     submitting: 'იქმნება…',
     cancel: 'გაუქმება',
     nameTooLong: 'სახელი 32 სიმბოლოზე მოკლე უნდა იყოს',
-    pinFormat: 'PIN უნდა შედგებოდეს ზუსტად 4 ციფრისგან',
     serverError: 'შეცდომა, სცადეთ თავიდან',
   },
   en: {
     title: 'Create a shared table',
     description:
-      "Create a host table — friends scan a table-specific QR or enter your PIN to join.",
+      'Create a host table — friends scan a table-specific QR code to join.',
     nameLabel: 'Your name',
     namePlaceholder: 'e.g. Nino',
-    pinLabel: '4-digit PIN',
-    pinHint: 'Share this PIN with the friends who will join',
     capLabel: (n) => `Guest cap — ${n}`,
     submit: 'Create table',
     submitting: 'Creating…',
     cancel: 'Cancel',
     nameTooLong: 'Name must be 32 characters or fewer',
-    pinFormat: 'PIN must be exactly 4 digits',
     serverError: 'Something went wrong. Please try again.',
   },
   ru: {
     title: 'Создать общий стол',
     description:
-      'Создайте стол хоста — друзья присоединятся, отсканировав QR или введя PIN.',
+      'Создайте стол хоста — друзья присоединятся, отсканировав QR-код.',
     nameLabel: 'Ваше имя',
     namePlaceholder: 'напр. Нино',
-    pinLabel: '4-значный PIN',
-    pinHint: 'Сообщите этот PIN тем, кто присоединится',
     capLabel: (n) => `Лимит гостей — ${n}`,
     submit: 'Создать стол',
     submitting: 'Создаём…',
     cancel: 'Отмена',
     nameTooLong: 'Имя должно содержать не более 32 символов',
-    pinFormat: 'PIN должен состоять ровно из 4 цифр',
     serverError: 'Что-то пошло не так. Попробуйте снова.',
   },
 };
@@ -98,7 +86,6 @@ export function CreateTableSheet({
   const copy = COPY[locale];
 
   const [hostName, setHostName] = useState('');
-  const [pin, setPin] = useState('');
   const [maxGuests, setMaxGuests] = useState(6);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,8 +116,7 @@ export function CreateTableSheet({
 
   const trimmedName = hostName.trim();
   const nameValid = trimmedName.length > 0 && trimmedName.length <= 32;
-  const pinValid = /^\d{4}$/.test(pin);
-  const canSubmit = nameValid && pinValid && !submitting;
+  const canSubmit = nameValid && !submitting;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -138,10 +124,6 @@ export function CreateTableSheet({
 
     if (!nameValid) {
       setError(trimmedName.length > 32 ? copy.nameTooLong : copy.nameLabel);
-      return;
-    }
-    if (!pinValid) {
-      setError(copy.pinFormat);
       return;
     }
 
@@ -154,20 +136,13 @@ export function CreateTableSheet({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             hostName: trimmedName,
-            pin,
             maxGuests,
           }),
         },
       );
 
       if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        const code = body?.error?.code as string | undefined;
-        if (code === 'VALIDATION_ERROR') {
-          setError(copy.pinFormat);
-        } else {
-          setError(copy.serverError);
-        }
+        setError(copy.serverError);
         setSubmitting(false);
         return;
       }
@@ -178,15 +153,6 @@ export function CreateTableSheet({
         setError(copy.serverError);
         setSubmitting(false);
         return;
-      }
-
-      // Stash the PIN so the host view can offer a reveal toggle. The PIN is
-      // NEVER round-tripped from the server — it lives only in this browser
-      // tab's sessionStorage and is wiped when the host closes the table.
-      try {
-        window.sessionStorage.setItem(`dm_table_pin_${code}`, pin);
-      } catch {
-        // sessionStorage may be disabled (private mode) — proceed without.
       }
 
       // Cookie was set by the server response; navigate to the host view.
@@ -231,33 +197,6 @@ export function CreateTableSheet({
             />
           </label>
 
-          <label className="block">
-            <span className="mb-1.5 block text-[13px] font-medium text-text-default">
-              {copy.pinLabel}
-            </span>
-            <input
-              type="text"
-              value={pin}
-              onChange={(e) => {
-                // Strip non-digits, cap at 4.
-                const next = e.target.value.replace(/\D/g, '').slice(0, 4);
-                setPin(next);
-              }}
-              inputMode="numeric"
-              pattern="\d{4}"
-              maxLength={4}
-              autoComplete="off"
-              data-testid="public-create-table-pin"
-              aria-describedby="create-table-pin-hint"
-              className="h-[44px] w-full rounded-[10px] border border-border bg-bg px-[14px] text-[15px] tracking-[0.4em] text-text-default outline-none transition-colors focus:border-text-default focus:shadow-[0_0_0_3px_rgba(24,24,27,0.08)]"
-            />
-            <p
-              id="create-table-pin-hint"
-              className="mt-1.5 text-[12px] text-text-muted"
-            >
-              {copy.pinHint}
-            </p>
-          </label>
 
           <div>
             <label className="mb-2.5 block text-[13px] font-medium text-text-default">

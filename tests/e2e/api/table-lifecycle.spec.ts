@@ -51,7 +51,7 @@ async function newClient(): Promise<APIRequestContext> {
   return request.newContext();
 }
 
-const HOST_BODY = { hostName: 'Nino', pin: '1234', maxGuests: 4 };
+const HOST_BODY = { hostName: 'Nino', maxGuests: 4 };
 
 // ---------------------------------------------------------------------------
 
@@ -88,11 +88,11 @@ test.describe('table lifecycle — create', () => {
     expect(body.error.code).toBe('MENU_NOT_FOUND');
   });
 
-  test('bad PIN format returns 400 VALIDATION_ERROR', async () => {
+  test('bad maxGuests format returns 400 VALIDATION_ERROR', async () => {
     const { menuSlug } = await seedSharedTableMenu();
     const ctx = await newClient();
     const res = await ctx.post(`/api/public/menus/${menuSlug}/tables`, {
-      data: { ...HOST_BODY, pin: 'abcd' },
+      data: { ...HOST_BODY, maxGuests: 1 },
     });
     expect(res.status()).toBe(400);
     const body = await res.json();
@@ -119,6 +119,7 @@ test.describe('table lifecycle — create', () => {
     expect(session).not.toBeNull();
     expect(session!.menuId).toBe(menuId);
     expect(session!.status).toBe('OPEN');
+    expect(session!.pinHash).toBeNull();
     expect(session!.guests).toHaveLength(1);
     expect(session!.guests[0].isHost).toBe(true);
     expect(session!.guests[0].id).toBe(body.data.hostGuestId);
@@ -139,28 +140,56 @@ test.describe('table lifecycle — join', () => {
     const host = await newClient();
     const created = await host.post(
       `/api/public/menus/${seed.menuSlug}/tables`,
-      { data: { hostName: 'Nino', pin: '1234', maxGuests } },
+      { data: { hostName: 'Nino', maxGuests } },
     );
     expect(created.status()).toBe(201);
     const body = await created.json();
     return { ...seed, host, code: body.data.code as string };
   }
 
-  test('5 wrong PINs lock further attempts within window (right PIN still 429)', async () => {
+  test('PIN-less join allows guests to join without PIN', async () => {
     const { code } = await createOpenTable();
     const guest = await newClient();
 
-    for (let i = 0; i < 5; i++) {
+    const res = await guest.post(`/api/public/tables/${code}/join`, {
+      data: { name: 'Alice' },
+    });
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.data.role).toBe('guest');
+  });
+
+  test('legacy table with pinHash can still be joined without PIN', async () => {
+    const { code } = await createOpenTable();
+    await prismaTest.tableSession.update({
+      where: { code },
+      data: { pinHash: '$2a$10$legacyHashedPinString' },
+    });
+    const guest = await newClient();
+
+    const res = await guest.post(`/api/public/tables/${code}/join`, {
+      data: { name: 'Legacy Guest' },
+    });
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.data.role).toBe('guest');
+  });
+
+  test('rate limiter: excessive join attempts lock with 429 RATE_LIMITED', async () => {
+    const { code } = await createOpenTable(20);
+    const guest = await newClient();
+
+    for (let i = 0; i < 10; i++) {
       const res = await guest.post(`/api/public/tables/${code}/join`, {
-        data: { name: `Guest ${i}`, pin: '0000' },
+        data: { name: `Guest ${i}` },
       });
-      expect(res.status()).toBe(401);
-      const body = await res.json();
-      expect(body.error.code).toBe('WRONG_PIN');
+      expect(res.status()).toBe(200);
     }
 
     const locked = await guest.post(`/api/public/tables/${code}/join`, {
-      data: { name: 'Right Guest', pin: '1234' },
+      data: { name: 'Excess Guest' },
     });
     expect(locked.status()).toBe(429);
     const body = await locked.json();
@@ -174,12 +203,12 @@ test.describe('table lifecycle — join', () => {
     const b = await newClient();
 
     const okA = await a.post(`/api/public/tables/${code}/join`, {
-      data: { name: 'Alice', pin: '1234' },
+      data: { name: 'Alice' },
     });
     expect(okA.status()).toBe(200);
 
     const fullB = await b.post(`/api/public/tables/${code}/join`, {
-      data: { name: 'Bob', pin: '1234' },
+      data: { name: 'Bob' },
     });
     expect(fullB.status()).toBe(409);
     const body = await fullB.json();
@@ -191,14 +220,14 @@ test.describe('table lifecycle — join', () => {
     const guest = await newClient();
 
     const first = await guest.post(`/api/public/tables/${code}/join`, {
-      data: { name: 'Alice', pin: '1234' },
+      data: { name: 'Alice' },
     });
     expect(first.status()).toBe(200);
     const firstBody = await first.json();
     const guestId = firstBody.data.guestId as string;
 
     const again = await guest.post(`/api/public/tables/${code}/join`, {
-      data: { name: 'Alice', pin: '1234' },
+      data: { name: 'Alice' },
     });
     expect(again.status()).toBe(200);
     const againBody = await again.json();
@@ -221,17 +250,17 @@ test.describe('table lifecycle — get', () => {
     const host = await newClient();
     const created = await host.post(
       `/api/public/menus/${seed.menuSlug}/tables`,
-      { data: { hostName: 'Nino', pin: '1234', maxGuests: 5 } },
+      { data: { hostName: 'Nino', maxGuests: 5 } },
     );
     const code = (await created.json()).data.code as string;
 
     const a = await newClient();
     const b = await newClient();
     const ja = await a.post(`/api/public/tables/${code}/join`, {
-      data: { name: 'Alice', pin: '1234' },
+      data: { name: 'Alice' },
     });
     const jb = await b.post(`/api/public/tables/${code}/join`, {
-      data: { name: 'Bob', pin: '1234' },
+      data: { name: 'Bob' },
     });
     const aId = (await ja.json()).data.guestId as string;
     const bId = (await jb.json()).data.guestId as string;
@@ -320,13 +349,13 @@ test.describe('table lifecycle — close & extend', () => {
     const host = await newClient();
     const created = await host.post(
       `/api/public/menus/${seed.menuSlug}/tables`,
-      { data: { hostName: 'Nino', pin: '1234', maxGuests: 5 } },
+      { data: { hostName: 'Nino', maxGuests: 5 } },
     );
     const code = (await created.json()).data.code as string;
 
     const guest = await newClient();
     const j = await guest.post(`/api/public/tables/${code}/join`, {
-      data: { name: 'Alice', pin: '1234' },
+      data: { name: 'Alice' },
     });
     expect(j.status()).toBe(200);
 

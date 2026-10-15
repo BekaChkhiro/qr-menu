@@ -47,12 +47,11 @@ async function seedSharedTableMenu(slug: string) {
 async function createTableAsHost(
   hostContext: BrowserContext,
   slug: string,
-  pin = '1234',
   maxGuests = 6,
 ): Promise<string> {
   const created = await hostContext.request.post(
     `/api/public/menus/${slug}/tables`,
-    { data: { hostName: 'Nino', pin, maxGuests } },
+    { data: { hostName: 'Nino', maxGuests } },
   );
   expect(created.status()).toBe(201);
   const code = (await created.json()).data.code as string;
@@ -107,7 +106,7 @@ test.describe('public — host view real-time sync (T19.6)', () => {
     try {
       const joinRes = await guestCtx.request.post(
         `/api/public/tables/${code}/join`,
-        { data: { name: 'Anna', pin: '1234' } },
+        { data: { name: 'Anna' } },
       );
       expect(joinRes.status()).toBe(200);
 
@@ -156,7 +155,6 @@ test.describe('public — host view real-time sync (T19.6)', () => {
       // Guest joins from page's context and lands on the table menu.
       await page.goto(`/m/${slug}/t/${code}`);
       await page.getByTestId('public-join-name').fill('Anna');
-      await page.getByTestId('public-join-pin').fill('1234');
       await page.getByTestId('public-join-submit').click();
       await expect(page.getByTestId('public-table-guest-menu')).toBeVisible();
 

@@ -26,19 +26,15 @@ async function seedSharedTableMenu(slug: string, projectName = 'shared') {
   return { user, menu };
 }
 
-async function joinTable(page: Page, name: string, pin: string) {
+async function joinTable(page: Page, name: string) {
   const nameInput = page.getByTestId('public-join-name');
-  const pinInput = page.getByTestId('public-join-pin');
   const submit = page.getByTestId('public-join-submit');
 
   await expect(nameInput).toBeEditable();
-  await expect(pinInput).toBeEditable();
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     await nameInput.fill(name);
     await expect(nameInput).toHaveValue(name);
-    await pinInput.fill(pin);
-    await expect(pinInput).toHaveValue(pin);
     if (await submit.isEnabled()) break;
     await page.waitForTimeout(100);
   }
@@ -50,12 +46,11 @@ async function joinTable(page: Page, name: string, pin: string) {
 async function createTableAsHost(
   hostContext: BrowserContext,
   slug: string,
-  pin = '1234',
   maxGuests = 6,
 ): Promise<string> {
   const created = await hostContext.request.post(
     `/api/public/menus/${slug}/tables`,
-    { data: { hostName: 'Nino', pin, maxGuests } },
+    { data: { hostName: 'Nino', maxGuests } },
   );
   expect(created.status()).toBe(201);
   const code = (await created.json()).data.code as string;
@@ -124,7 +119,7 @@ test.describe('public — guest join + tray (T19.5)', () => {
 
     // Guest joins through the form so the cookie sticks to this context.
     await page.goto(`/m/${slug}/t/${code}`);
-    await joinTable(page, 'Anna', '1234');
+    await joinTable(page, 'Anna');
 
     await expect(page.getByTestId('public-table-guest-menu')).toBeVisible();
 
@@ -177,7 +172,7 @@ test.describe('public — guest join + tray (T19.5)', () => {
     await page.goto(`/m/${slug}/t/${code}`);
     await expect(page.getByTestId('public-join-table')).toBeVisible();
 
-    await joinTable(page, 'Anna', '1234');
+    await joinTable(page, 'Anna');
 
     // After join, the page re-renders into the table-mode menu.
     await expect(page.getByTestId('public-table-guest-menu')).toBeVisible();
@@ -243,24 +238,22 @@ test.describe('public — guest join + tray (T19.5)', () => {
 
   // ── Functional: error states ───────────────────────────────────────────
 
-  test('functional: wrong PIN surfaces "Wrong PIN — N attempts left"', async ({
+  test('functional: empty name disables submit on join form', async ({
     page,
     browser,
   }) => {
-    const slug = `tbl-guest-wrongpin-${Date.now()}`;
+    const slug = `tbl-guest-noname-${Date.now()}`;
     await seedSharedTableMenu(slug, test.info().project.name);
 
     const hostCtx = await browser.newContext();
-    const code = await createTableAsHost(hostCtx, slug, '4242');
+    const code = await createTableAsHost(hostCtx, slug);
     await hostCtx.close();
 
     await page.goto(`/m/${slug}/t/${code}`);
-    await joinTable(page, 'Anna', '0000');
+    await expect(page.getByTestId('public-join-table')).toBeVisible();
 
-    const error = page.getByTestId('public-join-error');
-    await expect(error).toBeVisible();
-    await expect(error).toContainText(/Wrong PIN/i);
-    await expect(error).toContainText(/attempts left/i);
+    const submit = page.getByTestId('public-join-submit');
+    await expect(submit).toBeDisabled();
   });
 
   test('functional: full table surfaces "Table is full"', async ({
@@ -273,7 +266,7 @@ test.describe('public — guest join + tray (T19.5)', () => {
     const hostCtx = await browser.newContext();
     // maxGuests=2 → after host (1) + one extra guest (2), the next join hits
     // TABLE_FULL.
-    const code = await createTableAsHost(hostCtx, slug, '1234', 2);
+    const code = await createTableAsHost(hostCtx, slug, 2);
     await hostCtx.close();
 
     const session = await prismaTest.tableSession.findUniqueOrThrow({
@@ -285,7 +278,7 @@ test.describe('public — guest join + tray (T19.5)', () => {
     });
 
     await page.goto(`/m/${slug}/t/${code}`);
-    await joinTable(page, 'Anna', '1234');
+    await joinTable(page, 'Anna');
 
     const error = page.getByTestId('public-join-error');
     await expect(error).toBeVisible();

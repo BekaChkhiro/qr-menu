@@ -144,7 +144,7 @@ test.describe('public — host create-table + host view (T19.4)', () => {
     // browser context (the host's session).
     const created = await context.request.post(
       `/api/public/menus/${slug}/tables`,
-      { data: { hostName: 'Nino', pin: '1234', maxGuests: 6 } },
+      { data: { hostName: 'Nino', maxGuests: 6 } },
     );
     expect(created.status()).toBe(201);
     const code = (await created.json()).data.code as string;
@@ -206,7 +206,6 @@ test.describe('public — host create-table + host view (T19.4)', () => {
     await page.getByTestId('public-create-table-cta').click();
 
     await page.getByTestId('public-create-table-name').fill('Nino');
-    await page.getByTestId('public-create-table-pin').fill('1234');
     await page.getByTestId('public-create-table-submit').click();
 
     // Land on /m/<slug>/t/<code>/host
@@ -227,24 +226,24 @@ test.describe('public — host create-table + host view (T19.4)', () => {
     ).toHaveCount(1);
   });
 
-  test('functional: PIN reveal toggles between dots and the typed PIN', async ({
+  test('functional: host creates table without PIN and QR renders', async ({
     page,
   }) => {
-    const slug = `tbl-pin-${Date.now()}`;
+    const slug = `tbl-pinless-${Date.now()}`;
     await seedSharedTableMenu(slug);
 
     await page.goto(`/m/${slug}`);
     await page.getByTestId('public-create-table-cta').click();
     await page.getByTestId('public-create-table-name').fill('Nino');
-    await page.getByTestId('public-create-table-pin').fill('5678');
     await page.getByTestId('public-create-table-submit').click();
 
     await page.waitForURL(/\/host$/);
-
-    const toggle = page.getByTestId('public-table-host-pin-toggle');
-    await expect(toggle).toContainText('• • • •');
-    await toggle.click();
-    await expect(toggle).toContainText('5678');
+    await expect(
+      page.getByTestId('public-table-host-view'),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId('public-table-host-qr').locator('img'),
+    ).toBeVisible();
   });
 
   test('functional: copy-link button writes the table URL to the clipboard', async ({
@@ -264,7 +263,6 @@ test.describe('public — host create-table + host view (T19.4)', () => {
     await page.goto(`/m/${slug}`);
     await page.getByTestId('public-create-table-cta').click();
     await page.getByTestId('public-create-table-name').fill('Nino');
-    await page.getByTestId('public-create-table-pin').fill('1234');
     await page.getByTestId('public-create-table-submit').click();
 
     await page.waitForURL(/\/host$/);
@@ -285,7 +283,6 @@ test.describe('public — host create-table + host view (T19.4)', () => {
     await page.goto(`/m/${slug}`);
     await page.getByTestId('public-create-table-cta').click();
     await page.getByTestId('public-create-table-name').fill('Nino');
-    await page.getByTestId('public-create-table-pin').fill('1234');
     await page.getByTestId('public-create-table-submit').click();
 
     await page.waitForURL(/\/host$/);
@@ -318,7 +315,6 @@ test.describe('public — host create-table + host view (T19.4)', () => {
     await page.goto(`/m/${slug}`);
     await page.getByTestId('public-create-table-cta').click();
     await page.getByTestId('public-create-table-name').fill('Nino');
-    await page.getByTestId('public-create-table-pin').fill('1234');
     await page.getByTestId('public-create-table-submit').click();
 
     await page.waitForURL(/\/host$/);

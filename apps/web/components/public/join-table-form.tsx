@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Lock, Users } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
 import type { Locale } from '@/i18n/config';
 
 interface JoinTableFormProps {
@@ -19,15 +19,10 @@ const COPY: Record<
     subtitle: (menuName: string) => string;
     nameLabel: string;
     namePlaceholder: string;
-    pinLabel: string;
-    pinPlaceholder: string;
     submit: string;
     submitting: string;
     nameRequired: string;
     nameTooLong: string;
-    pinFormat: string;
-    wrongPinWithLeft: (n: number) => string;
-    wrongPinNoLeft: string;
     tableFull: string;
     tableClosed: string;
     tableExpired: string;
@@ -42,15 +37,10 @@ const COPY: Record<
     subtitle: (menuName) => `მენიუ: ${menuName}`,
     nameLabel: 'შენი სახელი',
     namePlaceholder: 'მაგ. ნინო',
-    pinLabel: '4-ციფრიანი PIN',
-    pinPlaceholder: '0000',
     submit: 'შეერთება',
     submitting: 'შეერთება…',
     nameRequired: 'სახელის შეყვანა აუცილებელია',
     nameTooLong: 'სახელი 32 სიმბოლოზე მოკლე უნდა იყოს',
-    pinFormat: 'PIN უნდა შედგებოდეს ზუსტად 4 ციფრისგან',
-    wrongPinWithLeft: (n) => `არასწორი PIN — დარჩენილი ცდები: ${n}`,
-    wrongPinNoLeft: 'არასწორი PIN',
     tableFull: 'მაგიდა სავსეა',
     tableClosed: 'მაგიდა დახურულია',
     tableExpired: 'მაგიდას ვადა გაუვიდა',
@@ -65,15 +55,10 @@ const COPY: Record<
     subtitle: (menuName) => `Menu: ${menuName}`,
     nameLabel: 'Your name',
     namePlaceholder: 'e.g. Nino',
-    pinLabel: '4-digit PIN',
-    pinPlaceholder: '0000',
     submit: 'Join',
     submitting: 'Joining…',
     nameRequired: 'Please enter your name',
     nameTooLong: 'Name must be 32 characters or fewer',
-    pinFormat: 'PIN must be exactly 4 digits',
-    wrongPinWithLeft: (n) => `Wrong PIN — ${n} attempts left`,
-    wrongPinNoLeft: 'Wrong PIN',
     tableFull: 'Table is full',
     tableClosed: 'Table is closed',
     tableExpired: 'Table has expired',
@@ -87,15 +72,10 @@ const COPY: Record<
     subtitle: (menuName) => `Меню: ${menuName}`,
     nameLabel: 'Ваше имя',
     namePlaceholder: 'напр. Нино',
-    pinLabel: '4-значный PIN',
-    pinPlaceholder: '0000',
     submit: 'Войти',
     submitting: 'Входим…',
     nameRequired: 'Введите имя',
     nameTooLong: 'Имя должно содержать не более 32 символов',
-    pinFormat: 'PIN должен состоять ровно из 4 цифр',
-    wrongPinWithLeft: (n) => `Неверный PIN — осталось попыток: ${n}`,
-    wrongPinNoLeft: 'Неверный PIN',
     tableFull: 'Стол заполнен',
     tableClosed: 'Стол закрыт',
     tableExpired: 'Срок стола истёк',
@@ -111,7 +91,6 @@ export function JoinTableForm({ slug, code, menuName, locale }: JoinTableFormPro
   const copy = COPY[locale];
 
   const [name, setName] = useState('');
-  const [pin, setPin] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryAt, setRetryAt] = useState<number | null>(null);
@@ -137,10 +116,9 @@ export function JoinTableForm({ slug, code, menuName, locale }: JoinTableFormPro
 
   const trimmedName = name.trim();
   const nameValid = trimmedName.length > 0 && trimmedName.length <= 32;
-  const pinValid = /^\d{4}$/.test(pin);
   const retryRemainingMs = retryAt ? Math.max(0, retryAt - now) : 0;
   const rateLimited = retryRemainingMs > 0;
-  const canSubmit = nameValid && pinValid && !submitting && !rateLimited;
+  const canSubmit = nameValid && !submitting && !rateLimited;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -148,10 +126,6 @@ export function JoinTableForm({ slug, code, menuName, locale }: JoinTableFormPro
 
     if (!nameValid) {
       setError(trimmedName.length > 32 ? copy.nameTooLong : copy.nameRequired);
-      return;
-    }
-    if (!pinValid) {
-      setError(copy.pinFormat);
       return;
     }
 
@@ -162,7 +136,7 @@ export function JoinTableForm({ slug, code, menuName, locale }: JoinTableFormPro
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: trimmedName, pin }),
+          body: JSON.stringify({ name: trimmedName }),
         },
       );
 
@@ -176,18 +150,10 @@ export function JoinTableForm({ slug, code, menuName, locale }: JoinTableFormPro
       const body = await res.json().catch(() => null);
       const errorCode = body?.error?.code as string | undefined;
       const details = body?.error?.details as
-        | { attemptsLeft?: number; retryAfterSeconds?: number }
+        | { retryAfterSeconds?: number }
         | undefined;
 
       switch (errorCode) {
-        case 'WRONG_PIN':
-          setPin('');
-          if (typeof details?.attemptsLeft === 'number' && details.attemptsLeft > 0) {
-            setError(copy.wrongPinWithLeft(details.attemptsLeft));
-          } else {
-            setError(copy.wrongPinNoLeft);
-          }
-          break;
         case 'TABLE_FULL':
           setError(copy.tableFull);
           break;
@@ -206,7 +172,7 @@ export function JoinTableForm({ slug, code, menuName, locale }: JoinTableFormPro
           break;
         }
         case 'VALIDATION_ERROR':
-          setError(copy.pinFormat);
+          setError(copy.nameRequired);
           break;
         default:
           setError(copy.networkError);
@@ -258,27 +224,6 @@ export function JoinTableForm({ slug, code, menuName, locale }: JoinTableFormPro
             />
           </label>
 
-          <label className="block">
-            <span className="mb-1.5 flex items-center gap-1.5 text-[13px] font-medium text-text-default">
-              <Lock size={14} strokeWidth={1.75} aria-hidden="true" />
-              {copy.pinLabel}
-            </span>
-            <input
-              type="text"
-              value={pin}
-              onChange={(e) => {
-                const next = e.target.value.replace(/\D/g, '').slice(0, 4);
-                setPin(next);
-              }}
-              inputMode="numeric"
-              pattern="\d{4}"
-              maxLength={4}
-              autoComplete="one-time-code"
-              placeholder={copy.pinPlaceholder}
-              data-testid="public-join-pin"
-              className="h-[48px] w-full rounded-[10px] border border-border bg-bg px-[14px] text-center text-[18px] font-semibold tracking-[0.5em] text-text-default outline-none transition-colors focus:border-text-default focus:shadow-[0_0_0_3px_rgba(24,24,27,0.08)]"
-            />
-          </label>
 
           {error && (
             <p

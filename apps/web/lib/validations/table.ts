@@ -1,10 +1,6 @@
 import { z } from 'zod';
 
 // Shared field rules
-const pinSchema = z
-  .string()
-  .regex(/^\d{4}$/, 'PIN must be exactly 4 digits');
-
 const guestNameSchema = z
   .string()
   .trim()
@@ -14,7 +10,6 @@ const guestNameSchema = z
 // Host creates a new table session.
 export const createTableSchema = z.object({
   hostName: guestNameSchema,
-  pin: pinSchema,
   maxGuests: z
     .number()
     .int()
@@ -22,10 +17,9 @@ export const createTableSchema = z.object({
     .max(20, 'Up to 20 guests allowed'),
 });
 
-// Guest joins an existing table session via code + PIN.
+// Guest joins an existing table session.
 export const joinTableSchema = z.object({
   name: guestNameSchema,
-  pin: pinSchema,
 });
 
 // Guest adds a product (with optional variation) to their personal tray.

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
 import {
   handleApiError,
@@ -16,7 +15,6 @@ import {
 } from '@/lib/auth/table-token';
 import {
   tableJoinLimiter,
-  tablePinLimiter,
   getClientIp,
 } from '@/lib/rate-limit';
 import { CHANNELS, EVENTS, triggerEvent } from '@/lib/pusher/server';
@@ -53,7 +51,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       where: { code },
       select: {
         id: true,
-        pinHash: true,
         status: true,
         expiresAt: true,
         maxGuests: true,
@@ -77,27 +74,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const pinKey = `${table.id}:${ip}`;
-    const pinPeek = await tablePinLimiter.peek(pinKey);
-    if (!pinPeek.success) {
-      return rateLimitResponse(pinPeek.reset);
-    }
-
-    const pinOk = await bcrypt.compare(body.pin, table.pinHash);
-    if (!pinOk) {
-      const after = await tablePinLimiter.consume(pinKey);
-      if (!after.success) {
-        return rateLimitResponse(after.reset);
-      }
-      return createErrorResponse(
-        ERROR_CODES.WRONG_PIN,
-        'Incorrect PIN',
-        401,
-        { attemptsLeft: after.remaining },
-      );
-    }
-
-    // PIN ok — short-circuit if cookie already binds this table to a guest row.
+    // Short-circuit if cookie already binds this table to a guest row.
     const existingCookie = readTableCookie(request);
     if (existingCookie && existingCookie.tableId === table.id) {
       const stillExists = table.guests.some((g) => g.id === existingCookie.guestId);

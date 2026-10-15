@@ -26,7 +26,6 @@ const REALTIME_TIMEOUT = 15_000;
 const HOST_NAME = 'Beka';
 const GUEST_1_NAME = 'Nino';
 const GUEST_2_NAME = 'Sandro';
-const TABLE_PIN = '1234';
 const MAX_GUESTS = 4;
 
 function pusherConfigured(): boolean {
@@ -122,10 +121,9 @@ test.describe('public — table full flow (T19.10)', () => {
     await hostPage.goto(`/m/${slug}`);
     await expect(hostPage.getByTestId('public-create-table-cta')).toBeVisible();
 
-    // ── Step 3: host creates the table (name "Beka", PIN "1234", cap 4). ──
+    // ── Step 3: host creates the table (name "Beka", cap 4). ──
     await hostPage.getByTestId('public-create-table-cta').click();
     await hostPage.getByTestId('public-create-table-name').fill(HOST_NAME);
-    await hostPage.getByTestId('public-create-table-pin').fill(TABLE_PIN);
     await hostPage
       .getByTestId('public-create-table-cap')
       .fill(String(MAX_GUESTS));
@@ -162,7 +160,6 @@ test.describe('public — table full flow (T19.10)', () => {
     await guest1Page.goto(tableUrl);
     await expect(guest1Page.getByTestId('public-join-table')).toBeVisible();
     await guest1Page.getByTestId('public-join-name').fill(GUEST_1_NAME);
-    await guest1Page.getByTestId('public-join-pin').fill(TABLE_PIN);
     await guest1Page.getByTestId('public-join-submit').click();
     await expect(
       guest1Page.getByTestId('public-table-guest-menu'),
@@ -177,7 +174,6 @@ test.describe('public — table full flow (T19.10)', () => {
     await guest2Page.goto(tableUrl);
     await expect(guest2Page.getByTestId('public-join-table')).toBeVisible();
     await guest2Page.getByTestId('public-join-name').fill(GUEST_2_NAME);
-    await guest2Page.getByTestId('public-join-pin').fill(TABLE_PIN);
     await guest2Page.getByTestId('public-join-submit').click();
     await expect(
       guest2Page.getByTestId('public-table-guest-menu'),

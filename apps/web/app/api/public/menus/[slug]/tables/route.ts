@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
 import {
   handleApiError,
@@ -21,7 +20,6 @@ interface RouteParams {
 }
 
 const TABLE_INITIAL_TTL_MS = 4 * 60 * 60 * 1000; // 4h
-const PIN_BCRYPT_COST = 10;
 const MAX_CODE_RETRIES = 5;
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
@@ -55,7 +53,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const pinHash = await bcrypt.hash(body.pin, PIN_BCRYPT_COST);
     const expiresAt = new Date(Date.now() + TABLE_INITIAL_TTL_MS);
 
     let createdTableId: string | null = null;
@@ -70,7 +67,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             data: {
               menuId: menu.id,
               code,
-              pinHash,
+              pinHash: null as unknown as string,
               hostName: body.hostName,
               maxGuests: body.maxGuests,
               expiresAt,

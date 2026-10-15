@@ -8,49 +8,18 @@ import {
 const VALID_CUID = 'clz1234567890abcdefghijkl';
 
 describe('createTableSchema', () => {
-  it('accepts a valid host payload', () => {
+  it('accepts a valid host payload without PIN', () => {
     const result = createTableSchema.safeParse({
       hostName: 'Nino',
-      pin: '1234',
       maxGuests: 6,
     });
     expect(result.success).toBe(true);
-  });
-
-  describe('pin', () => {
-    it('rejects pin shorter than 4 digits', () => {
-      const result = createTableSchema.safeParse({
-        hostName: 'Nino',
-        pin: '123',
-        maxGuests: 4,
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it('rejects pin longer than 4 digits', () => {
-      const result = createTableSchema.safeParse({
-        hostName: 'Nino',
-        pin: '12345',
-        maxGuests: 4,
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it('rejects non-numeric pin', () => {
-      const result = createTableSchema.safeParse({
-        hostName: 'Nino',
-        pin: '12a4',
-        maxGuests: 4,
-      });
-      expect(result.success).toBe(false);
-    });
   });
 
   describe('hostName', () => {
     it('rejects empty name (after trim)', () => {
       const result = createTableSchema.safeParse({
         hostName: '   ',
-        pin: '1234',
         maxGuests: 4,
       });
       expect(result.success).toBe(false);
@@ -59,7 +28,6 @@ describe('createTableSchema', () => {
     it('rejects name longer than 32 characters', () => {
       const result = createTableSchema.safeParse({
         hostName: 'a'.repeat(33),
-        pin: '1234',
         maxGuests: 4,
       });
       expect(result.success).toBe(false);
@@ -68,7 +36,6 @@ describe('createTableSchema', () => {
     it('accepts a 32-character name', () => {
       const result = createTableSchema.safeParse({
         hostName: 'a'.repeat(32),
-        pin: '1234',
         maxGuests: 4,
       });
       expect(result.success).toBe(true);
@@ -79,7 +46,6 @@ describe('createTableSchema', () => {
     it('rejects 1 (below minimum)', () => {
       const result = createTableSchema.safeParse({
         hostName: 'Nino',
-        pin: '1234',
         maxGuests: 1,
       });
       expect(result.success).toBe(false);
@@ -88,7 +54,6 @@ describe('createTableSchema', () => {
     it('accepts 2 (boundary)', () => {
       const result = createTableSchema.safeParse({
         hostName: 'Nino',
-        pin: '1234',
         maxGuests: 2,
       });
       expect(result.success).toBe(true);
@@ -97,7 +62,6 @@ describe('createTableSchema', () => {
     it('accepts 20 (boundary)', () => {
       const result = createTableSchema.safeParse({
         hostName: 'Nino',
-        pin: '1234',
         maxGuests: 20,
       });
       expect(result.success).toBe(true);
@@ -106,7 +70,6 @@ describe('createTableSchema', () => {
     it('rejects 21 (above maximum)', () => {
       const result = createTableSchema.safeParse({
         hostName: 'Nino',
-        pin: '1234',
         maxGuests: 21,
       });
       expect(result.success).toBe(false);
@@ -115,7 +78,6 @@ describe('createTableSchema', () => {
     it('rejects non-integer', () => {
       const result = createTableSchema.safeParse({
         hostName: 'Nino',
-        pin: '1234',
         maxGuests: 4.5,
       });
       expect(result.success).toBe(false);
@@ -124,25 +86,19 @@ describe('createTableSchema', () => {
 });
 
 describe('joinTableSchema', () => {
-  it('accepts a valid guest payload', () => {
-    const result = joinTableSchema.safeParse({ name: 'Beka', pin: '1234' });
+  it('accepts a valid guest payload without PIN', () => {
+    const result = joinTableSchema.safeParse({ name: 'Beka' });
     expect(result.success).toBe(true);
   });
 
-  it('rejects missing pin', () => {
-    const result = joinTableSchema.safeParse({ name: 'Beka' });
-    expect(result.success).toBe(false);
-  });
-
   it('rejects empty name', () => {
-    const result = joinTableSchema.safeParse({ name: '', pin: '1234' });
+    const result = joinTableSchema.safeParse({ name: '' });
     expect(result.success).toBe(false);
   });
 
   it('rejects 33-character name', () => {
     const result = joinTableSchema.safeParse({
       name: 'a'.repeat(33),
-      pin: '1234',
     });
     expect(result.success).toBe(false);
   });
