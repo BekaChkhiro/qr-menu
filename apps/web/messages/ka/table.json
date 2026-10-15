@@ -95,6 +95,8 @@
   "guest": {
     "myPicks": "ჩემი არჩევანი",
     "myPicksCount": "ჩემი არჩევანი · {count}",
+    "sharedPicks": "საერთო არჩევანი",
+    "sharedPicksCount": "საერთო არჩევანი · {count}",
     "closedHeading": "მაგიდა დახურულია",
     "expiredHeading": "მაგიდას ვადა გაუვიდა",
     "hostDashboard": "მასპინძლის პანელი",
@@ -112,6 +114,14 @@
       "leaveConfirmCta": "დიახ, გავიდე",
       "leaveConfirmCancel": "გაუქმება",
       "empty": "ჯერ არცერთი კერძი არ აგირჩევია. დაამატე მენიუდან."
+    },
+    "shared": {
+      "title": "საერთო არჩევანი",
+      "description": "მაგიდის ყველა მონაწილის მიერ არჩეული კერძები.",
+      "guestsHeading": "სტუმრები {count}/{max}",
+      "hostBadge": "მასპინძელი",
+      "selectionEmpty": "ამ სტუმარს არჩევანი ჯერ არ აქვს",
+      "overallEmpty": "მაგიდის მონაწილეებს არჩევანი ჯერ არ დაუმატებიათ."
     }
   },
   "productAdd": {

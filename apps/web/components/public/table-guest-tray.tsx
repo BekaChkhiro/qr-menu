@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import type { Locale } from '@/i18n/config';
 import { useTableMode } from './table-mode-provider';
 import { toNumber } from './product-card-shared';
+import { TableSharedSelections } from './table-shared-selections';
 
 export interface TrayProductInfo {
   id: string;
@@ -55,6 +56,8 @@ const COPY: Record<
     pillCount: (n: number) => string;
     title: string;
     description: string;
+    myTab: string;
+    sharedTab: string;
     empty: string;
     total: string;
     estimateNote: string;
@@ -74,6 +77,8 @@ const COPY: Record<
     pillCount: (n) => `ჩემი არჩევანი · ${n}`,
     title: 'ჩემი არჩევანი',
     description: 'შენი დამატებული პროდუქტები ამ მაგიდისთვის.',
+    myTab: 'ჩემი არჩევანი',
+    sharedTab: 'საერთო არჩევანი',
     empty: 'ჯერ არჩევანი არ გაქვს — დაამატე რამე მენიუდან.',
     total: 'სავარაუდო ჯამი',
     estimateNote: 'ფასები არიან საინფორმაციო — გადახდა ხდება ოფიციანტთან.',
@@ -93,6 +98,8 @@ const COPY: Record<
     pillCount: (n) => `My picks · ${n}`,
     title: 'My picks',
     description: 'The items you added to this table.',
+    myTab: 'My picks',
+    sharedTab: 'Shared picks',
     empty: "You haven't picked anything yet — add something from the menu.",
     total: 'Total estimate',
     estimateNote: 'Prices are informational — payment happens with the server.',
@@ -112,6 +119,8 @@ const COPY: Record<
     pillCount: (n) => `Мой выбор · ${n}`,
     title: 'Мой выбор',
     description: 'Позиции, которые вы добавили к этому столу.',
+    myTab: 'Мой выбор',
+    sharedTab: 'Общий выбор',
     empty: 'Пока ничего не выбрано — добавьте что-нибудь из меню.',
     total: 'Примерный итог',
     estimateNote:
@@ -147,6 +156,7 @@ export function TableGuestTray({ products, currencySymbol, locale }: Props) {
   const tableMode = useTableMode();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'my' | 'shared'>('my');
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
 
   const productById = useMemo(() => {
@@ -168,6 +178,7 @@ export function TableGuestTray({ products, currencySymbol, locale }: Props) {
 
   const selections = tableMode.selections;
   const count = selections.length;
+  const sharedCount = tableMode.sharedSelections?.length ?? 0;
 
   const total = selections.reduce((acc, sel) => {
     const product = productById.get(sel.productId);
@@ -185,7 +196,7 @@ export function TableGuestTray({ products, currencySymbol, locale }: Props) {
 
   return (
     <>
-      {/* Floating pill — bottom-right above safe-area inset */}
+      {/* Floating pill — bottom-right above safe-area inset (shows personal count only) */}
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -205,20 +216,58 @@ export function TableGuestTray({ products, currencySymbol, locale }: Props) {
           data-testid="public-table-guest-tray"
           className="flex max-h-[85vh] flex-col gap-0 rounded-t-2xl p-0"
         >
-          <SheetHeader className="border-b border-border px-5 pb-4 pt-5 text-left">
+          <SheetHeader className="border-b border-border px-5 pb-3 pt-5 text-left">
             <SheetTitle>
-              {closed ? closedHeading : copy.title}
-              {!closed && count > 0 && (
+              {closed ? closedHeading : activeTab === 'my' ? copy.title : copy.sharedTab}
+              {!closed && activeTab === 'my' && count > 0 && (
                 <span className="ml-2 text-[12px] font-medium text-text-muted">
                   · {count}
                 </span>
               )}
             </SheetTitle>
             <SheetDescription>{copy.description}</SheetDescription>
+
+            {/* Segmented control tabs between personal and shared view */}
+            <div className="mt-3 flex rounded-[10px] bg-chip p-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('my')}
+                data-testid="public-table-guest-tray-tab-my"
+                className={cn(
+                  'flex-1 rounded-[8px] py-1.5 text-[12.5px] font-medium transition-colors',
+                  activeTab === 'my'
+                    ? 'bg-card text-text-default shadow-xs'
+                    : 'text-text-muted hover:text-text-default',
+                )}
+              >
+                {copy.myTab}
+                {count > 0 && (
+                  <span className="ml-1 text-[11px] opacity-75"> · {count}</span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('shared')}
+                data-testid="public-table-guest-tray-tab-shared"
+                className={cn(
+                  'flex-1 rounded-[8px] py-1.5 text-[12.5px] font-medium transition-colors',
+                  activeTab === 'shared'
+                    ? 'bg-card text-text-default shadow-xs'
+                    : 'text-text-muted hover:text-text-default',
+                )}
+              >
+                {copy.sharedTab}
+                {sharedCount > 0 && (
+                  <span className="ml-1 text-[11px] opacity-75"> · {sharedCount}</span>
+                )}
+              </button>
+            </div>
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto px-5 py-4">
-            {selections.length === 0 ? (
+            {activeTab === 'shared' ? (
+              <TableSharedSelections products={products} locale={locale} />
+            ) : selections.length === 0 ? (
               <p
                 className="rounded-[12px] border border-dashed border-border bg-bg px-4 py-6 text-center text-[13px] text-text-muted"
                 data-testid="public-table-guest-tray-empty"
@@ -316,7 +365,7 @@ export function TableGuestTray({ products, currencySymbol, locale }: Props) {
           </div>
 
           <div className="border-t border-border bg-card px-5 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
-            {selections.length > 0 && (
+            {activeTab === 'my' && selections.length > 0 && (
               <>
                 <div className="mb-2 flex items-baseline justify-between">
                   <span className="text-[12.5px] font-medium uppercase tracking-wide text-text-muted">

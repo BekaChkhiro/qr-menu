@@ -70,6 +70,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    const currentGuest = table.guests.find((g) => g.id === cookie.guestId);
+    if (!currentGuest) {
+      return createErrorResponse(
+        ERROR_CODES.UNAUTHORIZED,
+        'Guest is not a member of this table',
+        401,
+      );
+    }
+
     // Auto-close-on-read: if the window passed and the row is still OPEN,
     // mark it EXPIRED so subsequent ops see the terminal state.
     let effectiveStatus = table.status;
@@ -82,19 +91,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Touch lastSeenAt for the requester. Best-effort — skip on guest deletion.
-    if (table.guests.some((g) => g.id === cookie.guestId)) {
-      await prisma.tableGuest
-        .update({
-          where: { id: cookie.guestId },
-          data: { lastSeenAt: new Date() },
-        })
-        .catch(() => undefined);
-    }
+    await prisma.tableGuest
+      .update({
+        where: { id: cookie.guestId },
+        data: { lastSeenAt: new Date() },
+      })
+      .catch(() => undefined);
 
     const isHost = cookie.isHost;
-    const selections = isHost
-      ? table.selections
-      : table.selections.filter((s) => s.guestId === cookie.guestId);
+    const selections = table.selections;
 
     const guestsPublic = table.guests.map((g) => ({
       id: g.id,

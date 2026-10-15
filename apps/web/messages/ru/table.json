@@ -42,13 +42,34 @@
   },
   "guest": {
     "myPicks": "Мой выбор",
+    "myPicksCount": "Мой выбор · {count}",
+    "sharedPicks": "Общий выбор",
+    "sharedPicksCount": "Общий выбор · {count}",
+    "closedHeading": "Стол закрыт",
+    "expiredHeading": "Срок стола истёк",
+    "hostDashboard": "Панель хоста",
     "tray": {
       "title": "Мой выбор",
+      "description": "Позиции, которые вы добавили к этому столу.",
       "total": "Итого: {amount}",
+      "totalLabel": "Примерный итог",
+      "estimateNote": "Цены информативны — оплата производится у официанта.",
       "removeItem": "Удалить",
       "leaveTable": "Покинуть стол",
+      "leaving": "Выходим...",
       "leaveConfirm": "Покинуть стол? Ваш выбор будет удалён.",
+      "leaveConfirmTitle": "Выйти из стола?",
+      "leaveConfirmCta": "Да, выйти",
+      "leaveConfirmCancel": "Отмена",
       "empty": "Пока ничего не выбрано. Добавьте что-нибудь из меню."
+    },
+    "shared": {
+      "title": "Общий выбор",
+      "description": "Блюда, выбранные всеми участниками стола.",
+      "guestsHeading": "Гости {count}/{max}",
+      "hostBadge": "Хост",
+      "selectionEmpty": "У этого гостя пока нет выбора",
+      "overallEmpty": "Никто за столом пока ничего не выбрал."
     }
   },
   "system": {

@@ -95,6 +95,8 @@
   "guest": {
     "myPicks": "My picks",
     "myPicksCount": "My picks · {count}",
+    "sharedPicks": "Shared picks",
+    "sharedPicksCount": "Shared picks · {count}",
     "closedHeading": "Table closed",
     "expiredHeading": "Table expired",
     "hostDashboard": "Host dashboard",
@@ -112,6 +114,14 @@
       "leaveConfirmCta": "Yes, leave",
       "leaveConfirmCancel": "Cancel",
       "empty": "No picks yet. Add something from the menu."
+    },
+    "shared": {
+      "title": "Shared picks",
+      "description": "Items picked by everyone at this table.",
+      "guestsHeading": "Guests {count}/{max}",
+      "hostBadge": "Host",
+      "selectionEmpty": "No picks yet from this guest",
+      "overallEmpty": "No one at the table has picked anything yet."
     }
   },
   "productAdd": {

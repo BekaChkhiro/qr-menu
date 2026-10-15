@@ -23,6 +23,10 @@ const { mockPrisma, mockReadTableCookie, mockTriggerEvent } = vi.hoisted(() => {
     mockPrisma: {
       tableSession: {
         findUnique: vi.fn(),
+        update: vi.fn(),
+      },
+      tableGuest: {
+        update: vi.fn(),
       },
       tableSelection: {
         findUnique: vi.fn(),
@@ -55,6 +59,7 @@ vi.mock('@/lib/pusher/server', () => ({
   },
 }));
 
+import { GET as getTable } from '@/app/api/public/tables/[code]/route';
 import { POST as postSelection } from '@/app/api/public/tables/[code]/selections/route';
 import { DELETE as deleteSelection } from '@/app/api/public/tables/[code]/selections/[id]/route';
 
@@ -437,5 +442,186 @@ describe('DELETE /api/public/tables/[code]/selections/[id]', () => {
     const response = await deleteSelection(request, context);
 
     expect(response.status).toBe(401);
+  });
+});
+
+describe('GET /api/public/tables/[code]', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetIdCounter();
+    mockPrisma.tableGuest.update.mockResolvedValue({});
+    mockPrisma.tableSession.update.mockResolvedValue({});
+  });
+
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  function getTableSessionRow(overrides: Partial<{
+    status: 'OPEN' | 'CLOSED' | 'EXPIRED';
+    expiresAt: Date;
+    guests: Array<{ id: string; name: string; isHost: boolean; joinedAt: Date; lastSeenAt: Date }>;
+    selections: Array<ReturnType<typeof selectionRow>>;
+  }> = {}) {
+    return {
+      id: TABLE_ID,
+      code: TABLE_CODE,
+      menuId: MENU_ID,
+      hostName: 'Nino',
+      maxGuests: 6,
+      status: overrides.status ?? 'OPEN',
+      expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
+      extendedAt: null,
+      createdAt: new Date('2026-04-30T10:00:00Z'),
+      guests: overrides.guests ?? [
+        { id: HOST_GUEST_ID, name: 'Nino', isHost: true, joinedAt: new Date('2026-04-30T10:00:00Z'), lastSeenAt: new Date('2026-04-30T10:05:00Z') },
+        { id: GUEST_A_ID, name: 'Anna', isHost: false, joinedAt: new Date('2026-04-30T10:01:00Z'), lastSeenAt: new Date('2026-04-30T10:05:00Z') },
+        { id: GUEST_B_ID, name: 'Beka', isHost: false, joinedAt: new Date('2026-04-30T10:02:00Z'), lastSeenAt: new Date('2026-04-30T10:05:00Z') },
+      ],
+      selections: overrides.selections ?? [
+        selectionRow({ id: 'sel-1', guestId: GUEST_A_ID, quantity: 1 }),
+        selectionRow({ id: 'sel-2', guestId: GUEST_B_ID, quantity: 2 }),
+      ],
+    };
+  }
+
+  it('returns 401 when cookie is missing', async () => {
+    mockReadTableCookie.mockReturnValue(null);
+
+    const request = createMockRequest(`/api/public/tables/${TABLE_CODE}`);
+    const context = createRouteContext({ code: TABLE_CODE });
+    const response = await getTable(request, context);
+    const data = await parseJsonResponse<ApiResponse<unknown>>(response);
+
+    expect(response.status).toBe(401);
+    expect(data.success).toBe(false);
+    if (!data.success) expect(data.error.code).toBe('UNAUTHORIZED');
+  });
+
+  it('returns 401 when cookie tableId does not match table', async () => {
+    mockReadTableCookie.mockReturnValue({
+      tableId: 'different-table-id',
+      guestId: GUEST_A_ID,
+      isHost: false,
+    });
+    mockPrisma.tableSession.findUnique.mockResolvedValue(getTableSessionRow());
+
+    const request = createMockRequest(`/api/public/tables/${TABLE_CODE}`);
+    const context = createRouteContext({ code: TABLE_CODE });
+    const response = await getTable(request, context);
+
+    expect(response.status).toBe(401);
+  });
+
+  it('returns 401 when guest is not an active member of table.guests', async () => {
+    mockReadTableCookie.mockReturnValue({
+      tableId: TABLE_ID,
+      guestId: 'removed-or-stranger-guest-id',
+      isHost: false,
+    });
+    mockPrisma.tableSession.findUnique.mockResolvedValue(getTableSessionRow());
+
+    const request = createMockRequest(`/api/public/tables/${TABLE_CODE}`);
+    const context = createRouteContext({ code: TABLE_CODE });
+    const response = await getTable(request, context);
+    const data = await parseJsonResponse<ApiResponse<unknown>>(response);
+
+    expect(response.status).toBe(401);
+    if (!data.success) {
+      expect(data.error.code).toBe('UNAUTHORIZED');
+      expect(data.error.message).toBe('Guest is not a member of this table');
+    }
+  });
+
+  it('returns 200 with all selections for an active guest member', async () => {
+    mockReadTableCookie.mockReturnValue({
+      tableId: TABLE_ID,
+      guestId: GUEST_A_ID,
+      isHost: false,
+    });
+    mockPrisma.tableSession.findUnique.mockResolvedValue(getTableSessionRow());
+
+    const request = createMockRequest(`/api/public/tables/${TABLE_CODE}`);
+    const context = createRouteContext({ code: TABLE_CODE });
+    const response = await getTable(request, context);
+    const data = await parseJsonResponse<
+      ApiResponse<{
+        role: string;
+        me: { guestId: string };
+        selections: Array<{ id: string; guestId: string }>;
+        guests: Array<{ id: string; name: string }>;
+      }>
+    >(response);
+
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+    if (data.success) {
+      expect(data.data.role).toBe('guest');
+      expect(data.data.me.guestId).toBe(GUEST_A_ID);
+      // Confirms all table selections are returned to the guest, not only their own
+      expect(data.data.selections).toHaveLength(2);
+      expect(data.data.selections.some((s) => s.guestId === GUEST_A_ID)).toBe(true);
+      expect(data.data.selections.some((s) => s.guestId === GUEST_B_ID)).toBe(true);
+      expect(data.data.guests).toHaveLength(3);
+    }
+
+    // Touches lastSeenAt for the guest
+    expect(mockPrisma.tableGuest.update).toHaveBeenCalledWith({
+      where: { id: GUEST_A_ID },
+      data: { lastSeenAt: expect.any(Date) },
+    });
+  });
+
+  it('returns 200 with all selections for host member', async () => {
+    mockReadTableCookie.mockReturnValue({
+      tableId: TABLE_ID,
+      guestId: HOST_GUEST_ID,
+      isHost: true,
+    });
+    mockPrisma.tableSession.findUnique.mockResolvedValue(getTableSessionRow());
+
+    const request = createMockRequest(`/api/public/tables/${TABLE_CODE}`);
+    const context = createRouteContext({ code: TABLE_CODE });
+    const response = await getTable(request, context);
+    const data = await parseJsonResponse<
+      ApiResponse<{
+        role: string;
+        selections: Array<{ id: string; guestId: string }>;
+      }>
+    >(response);
+
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+    if (data.success) {
+      expect(data.data.role).toBe('host');
+      expect(data.data.selections).toHaveLength(2);
+    }
+  });
+
+  it('auto-marks status as EXPIRED when read past expiresAt', async () => {
+    mockReadTableCookie.mockReturnValue({
+      tableId: TABLE_ID,
+      guestId: GUEST_A_ID,
+      isHost: false,
+    });
+    const expiredRow = getTableSessionRow({
+      status: 'OPEN',
+      expiresAt: new Date(Date.now() - 1000),
+    });
+    mockPrisma.tableSession.findUnique.mockResolvedValue(expiredRow);
+
+    const request = createMockRequest(`/api/public/tables/${TABLE_CODE}`);
+    const context = createRouteContext({ code: TABLE_CODE });
+    const response = await getTable(request, context);
+    const data = await parseJsonResponse<ApiResponse<{ status: string }>>(response);
+
+    expect(response.status).toBe(200);
+    if (data.success) {
+      expect(data.data.status).toBe('EXPIRED');
+    }
+    expect(mockPrisma.tableSession.update).toHaveBeenCalledWith({
+      where: { id: TABLE_ID },
+      data: { status: 'EXPIRED' },
+    });
   });
 });

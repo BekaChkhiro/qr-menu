@@ -175,28 +175,60 @@ async function renderGuestMenu(args: RenderArgs) {
     ),
   );
 
-  // This guest's selections — needed to seed the tray + tray totals on first
-  // paint (no client fetch round-trip).
-  const initialSelectionsRaw = await prisma.tableSelection.findMany({
-    where: { tableId: args.tableId, guestId: args.guestId },
-    orderBy: { createdAt: 'asc' },
-    select: {
-      id: true,
-      productId: true,
-      variationId: true,
-      quantity: true,
-      note: true,
-      createdAt: true,
-    },
-  });
+  // All table selections + table guests — derive personal selections via guestId
+  const [allTableSelectionsRaw, tableGuestsRaw] = await Promise.all([
+    prisma.tableSelection.findMany({
+      where: { tableId: args.tableId },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        guestId: true,
+        productId: true,
+        variationId: true,
+        quantity: true,
+        note: true,
+        createdAt: true,
+      },
+    }),
+    prisma.tableGuest.findMany({
+      where: { tableId: args.tableId },
+      orderBy: { joinedAt: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        isHost: true,
+        joinedAt: true,
+      },
+    }),
+  ]);
 
-  const initialSelections: TableSelection[] = initialSelectionsRaw.map((s) => ({
+  const initialSharedSelections = allTableSelectionsRaw.map((s) => ({
     id: s.id,
+    guestId: s.guestId,
     productId: s.productId,
     variationId: s.variationId,
     quantity: s.quantity,
     note: s.note,
     createdAt: s.createdAt.toISOString(),
+  }));
+
+  const initialSelections: TableSelection[] = allTableSelectionsRaw
+    .filter((s) => s.guestId === args.guestId)
+    .map((s) => ({
+      id: s.id,
+      guestId: s.guestId,
+      productId: s.productId,
+      variationId: s.variationId,
+      quantity: s.quantity,
+      note: s.note,
+      createdAt: s.createdAt.toISOString(),
+    }));
+
+  const initialGuests = tableGuestsRaw.map((g) => ({
+    id: g.id,
+    name: g.name,
+    isHost: g.isHost,
+    joinedAt: g.joinedAt.toISOString(),
   }));
 
   const categoriesWithProducts = menu.categories.filter((c) => c.products.length > 0);
@@ -264,6 +296,8 @@ async function renderGuestMenu(args: RenderArgs) {
       isHost={args.isHost}
       status={args.status}
       initialSelections={initialSelections}
+      initialSharedSelections={initialSharedSelections}
+      initialGuests={initialGuests}
       locale={args.locale}
       copy={PROVIDER_COPY[args.locale]}
     >
