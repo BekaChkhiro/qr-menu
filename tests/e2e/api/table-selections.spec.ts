@@ -47,11 +47,10 @@ async function newClient(): Promise<APIRequestContext> {
 async function createTable(
   client: APIRequestContext,
   slug: string,
-  pin = '1234',
   maxGuests = 4,
 ): Promise<{ code: string; hostGuestId: string }> {
   const res = await client.post(`/api/public/menus/${slug}/tables`, {
-    data: { hostName: 'Nino', pin, maxGuests },
+    data: { hostName: 'Nino', maxGuests },
   });
   expect(res.status()).toBe(201);
   const body = await res.json();
@@ -65,10 +64,9 @@ async function joinTable(
   client: APIRequestContext,
   code: string,
   name: string,
-  pin = '1234',
 ): Promise<string> {
   const res = await client.post(`/api/public/tables/${code}/join`, {
-    data: { name, pin },
+    data: { name },
   });
   expect(res.status()).toBe(200);
   const body = await res.json();
@@ -176,6 +174,16 @@ test.describe('selections — DELETE authz', () => {
     });
     expect(addRes.status()).toBe(201);
     const selectionId = (await addRes.json()).data.id as string;
+
+    // A regular guest sees Bob's choice and name, but cannot edit it.
+    const sharedRes = await a.get(`/api/public/tables/${code}`);
+    expect(sharedRes.status()).toBe(200);
+    const shared = (await sharedRes.json()).data;
+    const bob = shared.guests.find((guest: { name: string }) => guest.name === 'Bob');
+    expect(bob).toBeDefined();
+    expect(shared.selections).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: selectionId, guestId: bob.id, quantity: 1 }),
+    ]));
 
     // Alice tries to delete Bob's selection → 403.
     const aliceDel = await a.delete(

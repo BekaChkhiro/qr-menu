@@ -7,25 +7,36 @@
     "title": "Создайте общий стол",
     "nameLabel": "Название стола",
     "namePlaceholder": "Напр. День рождения Нино",
-    "pinLabel": "PIN из 4 цифр",
-    "pinHelper": "Сообщайте этот PIN только своим гостям — он нужен для входа.",
     "capLabel": "Лимит гостей",
     "capHelper": "Максимальное число гостей за этим столом. Можно изменить позже.",
     "submit": "Создать",
-    "cancel": "Отмена"
+    "cancel": "Отмена",
+    "description": "Создайте стол — друзья присоединятся по QR-коду или ссылке.",
+    "submitting": "Создаём...",
+    "validation": {
+      "nameRequired": "Введите имя",
+      "nameTooLong": "Имя должно содержать не более 32 символов",
+      "serverError": "Что-то пошло не так. Попробуйте снова."
+    }
   },
   "join": {
     "title": "Присоединиться к столу",
     "namePlaceholder": "Ваше имя",
-    "pinPlaceholder": "PIN из 4 цифр",
     "submit": "Войти",
     "errors": {
-      "wrongPin": "Неверный PIN. Попробуйте ещё раз.",
       "tableFull": "Стол заполнен. Попросите хозяина увеличить лимит.",
       "tableClosed": "Стол закрыт. Войти нельзя.",
       "tableExpired": "Время стола истекло.",
-      "rateLimited": "Слишком много попыток. Подождите немного."
-    }
+      "rateLimited": "Слишком много попыток. Повторите через {seconds} с.",
+      "nameRequired": "Введите имя",
+      "nameTooLong": "Имя должно содержать не более 32 символов",
+      "tableNotFound": "Стол не найден",
+      "networkError": "Что-то пошло не так. Попробуйте снова."
+    },
+    "subtitle": "Меню: {menuName}",
+    "nameLabel": "Ваше имя",
+    "submitting": "Входим...",
+    "backToMenu": "Вернуться к меню"
   },
   "host": {
     "tableCode": "Код стола",
@@ -37,7 +48,37 @@
     "extendDone": "Время стола продлено",
     "expiresIn": "Истекает через {time}",
     "expiringSoon": "Скоро истекает — {time}",
-    "emptyState": "Гостей пока нет. Поделитесь ссылкой или PIN, чтобы они начали выбирать блюда."
+    "emptyState": "Гостей пока нет. Поделитесь ссылкой, чтобы они начали выбирать блюда.",
+    "title": "Общий стол",
+    "subtitle": "Меню:",
+    "statusOpen": "Активен",
+    "statusClosed": "Закрыт",
+    "statusExpired": "Истёк",
+    "countdownPrefix": "Осталось времени",
+    "countdownExpired": "Время истекло",
+    "copyFailed": "Не удалось скопировать ссылку",
+    "closeConfirmTitle": "Закрыть стол?",
+    "closeConfirmCta": "Да, закрыть",
+    "closeConfirmCancel": "Отмена",
+    "extendCta": "+2 часа",
+    "extendUsed": "Уже продлён",
+    "extendNotYet": "Продление доступно в последние 30 минут",
+    "guestsHeading": "Гости {count}/{max}",
+    "hostBadge": "Хост",
+    "selectionEmpty": "У этого гостя пока нет выбора",
+    "extendFailed": "Не удалось продлить стол",
+    "closeSuccess": "Стол закрыт",
+    "closeFailed": "Не удалось закрыть стол",
+    "removeFailed": "Не удалось удалить выбор",
+    "almostExpired": "Осталось 30 минут — продлить?",
+    "realtimeNote": "Обновления включены",
+    "realtimeOffline": "Соединение потеряно — данные обновятся после подключения.",
+    "realtimeReconnected": "Соединение восстановлено",
+    "guestJoinedToast": "{name} присоединился",
+    "selectionAddedToast": "{name} добавил выбор",
+    "extendedToast": "Добавлено 2 часа",
+    "closedRedirectToast": "Стол закрыт",
+    "leaveBackToMenu": "Вернуться к меню"
   },
   "guest": {
     "myPicks": "Мой выбор",
@@ -76,5 +117,29 @@
     "guestJoined": "{name} присоединился к столу",
     "itemAdded": "{name} добавил {item}",
     "itemRemoved": "{name} удалил {item}"
+  },
+  "productAdd": {
+    "add": "Добавить",
+    "adding": "Добавляем...",
+    "pickVariation": "Выберите вариант",
+    "pickDescription": "Выберите вариант для добавления.",
+    "closed": "Стол закрыт"
+  },
+  "toasts": {
+    "added": "Добавлено в ваш выбор",
+    "addFailed": "Не удалось добавить блюдо",
+    "addClosed": "Стол больше не принимает выбор",
+    "removeFailed": "Не удалось удалить выбор",
+    "leaveFailed": "Не удалось покинуть стол"
+  },
+  "status": {
+    "closed": {
+      "title": "Стол закрыт",
+      "description": "Этот стол больше не принимает выбор."
+    },
+    "expired": {
+      "title": "Время стола истекло",
+      "description": "Сеанс стола завершён."
+    }
   }
 }

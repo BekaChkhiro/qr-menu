@@ -277,7 +277,7 @@ test.describe('table lifecycle — get', () => {
     expect(body.error.code).toBe('UNAUTHORIZED');
   });
 
-  test('guest sees own selections only; host sees all', async () => {
+  test('guests and host see all selections with guest names', async () => {
     const { code, host, a, b, aId, bId, productId } =
       await setupHostAndTwoGuests();
 
@@ -300,9 +300,12 @@ test.describe('table lifecycle — get', () => {
     expect(asA.status()).toBe(200);
     const aBody = (await asA.json()).data;
     expect(aBody.role).toBe('guest');
-    expect(aBody.selections.every((s: { guestId: string }) => s.guestId === aId)).toBe(true);
-    expect(aBody.selections.some((s: { guestId: string }) => s.guestId === bId)).toBe(false);
-    // Public guest list: names visible, no selection details for others.
+    expect(aBody.selections.some((s: { guestId: string }) => s.guestId === aId)).toBe(true);
+    expect(aBody.selections.some((s: { guestId: string }) => s.guestId === bId)).toBe(true);
+    // Shared choices can be attributed to their guest names.
+    expect(aBody.guests).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: bId, name: 'Bob' }),
+    ]));
     expect(aBody.guests.length).toBe(3);
 
     const asHost = await host.get(`/api/public/tables/${code}`);

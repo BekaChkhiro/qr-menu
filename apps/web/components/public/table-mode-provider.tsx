@@ -141,6 +141,7 @@ export function TableModeProvider({
   // Guards against concurrent polls and stale response overwrites
   const pollInFlightRef = useRef(false);
   const mutationRevisionRef = useRef(0);
+  const pendingMutationsRef = useRef(0);
 
   // ── Polling: 2000ms interval matching the host view reconcile ────────────
   useEffect(() => {
@@ -161,7 +162,11 @@ export function TableModeProvider({
         });
         if (!res.ok) {
           if (res.status === 401 || res.status === 404) {
-            if (mounted && startRevision === mutationRevisionRef.current) router.refresh();
+            if (
+              mounted &&
+              pendingMutationsRef.current === 0 &&
+              startRevision === mutationRevisionRef.current
+            ) router.refresh();
           }
           return;
         }
@@ -176,8 +181,12 @@ export function TableModeProvider({
 
         if (!data || !mounted) return;
 
-        // Discard stale polling response if any mutation occurred since fetch started
-        if (startRevision !== mutationRevisionRef.current) {
+        // A poll can start after an optimistic mutation but before its commit.
+        // Revision alone cannot detect that snapshot until the mutation finishes.
+        if (
+          pendingMutationsRef.current > 0 ||
+          startRevision !== mutationRevisionRef.current
+        ) {
           return;
         }
 
@@ -225,6 +234,7 @@ export function TableModeProvider({
         return false;
       }
       mutationRevisionRef.current += 1;
+      pendingMutationsRef.current += 1;
       setAdding(true);
       try {
         const res = await fetch(
@@ -292,6 +302,7 @@ export function TableModeProvider({
         toast.error(copy.addFailed);
         return false;
       } finally {
+        pendingMutationsRef.current -= 1;
         setAdding(false);
       }
     },
@@ -301,6 +312,7 @@ export function TableModeProvider({
   const removeSelection = useCallback(
     async (id: string): Promise<boolean> => {
       mutationRevisionRef.current += 1;
+      pendingMutationsRef.current += 1;
       setRemoving((curr) => {
         const next = new Set(curr);
         next.add(id);
@@ -333,6 +345,7 @@ export function TableModeProvider({
         toast.error(copy.removeFailed);
         return false;
       } finally {
+        pendingMutationsRef.current -= 1;
         setRemoving((curr) => {
           const next = new Set(curr);
           next.delete(id);
@@ -345,6 +358,8 @@ export function TableModeProvider({
 
   const leave = useCallback(async () => {
     if (leaving) return;
+    mutationRevisionRef.current += 1;
+    pendingMutationsRef.current += 1;
     setLeaving(true);
     try {
       const res = await fetch(
@@ -360,6 +375,9 @@ export function TableModeProvider({
     } catch {
       toast.error(copy.leaveFailed);
       setLeaving(false);
+    } finally {
+      mutationRevisionRef.current += 1;
+      pendingMutationsRef.current -= 1;
     }
   }, [code, leaving, router, copy.leaveFailed]);
 

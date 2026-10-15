@@ -5,11 +5,9 @@
   },
   "create": {
     "title": "Create a shared table",
-    "description": "Create a host table — friends scan a table-specific QR or enter your PIN to join.",
+    "description": "Create a host table — friends scan a table-specific QR code or follow the link to join.",
     "nameLabel": "Your name",
     "namePlaceholder": "e.g. Nino",
-    "pinLabel": "4-digit PIN",
-    "pinHelper": "Share this PIN with the friends who will join",
     "capLabel": "Guest cap — {count}",
     "capHelper": "Maximum guests who can join this table.",
     "submit": "Create table",
@@ -18,7 +16,6 @@
     "validation": {
       "nameRequired": "Please enter your name",
       "nameTooLong": "Name must be 32 characters or fewer",
-      "pinFormat": "PIN must be exactly 4 digits",
       "serverError": "Something went wrong. Please try again."
     }
   },
@@ -27,17 +24,12 @@
     "subtitle": "Menu: {menuName}",
     "nameLabel": "Your name",
     "namePlaceholder": "Your name",
-    "pinLabel": "4-digit PIN",
-    "pinPlaceholder": "4-digit PIN",
     "submit": "Join",
     "submitting": "Joining...",
     "backToMenu": "Back to menu",
     "errors": {
       "nameRequired": "Please enter your name",
       "nameTooLong": "Name must be 32 characters or fewer",
-      "pinFormat": "PIN must be exactly 4 digits",
-      "wrongPin": "Wrong PIN. Try again.",
-      "wrongPinAttempts": "Wrong PIN — {count} attempts left",
       "tableFull": "Table is full. Ask the host to raise the limit.",
       "tableClosed": "This table is closed. You can't join.",
       "tableExpired": "This table has expired.",
@@ -70,7 +62,7 @@
     "extendNotYet": "Extend within last 30 minutes",
     "expiresIn": "Expires in {time}",
     "expiringSoon": "Expiring soon — {time}",
-    "emptyState": "No guests yet. Share the link or PIN so they can start picking dishes.",
+    "emptyState": "No guests yet. Share the link so they can start picking dishes.",
     "guestsHeading": "Guests {count}/{max}",
     "hostBadge": "Host",
     "selectionEmpty": "No picks yet from this guest",

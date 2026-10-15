@@ -67,7 +67,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             data: {
               menuId: menu.id,
               code,
-              pinHash: null as unknown as string,
+              pinHash: null,
               hostName: body.hostName,
               maxGuests: body.maxGuests,
               expiresAt,
