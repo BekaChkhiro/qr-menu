@@ -47,6 +47,7 @@ export const publicMenuSelect = {
   wcImageUrl: true,
   locationLat: true,
   locationLng: true,
+  googleReviewUrl: true,
   status: true,
   publishedAt: true,
   passwordHash: true,
@@ -230,6 +231,7 @@ export interface SerializedPublicMenu {
   wcImageUrl: string | null;
   locationLat: number | string | null;
   locationLng: number | string | null;
+  googleReviewUrl: string | null;
   status: string;
   publishedAt: string | null;
   sharedTableEnabled: boolean;

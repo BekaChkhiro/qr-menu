@@ -226,6 +226,27 @@ describe('updateMenuSchema', () => {
     })
     expect(result.success).toBe(true)
   })
+
+  it('accepts an https Google review URL', () => {
+    const result = updateMenuSchema.safeParse({
+      googleReviewUrl: 'https://g.page/r/CafeLinville/review',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts null Google review URL', () => {
+    const result = updateMenuSchema.safeParse({
+      googleReviewUrl: null,
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects an invalid Google review URL', () => {
+    const result = updateMenuSchema.safeParse({
+      googleReviewUrl: 'not-a-url',
+    })
+    expect(result.success).toBe(false)
+  })
 })
 
 describe('publishMenuSchema', () => {

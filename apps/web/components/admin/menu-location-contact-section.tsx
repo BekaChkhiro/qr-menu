@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { DoorClosed, ExternalLink, Loader2, MapPin, Phone, Wifi } from 'lucide-react';
+import { DoorClosed, ExternalLink, Loader2, MapPin, Phone, Star, Wifi } from 'lucide-react';
 import { toast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,15 @@ function parseCoordinate(value: string, min: number, max: number): number | null
   return parsed;
 }
 
+function isValidUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function MenuLocationContactSection({ menu }: MenuLocationContactSectionProps) {
   const t = useTranslations('admin.editor.settings.locationContact');
   const updateMenu = useUpdateMenu(menu.id);
@@ -40,6 +49,7 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
   const initialWcImageUrl = menu.wcImageUrl || '';
   const initialLocationLat = coordinateToInputValue(menu.locationLat);
   const initialLocationLng = coordinateToInputValue(menu.locationLng);
+  const initialGoogleReviewUrl = menu.googleReviewUrl || '';
 
   const [address, setAddress] = useState(initialAddress);
   const [phone, setPhone] = useState(initialPhone);
@@ -49,7 +59,9 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
   const [wcImageUrl, setWcImageUrl] = useState(initialWcImageUrl);
   const [locationLat, setLocationLat] = useState(initialLocationLat);
   const [locationLng, setLocationLng] = useState(initialLocationLng);
+  const [googleReviewUrl, setGoogleReviewUrl] = useState(initialGoogleReviewUrl);
   const [coordinatesError, setCoordinatesError] = useState<string | null>(null);
+  const [googleReviewError, setGoogleReviewError] = useState<string | null>(null);
 
   const lastSyncedRef = useRef({
     address: initialAddress,
@@ -60,6 +72,7 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
     wcImageUrl: initialWcImageUrl,
     locationLat: initialLocationLat,
     locationLng: initialLocationLng,
+    googleReviewUrl: initialGoogleReviewUrl,
   });
 
   useEffect(() => {
@@ -72,6 +85,7 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
       wcImageUrl: menu.wcImageUrl || '',
       locationLat: coordinateToInputValue(menu.locationLat),
       locationLng: coordinateToInputValue(menu.locationLng),
+      googleReviewUrl: menu.googleReviewUrl || '',
     };
     const prev = lastSyncedRef.current;
     if (
@@ -82,7 +96,8 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
       prev.wcDirection !== next.wcDirection ||
       prev.wcImageUrl !== next.wcImageUrl ||
       prev.locationLat !== next.locationLat ||
-      prev.locationLng !== next.locationLng
+      prev.locationLng !== next.locationLng ||
+      prev.googleReviewUrl !== next.googleReviewUrl
     ) {
       setAddress(next.address);
       setPhone(next.phone);
@@ -92,7 +107,9 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
       setWcImageUrl(next.wcImageUrl);
       setLocationLat(next.locationLat);
       setLocationLng(next.locationLng);
+      setGoogleReviewUrl(next.googleReviewUrl);
       setCoordinatesError(null);
+      setGoogleReviewError(null);
       lastSyncedRef.current = next;
     }
   }, [
@@ -104,6 +121,7 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
     menu.wcImageUrl,
     menu.locationLat,
     menu.locationLng,
+    menu.googleReviewUrl,
   ]);
 
   const dirty = useMemo(
@@ -115,7 +133,8 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
       wcDirection !== initialWcDirection ||
       wcImageUrl !== initialWcImageUrl ||
       locationLat !== initialLocationLat ||
-      locationLng !== initialLocationLng,
+      locationLng !== initialLocationLng ||
+      googleReviewUrl !== initialGoogleReviewUrl,
     [
       address,
       phone,
@@ -125,6 +144,7 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
       wcImageUrl,
       locationLat,
       locationLng,
+      googleReviewUrl,
       initialAddress,
       initialPhone,
       initialWifiSsid,
@@ -133,6 +153,7 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
       initialWcImageUrl,
       initialLocationLat,
       initialLocationLng,
+      initialGoogleReviewUrl,
     ]
   );
 
@@ -145,7 +166,9 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
     setWcImageUrl(initialWcImageUrl);
     setLocationLat(initialLocationLat);
     setLocationLng(initialLocationLng);
+    setGoogleReviewUrl(initialGoogleReviewUrl);
     setCoordinatesError(null);
+    setGoogleReviewError(null);
   }, [
     initialAddress,
     initialPhone,
@@ -155,6 +178,7 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
     initialWcImageUrl,
     initialLocationLat,
     initialLocationLng,
+    initialGoogleReviewUrl,
   ]);
 
   const handleSave = async () => {
@@ -166,7 +190,14 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
       return;
     }
 
+    const trimmedGoogleReviewUrl = googleReviewUrl.trim();
+    if (trimmedGoogleReviewUrl && !isValidUrl(trimmedGoogleReviewUrl)) {
+      setGoogleReviewError(t('googleReviewInvalid'));
+      return;
+    }
+
     setCoordinatesError(null);
+    setGoogleReviewError(null);
 
     const payload: Partial<UpdateMenuInput> = {};
     if (address !== initialAddress) payload.address = address || null;
@@ -177,6 +208,9 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
     if (wcImageUrl !== initialWcImageUrl) payload.wcImageUrl = wcImageUrl || null;
     if (locationLat !== initialLocationLat) payload.locationLat = parsedLat;
     if (locationLng !== initialLocationLng) payload.locationLng = parsedLng;
+    if (googleReviewUrl !== initialGoogleReviewUrl) {
+      payload.googleReviewUrl = trimmedGoogleReviewUrl || null;
+    }
 
     try {
       await updateMenu.mutateAsync(payload);
@@ -190,6 +224,7 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
         wcImageUrl: wcImageUrl || '',
         locationLat: parsedLat == null ? '' : String(parsedLat),
         locationLng: parsedLng == null ? '' : String(parsedLng),
+        googleReviewUrl: trimmedGoogleReviewUrl,
       };
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('saveFailed'));
@@ -407,6 +442,41 @@ export function MenuLocationContactSection({ menu }: MenuLocationContactSectionP
           preset="promotion"
           aspectRatio="wide"
         />
+      </div>
+
+      {/* Google review link */}
+      <div>
+        <label
+          htmlFor="settings-location-google-review"
+          className="mb-1.5 flex items-center gap-1.5 text-[12.5px] font-semibold text-text-default"
+        >
+          <Star size={13} strokeWidth={1.5} aria-hidden="true" className="text-text-muted" />
+          {t('googleReviewLabel')}
+        </label>
+        <p className="mb-2 text-[11.5px] text-text-subtle">{t('googleReviewHint')}</p>
+        <Input
+          id="settings-location-google-review"
+          data-testid="menu-google-review-url"
+          type="url"
+          inputMode="url"
+          value={googleReviewUrl}
+          onChange={(e) => {
+            setGoogleReviewUrl(e.target.value);
+            if (googleReviewError) setGoogleReviewError(null);
+          }}
+          placeholder="https://g.page/r/…/review"
+          maxLength={500}
+          aria-invalid={googleReviewError ? true : undefined}
+          className="h-[40px] text-[13px]"
+        />
+        {googleReviewError && (
+          <p
+            data-testid="menu-google-review-url-error"
+            className="mt-2 text-[12px] font-medium text-danger"
+          >
+            {googleReviewError}
+          </p>
+        )}
       </div>
 
       {dirty && (

@@ -20,6 +20,7 @@ import { PromotionCarousel } from '@/components/public/promotion-carousel';
 import { FeaturedCarousel } from '@/components/public/featured-carousel';
 import { OffersCarousel } from '@/components/public/offers-carousel';
 import { MenuFooter } from '@/components/public/menu-footer';
+import { GoogleReviewCard } from '@/components/public/google-review-card';
 import { normalizeWorkingHours } from '@/lib/menu/working-hours';
 import { JoinTableForm } from '@/components/public/join-table-form';
 import { TableModeProvider, type TableSelection } from '@/components/public/table-mode-provider';
@@ -388,6 +389,8 @@ async function renderGuestMenu(args: RenderArgs) {
             </div>
           </main>
         )}
+
+        <GoogleReviewCard url={menu.googleReviewUrl} locale={args.locale} />
 
         <MenuFooter
           locale={args.locale}

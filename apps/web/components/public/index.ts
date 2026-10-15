@@ -5,3 +5,4 @@ export { ProductCard } from './product-card';
 export { PromotionBanner } from './promotion-banner';
 export { ViewTracker } from './view-tracker';
 export { MenuFooter } from './menu-footer';
+export { GoogleReviewCard } from './google-review-card';

@@ -118,6 +118,9 @@ export interface Menu {
   metaDescription: string | null;
   shareImageUrl: string | null;
 
+  // Google review link — public "Rate us on Google" card
+  googleReviewUrl: string | null;
+
   // Visibility (T15.13). Server never returns `passwordHash`; it returns
   // a boolean `hasPassword` so the settings form can render the right state.
   hasPassword?: boolean;

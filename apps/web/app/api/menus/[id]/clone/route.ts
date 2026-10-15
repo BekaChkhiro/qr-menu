@@ -171,6 +171,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
           metaTitle: menuToClone.metaTitle,
           metaDescription: menuToClone.metaDescription,
           shareImageUrl: menuToClone.shareImageUrl,
+          googleReviewUrl: menuToClone.googleReviewUrl,
         },
       });
 

@@ -22,6 +22,7 @@ import { PromotionPopup } from '@/components/public/promotion-popup';
 import { FeaturedCarousel } from '@/components/public/featured-carousel';
 import { OffersCarousel } from '@/components/public/offers-carousel';
 import { MenuFooter } from '@/components/public/menu-footer';
+import { GoogleReviewCard } from '@/components/public/google-review-card';
 import { normalizeWorkingHours } from '@/lib/menu/working-hours';
 import { ViewTracker } from '@/components/public/view-tracker';
 import { MenuPasswordGate } from '@/components/public/menu-password-gate';
@@ -267,6 +268,8 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
           </div>
         </main>
       )}
+
+      <GoogleReviewCard url={menu.googleReviewUrl} locale={locale} />
 
       <MenuFooter
         locale={locale}
