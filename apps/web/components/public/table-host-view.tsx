@@ -7,8 +7,6 @@ import {
   Clock,
   Copy,
   Crown,
-  Eye,
-  EyeOff,
   Loader2,
   Plus,
   Trash2,
@@ -102,9 +100,6 @@ const COPY: Record<
     extendUsed: string;
     extendNotYet: string;
     closeCta: string;
-    showPin: string;
-    hidePin: string;
-    pinUnavailable: string;
     copyLink: string;
     linkCopied: string;
     copyFailed: string;
@@ -144,16 +139,13 @@ const COPY: Record<
     extendUsed: 'უკვე გაგრძელდა',
     extendNotYet: 'გახანგრძლივება დასაშვებია 30 წუთამდე',
     closeCta: 'დახურვა',
-    showPin: 'PIN-ის ჩვენება',
-    hidePin: 'PIN-ის დამალვა',
-    pinUnavailable: 'ხელახლა გახსენი მაგიდის შექმნის ტაბიდან',
     copyLink: 'ბმულის კოპირება',
     linkCopied: 'ბმული დაკოპირდა',
     copyFailed: 'კოპირება ვერ მოხერხდა',
     guestsHeading: (n, max) => `სტუმრები ${n}/${max}`,
     hostBadge: 'მასპინძელი',
     selectionEmpty: 'ამ სტუმარს არჩევანი ჯერ არ აქვს',
-    overallEmpty: 'გააზიარე QR ან PIN — სტუმრების არჩევანი აქ გამოჩნდება.',
+    overallEmpty: 'გააზიარე QR ან ბმული — სტუმრების არჩევანი აქ გამოჩნდება.',
     closeConfirmTitle: 'მაგიდის დახურვა',
     closeConfirmDesc:
       'ნამდვილად გსურთ მაგიდის დახურვა? მონაწილეები დაკარგავენ ხელმისაწვდომობას.',
@@ -186,9 +178,6 @@ const COPY: Record<
     extendUsed: 'Already extended',
     extendNotYet: 'Extend within last 30 minutes',
     closeCta: 'Close table',
-    showPin: 'Show PIN',
-    hidePin: 'Hide PIN',
-    pinUnavailable: 'Reopen from the original create-table tab to see the PIN',
     copyLink: 'Copy link',
     linkCopied: 'Link copied',
     copyFailed: "Couldn't copy link",
@@ -196,7 +185,7 @@ const COPY: Record<
     hostBadge: 'Host',
     selectionEmpty: 'No picks yet from this guest',
     overallEmpty:
-      "Share the QR or PIN — your friends' picks will appear here.",
+      "Share the QR or link — your friends' picks will appear here.",
     closeConfirmTitle: 'Close this table?',
     closeConfirmDesc:
       'Closing ends the table for everyone. Guests will lose access immediately.',
@@ -229,10 +218,6 @@ const COPY: Record<
     extendUsed: 'Уже продлено',
     extendNotYet: 'Продление доступно в последние 30 минут',
     closeCta: 'Закрыть стол',
-    showPin: 'Показать PIN',
-    hidePin: 'Скрыть PIN',
-    pinUnavailable:
-      'Откройте вкладку, где вы создавали стол, чтобы увидеть PIN',
     copyLink: 'Копировать ссылку',
     linkCopied: 'Ссылка скопирована',
     copyFailed: 'Не удалось скопировать',
@@ -240,7 +225,7 @@ const COPY: Record<
     hostBadge: 'Хост',
     selectionEmpty: 'У этого гостя пока нет выбора',
     overallEmpty:
-      'Поделитесь QR или PIN — выборы друзей появятся здесь.',
+      'Поделитесь QR или ссылкой — выборы друзей появятся здесь.',
     closeConfirmTitle: 'Закрыть стол?',
     closeConfirmDesc:
       'Все участники потеряют доступ сразу. Это действие нельзя отменить.',
@@ -268,7 +253,6 @@ const COPY: Record<
 // Helpers
 // ---------------------------------------------------------------------------
 
-const PIN_STORAGE_PREFIX = 'dm_table_pin_';
 const EXTEND_WINDOW_MS = 30 * 60 * 1000;
 const ALMOST_EXPIRED_THRESHOLD_MS = 30 * 60 * 1000;
 
@@ -320,8 +304,6 @@ export function TableHostView({ initial, locale }: Props) {
   const [selections, setSelections] = useState(initial.selections);
   const [flashIds, setFlashIds] = useState<Set<string>>(() => new Set());
   const [now, setNow] = useState(() => Date.now());
-  const [pinReveal, setPinReveal] = useState(false);
-  const [pinValue, setPinValue] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [tableUrl, setTableUrl] = useState<string>('');
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
@@ -338,19 +320,6 @@ export function TableHostView({ initial, locale }: Props) {
     'idle',
   );
   const tableChannelReadyRef = useRef(false);
-
-  // ── Read PIN from sessionStorage (host-only, set by CreateTableSheet) ─────
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const stored = window.sessionStorage.getItem(
-        `${PIN_STORAGE_PREFIX}${initial.code}`,
-      );
-      if (stored) setPinValue(stored);
-    } catch {
-      // sessionStorage may be disabled (private mode) — silently ignore.
-    }
-  }, [initial.code]);
 
   // ── Build the table-scoped URL & QR data URL ─────────────────────────────
   useEffect(() => {
@@ -529,13 +498,6 @@ export function TableHostView({ initial, locale }: Props) {
 
     const onClosed = () => {
       setStatus('CLOSED');
-      try {
-        window.sessionStorage.removeItem(
-          `${PIN_STORAGE_PREFIX}${initial.code}`,
-        );
-      } catch {
-        // ignore
-      }
       toast.info(copy.closedRedirectToast);
       router.push(`/m/${initial.slug}`);
     };
@@ -727,12 +689,6 @@ export function TableHostView({ initial, locale }: Props) {
         return;
       }
       setStatus('CLOSED');
-      // Clear stored PIN to avoid stale reveal on a future visit.
-      try {
-        window.sessionStorage.removeItem(`${PIN_STORAGE_PREFIX}${initial.code}`);
-      } catch {
-        // ignore
-      }
       toast.success(copy.closeSuccess);
       setConfirmCloseOpen(false);
       // Navigate back to the menu — table is terminal now.
@@ -832,7 +788,7 @@ export function TableHostView({ initial, locale }: Props) {
             </button>
           </div>
 
-          {/* QR + PIN + actions */}
+          {/* QR + actions */}
           {status === 'OPEN' && (
             <div className="mt-5 grid gap-4 sm:grid-cols-[160px_1fr]">
               <div
@@ -865,35 +821,6 @@ export function TableHostView({ initial, locale }: Props) {
                   <Copy size={14} strokeWidth={1.75} aria-hidden="true" />
                   {linkCopied ? copy.linkCopied : copy.copyLink}
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPinReveal((v) => !v)}
-                  data-testid="public-table-host-pin-toggle"
-                  className="inline-flex h-[40px] items-center justify-between rounded-[10px] border border-border bg-card px-[14px] text-[13px] font-medium text-text-default transition-colors hover:bg-chip"
-                >
-                  <span className="inline-flex items-center gap-2">
-                    {pinReveal ? (
-                      <EyeOff size={14} strokeWidth={1.75} aria-hidden="true" />
-                    ) : (
-                      <Eye size={14} strokeWidth={1.75} aria-hidden="true" />
-                    )}
-                    {pinReveal ? copy.hidePin : copy.showPin}
-                  </span>
-                  <span
-                    className="font-mono text-[14px] tracking-[0.4em] text-text-default"
-                    aria-live="polite"
-                  >
-                    {pinReveal
-                      ? pinValue ?? '— — — —'
-                      : '• • • •'}
-                  </span>
-                </button>
-                {pinReveal && !pinValue && (
-                  <p className="-mt-1 text-[11.5px] text-text-muted">
-                    {copy.pinUnavailable}
-                  </p>
-                )}
 
                 <div className="flex gap-2">
                   <button

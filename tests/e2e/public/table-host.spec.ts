@@ -244,6 +244,9 @@ test.describe('public — host create-table + host view (T19.4)', () => {
     await expect(
       page.getByTestId('public-table-host-qr').locator('img'),
     ).toBeVisible();
+    await expect(
+      page.getByTestId('public-table-host-pin-toggle'),
+    ).toHaveCount(0);
   });
 
   test('functional: copy-link button writes the table URL to the clipboard', async ({

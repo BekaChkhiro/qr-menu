@@ -29,7 +29,6 @@
   },
   "host": {
     "tableCode": "Код стола",
-    "sharePin": "Поделиться PIN: {pin}",
     "copyLink": "Скопировать ссылку",
     "copied": "Скопировано",
     "closeTable": "Закрыть стол",
