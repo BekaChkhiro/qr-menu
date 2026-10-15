@@ -358,6 +358,10 @@ model Menu {
   // windows so an offer can never run while the venue is shut.
   workingHours    Json?
 
+  // Google review link (all plans). When set, the public menu renders a
+  // "Rate us on Google" card above the footer that opens it in a new tab.
+  googleReviewUrl String?
+
   // T22.21 — the café's local timezone. Day/hour windows for promotions and
   // dish discounts are evaluated against this, not the server's or visitor's
   // clock. Georgia has a single, DST-free zone, hence the default.
@@ -726,7 +730,7 @@ model TableSession {
   id          String       @id @default(cuid())
   menuId      String
   code        String       @unique  // 8-char nanoid for QR URL
-  pinHash     String                 // bcrypt-hashed 4-digit PIN
+  pinHash     String?                // legacy bcrypt-hashed 4-digit PIN; null for tables created after PIN removal
   hostName    String
   maxGuests   Int                    // 2-20
   status      TableStatus  @default(OPEN)
