@@ -320,6 +320,28 @@ export function TableHostView({ initial, locale }: Props) {
     'idle',
   );
   const tableChannelReadyRef = useRef(false);
+  // Guards reconcile responses against optimistic host mutations: a snapshot
+  // fetched before or during a mutation must not overwrite its local result.
+  const mutationRevisionRef = useRef(0);
+  const pendingMutationsRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  function beginMutation() {
+    mutationRevisionRef.current += 1;
+    pendingMutationsRef.current += 1;
+  }
+
+  function endMutation() {
+    mutationRevisionRef.current += 1;
+    pendingMutationsRef.current -= 1;
+  }
 
   // ── Build the table-scoped URL & QR data URL ─────────────────────────────
   useEffect(() => {
@@ -371,6 +393,7 @@ export function TableHostView({ initial, locale }: Props) {
   // Best-effort state reconcile used after socket reconnects and as a fallback
   // when local Pusher connectivity is unavailable or interrupted.
   const reconcileTableState = useCallback(async () => {
+    const startRevision = mutationRevisionRef.current;
     try {
       const res = await fetch(`/api/public/tables/${initial.code}`, {
         cache: 'no-store',
@@ -386,7 +409,15 @@ export function TableHostView({ initial, locale }: Props) {
             guests: TableHostInitial['guests'];
             selections: TableHostInitial['selections'];
           };
-      if (!data) return;
+      if (!data || !mountedRef.current) return;
+      // A reconcile can start after an optimistic mutation but before its
+      // commit; revision alone cannot detect that until the mutation finishes.
+      if (
+        pendingMutationsRef.current > 0 ||
+        startRevision !== mutationRevisionRef.current
+      ) {
+        return;
+      }
       setStatus(data.status);
       setExpiresAtIso(data.expiresAt);
       setExtendedAtIso(data.extendedAt);
@@ -653,6 +684,7 @@ export function TableHostView({ initial, locale }: Props) {
 
   async function handleExtend() {
     if (!canExtend || extending) return;
+    beginMutation();
     setExtending(true);
     try {
       const res = await fetch(
@@ -672,12 +704,14 @@ export function TableHostView({ initial, locale }: Props) {
     } catch {
       toast.error(copy.extendFailed);
     } finally {
+      endMutation();
       setExtending(false);
     }
   }
 
   async function handleClose() {
     if (closing) return;
+    beginMutation();
     setClosing(true);
     try {
       const res = await fetch(
@@ -696,12 +730,14 @@ export function TableHostView({ initial, locale }: Props) {
     } catch {
       toast.error(copy.closeFailed);
     } finally {
+      endMutation();
       setClosing(false);
     }
   }
 
   async function handleRemoveSelection(selectionId: string) {
     const previous = selections;
+    beginMutation();
     // Optimistic
     setSelections((curr) => curr.filter((s) => s.id !== selectionId));
     try {
@@ -716,6 +752,8 @@ export function TableHostView({ initial, locale }: Props) {
     } catch {
       setSelections(previous);
       toast.error(copy.removeFailed);
+    } finally {
+      endMutation();
     }
   }
 

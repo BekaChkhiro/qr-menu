@@ -131,15 +131,6 @@ export const tableJoinLimiter = createLimiter({
   windowSeconds: 10 * 60,
 });
 
-// Counts only WRONG PIN attempts per (tableId, ip). 5 strikes within 15 minutes
-// locks the pair out of further attempts on that table — even with the right
-// PIN — for the remainder of the window.
-export const tablePinLimiter = createLimiter({
-  prefix: 'rl:table:pin',
-  limit: 5,
-  windowSeconds: 15 * 60,
-});
-
 /** Helper: extract the client IP from the request. Falls back to "unknown". */
 export function getClientIp(request: Request): string {
   const xff = request.headers.get('x-forwarded-for');
