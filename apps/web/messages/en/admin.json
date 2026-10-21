@@ -927,8 +927,8 @@
           "description": "Show active promotions in a pop-up when the menu opens."
         },
         "featured": {
-          "label": "“Most Ordered” rail",
-          "description": "Show a highlighted row of popular dishes above the menu."
+          "label": "“Recommended” rail",
+          "description": "Shows the dishes you mark as Recommended, in your order, above the menu. If none are marked, the rail shows dishes with a Popular, Chef's pick or Daily dish ribbon."
         }
       }
     },
