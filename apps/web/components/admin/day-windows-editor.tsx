@@ -2,6 +2,7 @@
 
 import { Clock, Coffee, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TimeInput } from '@/components/admin/time-input';
 import {
   WEEKDAY_KEYS,
   workingHoursToWindows,
@@ -105,33 +106,6 @@ interface DayWindowsEditorProps {
   useVenueHoursLabel?: string;
   /** T1.8 — inline message per break violation (the caller's locale). */
   breakErrorLabels: Record<WindowBreakViolation, string>;
-}
-
-/** Native time input, styled like the business hours form. Value is 24h "HH:MM". */
-function TimeInput({
-  value,
-  onChange,
-  testId,
-  ariaLabel,
-}: {
-  value: string;
-  onChange: (next: string) => void;
-  testId: string;
-  ariaLabel: string;
-}) {
-  return (
-    <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
-      <Clock className="h-3.5 w-3.5 text-text-muted" strokeWidth={1.5} aria-hidden="true" />
-      <input
-        type="time"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        aria-label={ariaLabel}
-        data-testid={testId}
-        className="rounded-[6px] border border-border bg-[#FAFAF9] px-[10px] py-[4px] text-[12.5px] text-text-default tabular-nums focus:border-text-default focus:outline-none"
-      />
-    </div>
-  );
 }
 
 export function DayWindowsEditor({

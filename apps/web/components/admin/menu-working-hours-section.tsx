@@ -6,7 +6,7 @@ import { Coffee, Loader2, X } from 'lucide-react';
 import { toast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { TimeField, type TimeFormat } from '@/components/admin/time-field';
+import { TimeInput } from '@/components/admin/time-input';
 import { useUpdateMenu } from '@/hooks/use-menus';
 import {
   defaultWorkingHours,
@@ -26,7 +26,6 @@ interface MenuWorkingHoursSectionProps {
   menu: MenuWithDetails;
 }
 
-const FORMAT_STORAGE_KEY = 'dm-admin-time-format';
 const DEFAULT_BREAK = { breakStart: '15:00', breakEnd: '17:00' };
 
 function serialize(hours: WorkingHoursDay[]): string {
@@ -44,7 +43,6 @@ export function MenuWorkingHoursSection({ menu }: MenuWorkingHoursSectionProps) 
   const storedShow = menu.showWorkingHours ?? hasWorkingHours(stored);
   const [enabled, setEnabled] = useState(storedShow);
   const [hours, setHours] = useState<WorkingHoursDay[]>(stored ?? defaultWorkingHours());
-  const [format, setFormat] = useState<TimeFormat>('H23');
 
   const syncKey = `${stored ? serialize(stored) : ''}|${storedShow}`;
   const lastSyncedRef = useRef(syncKey);
@@ -55,24 +53,6 @@ export function MenuWorkingHoursSection({ menu }: MenuWorkingHoursSectionProps) 
     setEnabled(storedShow);
     setHours(stored ?? defaultWorkingHours());
   }, [syncKey, stored, storedShow]);
-
-  useEffect(() => {
-    try {
-      const pref = localStorage.getItem(FORMAT_STORAGE_KEY);
-      if (pref === 'H12' || pref === 'H23') setFormat(pref);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  const chooseFormat = (next: TimeFormat) => {
-    setFormat(next);
-    try {
-      localStorage.setItem(FORMAT_STORAGE_KEY, next);
-    } catch {
-      /* ignore */
-    }
-  };
 
   const patchDay = (day: WeekdayKey, patch: Partial<WorkingHoursDay>) => {
     setHours((prev) => prev.map((h) => (h.day === day ? { ...h, ...patch } : h)));
@@ -122,33 +102,6 @@ export function MenuWorkingHoursSection({ menu }: MenuWorkingHoursSectionProps) 
       </div>
 
       <>
-        <div
-          className="inline-flex w-fit rounded-md border border-border p-0.5"
-          data-testid="settings-working-hours-time-format"
-        >
-          {(
-            [
-              { key: 'H23', label: '24h' },
-              { key: 'H12', label: 'AM/PM' },
-            ] as const
-          ).map((opt) => (
-            <button
-              key={opt.key}
-              type="button"
-              onClick={() => chooseFormat(opt.key)}
-              data-active={format === opt.key ? 'true' : 'false'}
-              className={cn(
-                'rounded px-2 py-0.5 text-[11px] font-semibold transition-colors',
-                format === opt.key
-                  ? 'bg-text-default text-white'
-                  : 'text-text-muted hover:bg-chip',
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
         <div className="flex flex-col gap-2">
           {hours.map((h) => {
             const hasBreak = !!(h.breakStart && h.breakEnd);
@@ -176,25 +129,19 @@ export function MenuWorkingHoursSection({ menu }: MenuWorkingHoursSectionProps) 
                     <span className="text-[12px] text-text-muted">{t('closed')}</span>
                   ) : (
                     <>
-                      <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
-                        <TimeField
-                          value={h.open}
-                          onChange={(open) => patchDay(h.day, { open })}
-                          format={format}
-                          testId={`settings-working-hours-from-${h.day}`}
-                          ariaLabel={`${h.day} open`}
-                        />
-                      </div>
+                      <TimeInput
+                        value={h.open}
+                        onChange={(open) => patchDay(h.day, { open })}
+                        testId={`settings-working-hours-from-${h.day}`}
+                        ariaLabel={`${h.day} open`}
+                      />
                       <span className="text-[12px] text-text-muted">{t('to')}</span>
-                      <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
-                        <TimeField
-                          value={h.close}
-                          onChange={(close) => patchDay(h.day, { close })}
-                          format={format}
-                          testId={`settings-working-hours-until-${h.day}`}
-                          ariaLabel={`${h.day} close`}
-                        />
-                      </div>
+                      <TimeInput
+                        value={h.close}
+                        onChange={(close) => patchDay(h.day, { close })}
+                        testId={`settings-working-hours-until-${h.day}`}
+                        ariaLabel={`${h.day} close`}
+                      />
                       {!hasBreak && (
                         <button
                           type="button"
@@ -219,25 +166,19 @@ export function MenuWorkingHoursSection({ menu }: MenuWorkingHoursSectionProps) 
                       <Coffee className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
                       {t('breakLabel')}
                     </span>
-                    <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
-                      <TimeField
-                        value={h.breakStart!}
-                        onChange={(breakStart) => patchDay(h.day, { breakStart })}
-                        format={format}
-                        testId={`settings-working-hours-break-start-${h.day}`}
-                        ariaLabel={`${h.day} break start`}
-                      />
-                    </div>
+                    <TimeInput
+                      value={h.breakStart!}
+                      onChange={(breakStart) => patchDay(h.day, { breakStart })}
+                      testId={`settings-working-hours-break-start-${h.day}`}
+                      ariaLabel={`${h.day} break start`}
+                    />
                     <span className="text-[12px] text-text-muted">{t('to')}</span>
-                    <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
-                      <TimeField
-                        value={h.breakEnd!}
-                        onChange={(breakEnd) => patchDay(h.day, { breakEnd })}
-                        format={format}
-                        testId={`settings-working-hours-break-end-${h.day}`}
-                        ariaLabel={`${h.day} break end`}
-                      />
-                    </div>
+                    <TimeInput
+                      value={h.breakEnd!}
+                      onChange={(breakEnd) => patchDay(h.day, { breakEnd })}
+                      testId={`settings-working-hours-break-end-${h.day}`}
+                      ariaLabel={`${h.day} break end`}
+                    />
                     <button
                       type="button"
                       onClick={() => patchDay(h.day, { breakStart: null, breakEnd: null })}
