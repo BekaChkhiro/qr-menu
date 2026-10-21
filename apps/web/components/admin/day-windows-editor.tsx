@@ -8,6 +8,11 @@ import {
   hasWorkingHours,
   type WorkingHoursDay,
 } from '@/lib/menu/working-hours';
+import {
+  defaultBreakWithin,
+  validateWindowBreak,
+  type WindowBreakViolation,
+} from '@/lib/promotions/time-windows';
 
 // T22.21 — per-weekday time windows, shared by the promotion drawer and the
 // product (dish) discount card so both author the same shape:
@@ -40,7 +45,23 @@ const WEEK_DAYS = [
 ] as const;
 
 const FALLBACK_WINDOW: DayWindow = { start: '09:00', end: '18:00' };
-const DEFAULT_BREAK = { breakStart: '15:00', breakEnd: '17:00' };
+
+/**
+ * T1.8 — maps each break violation to a `breakErrors.*` key under the caller's
+ * namespace. Both the promotion drawer and the product discount card use this,
+ * so they show the same copy.
+ */
+export function breakErrorLabelsFrom(
+  t: (key: string) => string,
+): Record<WindowBreakViolation, string> {
+  return {
+    'break-without-window': t('breakErrors.withoutWindow'),
+    'break-incomplete': t('breakErrors.incomplete'),
+    'break-outside-start': t('breakErrors.outsideStart'),
+    'break-outside-end': t('breakErrors.outsideEnd'),
+    'break-empty-or-inverted': t('breakErrors.emptyOrInverted'),
+  };
+}
 
 /**
  * T24.3/T24.4 — the windows a freshly-enabled restriction starts from: every
@@ -82,6 +103,8 @@ interface DayWindowsEditorProps {
   breakLabel?: string;
   /** Label for the "reset to venue hours" action. */
   useVenueHoursLabel?: string;
+  /** T1.8 — inline message per break violation (the caller's locale). */
+  breakErrorLabels: Record<WindowBreakViolation, string>;
 }
 
 /** Native time input, styled like the business hours form. Value is 24h "HH:MM". */
@@ -121,6 +144,7 @@ export function DayWindowsEditor({
   addBreakLabel = 'Add break',
   breakLabel = 'Break',
   useVenueHoursLabel = 'Use venue hours',
+  breakErrorLabels,
 }: DayWindowsEditorProps) {
   const setWindow = (day: string, next: DayWindow | null) => {
     const draft = { ...value };
@@ -173,7 +197,10 @@ export function DayWindowsEditor({
       {WEEK_DAYS.map((day) => {
         const win = value?.[day.key];
         const active = !!win;
-        const hasBreak = !!(win?.breakStart && win?.breakEnd);
+        // T1.8 — the break row exists while any break field is set, so a half-
+        // filled break stays visible and can be corrected (its error says what).
+        const hasBreak = !!(win?.breakStart || win?.breakEnd);
+        const breakCheck = active && hasBreak ? validateWindowBreak(win, win) : null;
         return (
           <div
             key={day.key}
@@ -219,7 +246,10 @@ export function DayWindowsEditor({
                   {!hasBreak && (
                     <button
                       type="button"
-                      onClick={() => patchWindow(day.key, DEFAULT_BREAK)}
+                      onClick={() => {
+                        const brk = defaultBreakWithin(win!);
+                        if (brk) patchWindow(day.key, brk);
+                      }}
                       data-testid={`${testIdPrefix}-day-add-break-${day.key}`}
                       className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-2 py-1 text-[11px] font-medium text-text-muted transition-colors hover:bg-chip"
                     >
@@ -244,15 +274,15 @@ export function DayWindowsEditor({
                   {breakLabel}
                 </span>
                 <TimeInput
-                  value={win!.breakStart!}
-                  onChange={(breakStart) => patchWindow(day.key, { breakStart })}
+                  value={win!.breakStart ?? ''}
+                  onChange={(next) => patchWindow(day.key, { breakStart: next || null })}
                   testId={`${testIdPrefix}-day-break-start-${day.key}`}
                   ariaLabel={`${day.key} break start`}
                 />
                 <span className="text-[12px] text-text-muted">{toLabel}</span>
                 <TimeInput
-                  value={win!.breakEnd!}
-                  onChange={(breakEnd) => patchWindow(day.key, { breakEnd })}
+                  value={win!.breakEnd ?? ''}
+                  onChange={(next) => patchWindow(day.key, { breakEnd: next || null })}
                   testId={`${testIdPrefix}-day-break-end-${day.key}`}
                   ariaLabel={`${day.key} break end`}
                 />
@@ -265,6 +295,16 @@ export function DayWindowsEditor({
                 >
                   <X className="h-3.5 w-3.5" strokeWidth={1.5} />
                 </button>
+                {breakCheck && !breakCheck.ok && (
+                  <p
+                    role="alert"
+                    data-testid={`${testIdPrefix}-day-break-error-${day.key}`}
+                    data-code={breakCheck.code}
+                    className="basis-full text-[12px] text-danger"
+                  >
+                    {breakErrorLabels[breakCheck.code]}
+                  </p>
+                )}
               </div>
             )}
           </div>

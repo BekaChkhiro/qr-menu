@@ -648,14 +648,14 @@
         "title": "Ideas to try",
         "hint": "click to start from a template",
         "chips": {
-          "happyHour": "Happy hour on drinks",
+          "weekendSpecial": "Weekend special",
           "lunchCombo": "Lunch combo bundle",
           "loyaltyDiscount": "Loyalty discount for repeat customers"
         }
       },
       "locked": {
         "title": "Promotions are a STARTER feature",
-        "body": "Launch timed offers, happy hours and seasonal specials. Promotions drive 3× more scans on average.",
+        "body": "Launch timed offers and seasonal specials. Promotions drive 3× more scans on average.",
         "cta": "Upgrade to STARTER — 29₾/month",
         "ctaShort": "Upgrade to STARTER",
         "bullets": {
@@ -1394,7 +1394,14 @@
         "timeTo": "to",
         "addBreak": "Add break",
         "breakLabel": "Break",
-        "useVenueHours": "Use venue hours"
+        "useVenueHours": "Use venue hours",
+        "breakErrors": {
+          "withoutWindow": "Set the day’s hours first, then add a break",
+          "incomplete": "Set both the break start and end",
+          "outsideStart": "The break starts before the window opens",
+          "outsideEnd": "The break ends after the window closes",
+          "emptyOrInverted": "The break must end after it starts"
+        }
       },
       "tagsLabel": "Tags",
       "tagsPlaceholder": "Add tag…",
@@ -1509,9 +1516,9 @@
       },
       "fields": {
         "titleLabel": "Title",
-        "titleKaPlaceholder": "e.g. Happy Hour",
-        "titleEnPlaceholder": "e.g. Happy Hour",
-        "titleRuPlaceholder": "e.g. Хэппи-час",
+        "titleKaPlaceholder": "e.g. Lunch deal",
+        "titleEnPlaceholder": "e.g. Lunch deal",
+        "titleRuPlaceholder": "e.g. Бизнес-ланч",
         "descriptionLabel": "Short description",
         "descriptionKaPlaceholder": "Describe the promotion...",
         "descriptionEnPlaceholder": "Describe the promotion...",
@@ -1569,7 +1576,14 @@
         "dateRangeRequired": "Pick a start or end date, or switch the date range off",
         "addBreak": "Add break",
         "breakLabel": "Break",
-        "useVenueHours": "Use venue hours"
+        "useVenueHours": "Use venue hours",
+        "breakErrors": {
+          "withoutWindow": "Set the day’s hours first, then add a break",
+          "incomplete": "Set both the break start and end",
+          "outsideStart": "The break starts before the window opens",
+          "outsideEnd": "The break ends after the window closes",
+          "emptyOrInverted": "The break must end after it starts"
+        }
       }
     }
   },

@@ -648,14 +648,14 @@
         "title": "იდეები საცდელად",
         "hint": "აირჩიე შაბლონი დასაწყებად",
         "chips": {
-          "happyHour": "Happy hour სასმელებზე",
+          "weekendSpecial": "შაბათ-კვირის სპეციალი",
           "lunchCombo": "Lunch კომბო ნაკრები",
           "loyaltyDiscount": "ერთგული კლიენტის ფასდაკლება"
         }
       },
       "locked": {
         "title": "აქციები STARTER-ის ფუნქციაა",
-        "body": "გაუშვი დროებითი შეთავაზებები, Happy hour-ები და სეზონური სპეციალები. აქციები საშუალოდ 3-ჯერ ზრდის სკანირებებს.",
+        "body": "გაუშვი დროებითი შეთავაზებები და სეზონური სპეციალები. აქციები საშუალოდ 3-ჯერ ზრდის სკანირებებს.",
         "cta": "გადადი STARTER-ზე — 29₾/თვე",
         "ctaShort": "გადადი STARTER-ზე",
         "bullets": {
@@ -1392,9 +1392,16 @@
         "windowsHelp": "ჩართულის შემთხვევაში, ფასდაკლება მხოლოდ არჩეულ დღეებსა და საათებში მოქმედებს.",
         "dayInactive": "გამორთული",
         "timeTo": "დან",
-        "addBreak": "შესვენების დამატება",
+        "addBreak": "+ შესვენება",
         "breakLabel": "შესვენება",
-        "useVenueHours": "ობიექტის საათები"
+        "useVenueHours": "ობიექტის საათები",
+        "breakErrors": {
+          "withoutWindow": "ჯერ დღის საათები შეავსე, მერე შესვენება დაამატე",
+          "incomplete": "შეავსე შესვენების დაწყებაც და დასრულებაც",
+          "outsideStart": "შესვენება ინტერვალის დაწყებამდე იწყება",
+          "outsideEnd": "შესვენება ინტერვალის დასრულების შემდეგ სრულდება",
+          "emptyOrInverted": "შესვენების დასასრული მის დაწყებაზე გვიან უნდა იყოს"
+        }
       },
       "tagsLabel": "ტეგები",
       "tagsPlaceholder": "ტეგის დამატება...",
@@ -1509,9 +1516,9 @@
       },
       "fields": {
         "titleLabel": "სათაური",
-        "titleKaPlaceholder": "მაგ: ბედნიერი საათი",
-        "titleEnPlaceholder": "მაგ: Happy Hour",
-        "titleRuPlaceholder": "მაგ: Хэппи-час",
+        "titleKaPlaceholder": "მაგ: ბიზნეს ლანჩი",
+        "titleEnPlaceholder": "მაგ: Lunch deal",
+        "titleRuPlaceholder": "მაგ: Бизнес-ланч",
         "descriptionLabel": "მოკლე აღწერა",
         "descriptionKaPlaceholder": "აღწერეთ აქცია...",
         "descriptionEnPlaceholder": "Describe the promotion...",
@@ -1567,9 +1574,16 @@
         "dateRangeLabel": "თარიღის დიაპაზონი",
         "dateRangeToggleTitle": "შეზღუდე კონკრეტული თარიღებით",
         "dateRangeRequired": "მიუთითე დაწყების ან დასრულების თარიღი, ან გამორთე თარიღის დიაპაზონი",
-        "addBreak": "შესვენების დამატება",
+        "addBreak": "+ შესვენება",
         "breakLabel": "შესვენება",
-        "useVenueHours": "ობიექტის საათები"
+        "useVenueHours": "ობიექტის საათები",
+        "breakErrors": {
+          "withoutWindow": "ჯერ დღის საათები შეავსე, მერე შესვენება დაამატე",
+          "incomplete": "შეავსე შესვენების დაწყებაც და დასრულებაც",
+          "outsideStart": "შესვენება ინტერვალის დაწყებამდე იწყება",
+          "outsideEnd": "შესვენება ინტერვალის დასრულების შემდეგ სრულდება",
+          "emptyOrInverted": "შესვენების დასასრული მის დაწყებაზე გვიან უნდა იყოს"
+        }
       }
     }
   },

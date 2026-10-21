@@ -429,8 +429,8 @@ async function main() {
   await prisma.promotion.create({
     data: {
       menuId: menu.id,
-      titleKa: 'ბედნიერი საათი',
-      titleEn: 'Happy Hour',
+      titleKa: 'ბიზნეს ლანჩი',
+      titleEn: 'Lunch deal',
       imageUrl: IMG.promo3,
       startDate: now,
       endDate: monthLater,

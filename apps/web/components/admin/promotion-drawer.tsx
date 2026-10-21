@@ -26,7 +26,7 @@ import {
 import { Banner } from '@/components/ui/banner';
 import { ImageUpload } from './image-upload';
 import { LangTabsInline, menuLanguages } from './product-drawer/lang-tabs-inline';
-import { DayWindowsEditor, defaultDayWindows } from './day-windows-editor';
+import { DayWindowsEditor, breakErrorLabelsFrom, defaultDayWindows } from './day-windows-editor';
 import { cn } from '@/lib/utils';
 import { createPromotionSchema, type CreatePromotionInput } from '@/lib/validations/promotion';
 import type { Promotion } from '@/types/menu';
@@ -1009,6 +1009,7 @@ export function PromotionDrawer({
                         addBreakLabel={t('fields.addBreak')}
                         breakLabel={t('fields.breakLabel')}
                         useVenueHoursLabel={t('fields.useVenueHours')}
+                        breakErrorLabels={breakErrorLabelsFrom((key) => t(`fields.${key}`))}
                       />
                     </div>
                   )}

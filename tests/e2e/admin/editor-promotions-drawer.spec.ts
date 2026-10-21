@@ -179,12 +179,25 @@ test.describe('promotion drawer (T15.8)', () => {
     await page.getByTestId('promotion-day-end-mon').fill('18:00');
     await expect(page.getByTestId('promotion-day-end-mon')).toHaveValue('18:00');
 
+    // T1.8 — no break inputs until the owner adds one.
+    await expect(page.getByTestId('promotion-day-break-start-mon')).toHaveCount(0);
+
     // Break start/end use the same native inputs.
     await page.getByTestId('promotion-day-add-break-mon').click();
     await page.getByTestId('promotion-day-break-start-mon').fill('13:00');
     await expect(page.getByTestId('promotion-day-break-start-mon')).toHaveValue('13:00');
     await page.getByTestId('promotion-day-break-end-mon').fill('14:00');
     await expect(page.getByTestId('promotion-day-break-end-mon')).toHaveValue('14:00');
+    await expect(page.getByTestId('promotion-day-break-error-mon')).toHaveCount(0);
+
+    // T1.8 — a break running past the 18:00 window end is flagged inline.
+    await page.getByTestId('promotion-day-break-end-mon').fill('19:00');
+    await expect(page.getByTestId('promotion-day-break-error-mon')).toHaveAttribute(
+      'data-code',
+      'break-outside-end',
+    );
+    await page.getByTestId('promotion-day-break-end-mon').fill('14:00');
+    await expect(page.getByTestId('promotion-day-break-error-mon')).toHaveCount(0);
 
     // Appearance tab: upload is skipped in test (complex), just confirm it renders.
     await page.getByTestId('promotion-drawer-tab-appearance').click();

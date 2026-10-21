@@ -401,7 +401,7 @@ function PromoCard({
 
 // ── Suggestions ──────────────────────────────────────────────────────────────
 
-const SUGGESTION_KEYS = ['happyHour', 'lunchCombo', 'loyaltyDiscount'] as const;
+const SUGGESTION_KEYS = ['weekendSpecial', 'lunchCombo', 'loyaltyDiscount'] as const;
 type SuggestionKey = (typeof SUGGESTION_KEYS)[number];
 
 function Suggestions({
@@ -763,7 +763,7 @@ function GhostPromoCard() {
             textShadow: '0 2px 12px rgba(0,0,0,0.2)',
           }}
         >
-          Happy Hour
+          Lunch deal
         </div>
       </div>
 

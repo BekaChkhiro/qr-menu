@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { LangCode } from './product-drawer/lang-tabs-inline';
-import { DayWindowsEditor, defaultDayWindows } from './day-windows-editor';
+import { DayWindowsEditor, breakErrorLabelsFrom, defaultDayWindows } from './day-windows-editor';
 import type { WorkingHoursDay } from '@/lib/menu/working-hours';
 import { TagsInput } from './product-drawer/tags-input';
 import { ProductImageField } from './product-drawer/product-image-field';
@@ -744,6 +744,7 @@ export function ProductForm({
                       addBreakLabel={t('discount.addBreak')}
                       breakLabel={t('discount.breakLabel')}
                       useVenueHoursLabel={t('discount.useVenueHours')}
+                      breakErrorLabels={breakErrorLabelsFrom((key) => t(`discount.${key}`))}
                     />
                   </div>
                 )}

@@ -3,7 +3,7 @@ import { createPromotionSchema } from '../promotion'
 
 // T1.5 — the drawer's "Date range" switch. Off = open-ended (both dates null);
 // on = at least one date is required and the end must follow the start.
-const base = { titleKa: 'Happy Hour', isActive: true }
+const base = { titleKa: 'Lunch deal', isActive: true }
 const day = (iso: string) => new Date(iso)
 
 function issuePaths(result: { success: boolean; error?: { issues: { path: PropertyKey[] }[] } }) {
@@ -86,5 +86,34 @@ describe('createPromotionSchema date range', () => {
   it('an omitted switch keeps the API behaviour: no dates is open-ended', () => {
     const result = createPromotionSchema.safeParse({ ...base, startDate: null, endDate: null })
     expect(result.success).toBe(true)
+  })
+})
+
+// T1.8 — the API must refuse a day break that falls outside its own window.
+describe('createPromotionSchema time-window breaks', () => {
+  const withWindow = (win: Record<string, string | null>) => ({
+    ...base,
+    timeRestrictions: { enabled: true, windows: { mon: { start: '09:00', end: '18:00', ...win } } },
+  })
+
+  it('a break inside its window is accepted', () => {
+    const result = createPromotionSchema.safeParse(withWindow({ breakStart: '13:00', breakEnd: '14:00' }))
+    expect(result.success).toBe(true)
+  })
+
+  it('a break that runs past the window end is rejected on that day', () => {
+    const result = createPromotionSchema.safeParse(withWindow({ breakStart: '17:00', breakEnd: '19:00' }))
+    expect(result.success).toBe(false)
+    expect(issuePaths(result)).toEqual(['timeRestrictions.windows.mon.breakEnd'])
+  })
+
+  it('a break that starts before the window opens is rejected', () => {
+    const result = createPromotionSchema.safeParse(withWindow({ breakStart: '08:00', breakEnd: '10:00' }))
+    expect(result.success).toBe(false)
+    expect(issuePaths(result)).toEqual(['timeRestrictions.windows.mon.breakEnd'])
+  })
+
+  it('a window with no break at all is accepted', () => {
+    expect(createPromotionSchema.safeParse(withWindow({ breakStart: null, breakEnd: null })).success).toBe(true)
   })
 })

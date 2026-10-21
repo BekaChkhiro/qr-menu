@@ -125,6 +125,121 @@ export function isWithinWindows(
   return !isInBreak(win, minutes);
 }
 
+// ── Break inside its window (T1.8) ──────────────────────────────────────────
+//
+// A split-shift break is optional and only meaningful inside its own window.
+// Everything is measured as an offset from the window start, so a window that
+// crosses midnight (22:00–02:00) works the same as a same-day one.
+
+export type WindowBreakCode =
+  | 'ok'
+  | 'break-without-window'
+  | 'break-incomplete'
+  | 'break-outside-start'
+  | 'break-outside-end'
+  | 'break-empty-or-inverted';
+
+export type WindowBreakViolation = Exclude<WindowBreakCode, 'ok'>;
+
+export type WindowBreakResult = { ok: true; code: 'ok' } | { ok: false; code: WindowBreakViolation };
+
+export interface WindowBreakInput {
+  breakStart?: string | null;
+  breakEnd?: string | null;
+}
+
+const MINUTES_PER_DAY = 1440;
+
+/** Non-negative modulo, so negative offsets wrap back into the day. */
+function mod(n: number, m: number): number {
+  return ((n % m) + m) % m;
+}
+
+/**
+ * Checks a day's optional break against its window.
+ *
+ * - no break fields set → ok (a break is optional)
+ * - break fields set but no window → break-without-window
+ * - only one of start/end set → break-incomplete
+ * - malformed HH:MM → ok (the schema's format check reports it instead)
+ * - otherwise positions are measured from the window start:
+ *   breakEnd at or before breakStart → break-empty-or-inverted
+ *   breakStart before the window opens → break-outside-start
+ *   breakEnd after the window closes → break-outside-end
+ */
+export function validateWindowBreak(
+  win: { start: string; end: string } | null | undefined,
+  brk: WindowBreakInput | null | undefined,
+): WindowBreakResult {
+  const bStartRaw = brk?.breakStart || null;
+  const bEndRaw = brk?.breakEnd || null;
+
+  if (!bStartRaw && !bEndRaw) return { ok: true, code: 'ok' };
+  if (!win) return { ok: false, code: 'break-without-window' };
+  if (!bStartRaw || !bEndRaw) return { ok: false, code: 'break-incomplete' };
+
+  const start = toMinutes(win.start);
+  const end = toMinutes(win.end);
+  const bStart = toMinutes(bStartRaw);
+  const bEnd = toMinutes(bEndRaw);
+  if (start === null || end === null || bStart === null || bEnd === null) {
+    return { ok: true, code: 'ok' };
+  }
+
+  // Same convention as isWithinWindows: end <= start means "crosses midnight".
+  const length = end > start ? end - start : end + MINUTES_PER_DAY - start;
+
+  if (bStart === bEnd) return { ok: false, code: 'break-empty-or-inverted' };
+
+  // Offsets from the window start. The break end is measured in (0, 1440], so a
+  // break ending exactly at the window start reads as "after the window".
+  const relStart = mod(bStart - start, MINUTES_PER_DAY);
+  const relEnd = mod(bEnd - start - 1, MINUTES_PER_DAY) + 1;
+  const startInside = relStart <= length;
+  const endInside = relEnd <= length;
+
+  // Both points inside the window: a break that ends before it starts is inverted.
+  if (startInside && endInside) {
+    return relEnd <= relStart
+      ? { ok: false, code: 'break-empty-or-inverted' }
+      : { ok: true, code: 'ok' };
+  }
+  if (!startInside) {
+    // Starts outside: nearer to the opening edge means "before the window".
+    const beforeStart = MINUTES_PER_DAY - relStart <= relStart - length;
+    return { ok: false, code: beforeStart ? 'break-outside-start' : 'break-outside-end' };
+  }
+  // Starts inside, runs past the closing edge.
+  return { ok: false, code: 'break-outside-end' };
+}
+
+/** HH:MM from minutes-since-midnight, wrapped into the day. */
+function fromMinutes(total: number): string {
+  const m = mod(total, MINUTES_PER_DAY);
+  const hh = String(Math.floor(m / 60)).padStart(2, '0');
+  const mm = String(m % 60).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
+/**
+ * The break a freshly-added break starts from: the middle third of its window,
+ * snapped to 5 minutes. It always sits inside the window, so adding a break
+ * never produces an immediate validation error.
+ */
+export function defaultBreakWithin(
+  win: { start: string; end: string },
+): { breakStart: string; breakEnd: string } | null {
+  const start = toMinutes(win.start);
+  const end = toMinutes(win.end);
+  if (start === null || end === null) return null;
+  const length = end > start ? end - start : end + MINUTES_PER_DAY - start;
+  const snap = (n: number) => Math.round(n / 5) * 5;
+  return {
+    breakStart: fromMinutes(start + snap(length / 3)),
+    breakEnd: fromMinutes(start + snap((2 * length) / 3)),
+  };
+}
+
 /** True when `minutes` falls inside the window's optional break. */
 function isInBreak(win: TimeWindow, minutes: number): boolean {
   if (!win.breakStart || !win.breakEnd) return false;

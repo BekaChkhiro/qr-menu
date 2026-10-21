@@ -648,14 +648,14 @@
         "title": "Идеи для начала",
         "hint": "нажми, чтобы начать с шаблона",
         "chips": {
-          "happyHour": "Happy hour на напитки",
+          "weekendSpecial": "Спецпредложение на выходные",
           "lunchCombo": "Ланч-комбо",
           "loyaltyDiscount": "Скидка постоянным гостям"
         }
       },
       "locked": {
         "title": "Акции — функция STARTER",
-        "body": "Запускай временные предложения, Happy hour и сезонные акции. Акции увеличивают сканирования в среднем в 3 раза.",
+        "body": "Запускай временные предложения и сезонные акции. Акции увеличивают сканирования в среднем в 3 раза.",
         "cta": "Перейти на STARTER — 29₾/мес",
         "ctaShort": "Перейти на STARTER",
         "bullets": {
@@ -1394,7 +1394,14 @@
         "timeTo": "до",
         "addBreak": "Добавить перерыв",
         "breakLabel": "Перерыв",
-        "useVenueHours": "Часы работы заведения"
+        "useVenueHours": "Часы работы заведения",
+        "breakErrors": {
+          "withoutWindow": "Сначала задайте часы работы дня, потом добавьте перерыв",
+          "incomplete": "Укажите начало и конец перерыва",
+          "outsideStart": "Перерыв начинается до открытия интервала",
+          "outsideEnd": "Перерыв заканчивается после закрытия интервала",
+          "emptyOrInverted": "Перерыв должен заканчиваться позже, чем начинается"
+        }
       },
       "tagsLabel": "Теги",
       "tagsPlaceholder": "Добавить тег…",
@@ -1509,9 +1516,9 @@
       },
       "fields": {
         "titleLabel": "Заголовок",
-        "titleKaPlaceholder": "напр. ბედნიერი საათი",
-        "titleEnPlaceholder": "напр. Happy Hour",
-        "titleRuPlaceholder": "напр. Хэппи-час",
+        "titleKaPlaceholder": "напр. ბიზნეს ლანჩი",
+        "titleEnPlaceholder": "напр. Lunch deal",
+        "titleRuPlaceholder": "напр. Бизнес-ланч",
         "descriptionLabel": "Краткое описание",
         "descriptionKaPlaceholder": "აღწერეთ აქცია...",
         "descriptionEnPlaceholder": "Describe the promotion...",
@@ -1569,7 +1576,14 @@
         "dateRangeRequired": "Укажите дату начала или окончания либо отключите период действия",
         "addBreak": "Добавить перерыв",
         "breakLabel": "Перерыв",
-        "useVenueHours": "Часы работы заведения"
+        "useVenueHours": "Часы работы заведения",
+        "breakErrors": {
+          "withoutWindow": "Сначала задайте часы работы дня, потом добавьте перерыв",
+          "incomplete": "Укажите начало и конец перерыва",
+          "outsideStart": "Перерыв начинается до открытия интервала",
+          "outsideEnd": "Перерыв заканчивается после закрытия интервала",
+          "emptyOrInverted": "Перерыв должен заканчиваться позже, чем начинается"
+        }
       }
     }
   },

@@ -37,7 +37,7 @@ const PLAN_DEFS: PlanCardDef[] = [
     features: [
       '3 menus',
       'Unlimited categories & items',
-      'Promotions & happy hours',
+      'Promotions & timed offers',
       'Custom branding & colors',
       'Basic analytics',
     ],

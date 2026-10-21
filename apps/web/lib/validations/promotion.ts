@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { validateWindowBreak } from '@/lib/promotions/time-windows';
 
 // ── Enums ───────────────────────────────────────────────────────────────────
 
@@ -104,6 +105,21 @@ export const timeRestrictionsSchema = z
     days: z.array(z.enum(WEEKDAYS)).optional(),
     startTime: HHMM.optional(),
     endTime: HHMM.optional(),
+  })
+  // T1.8 — a day's break must sit inside that day's window. The issue message is
+  // the violation code so the drawer can map it to its own copy.
+  .superRefine((v, ctx) => {
+    for (const [day, win] of Object.entries(v.windows ?? {})) {
+      if (!win) continue;
+      const result = validateWindowBreak(win, win);
+      if (!result.ok) {
+        ctx.addIssue({
+          code: 'custom',
+          message: result.code,
+          path: ['windows', day, 'breakEnd'],
+        });
+      }
+    }
   })
   .transform((v) => {
     let windows = v.windows ?? {};
