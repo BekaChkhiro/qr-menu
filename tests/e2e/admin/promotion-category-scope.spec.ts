@@ -205,3 +205,80 @@ test.describe('T22.18 promotion drawer — apply-to options', () => {
     await expect(page.getByTestId('promotion-apply-to-items')).toHaveCount(0);
   });
 });
+
+test.describe('T1.3 promotion card — scope label', () => {
+  test('card names the category, the whole menu, or shows no scope per applyTo', async ({
+    page,
+  }) => {
+    const { email, menu } = await seedStarterUserAndMenu('card-scope');
+    await loginAs(page, email);
+
+    const drinks = await prismaTest.category.create({
+      data: { menuId: menu.id, nameKa: 'სასმელები', type: 'DRINK', sortOrder: 0 },
+    });
+
+    const activeWindow = {
+      startDate: new Date(Date.now() - 60 * 60 * 1000),
+      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    };
+
+    const categoryPromo = await prismaTest.promotion.create({
+      data: {
+        menuId: menu.id,
+        titleKa: 'სასმელებზე -20%',
+        isActive: true,
+        ...activeWindow,
+        discountType: 'PERCENTAGE',
+        discountValue: 20,
+        applyTo: 'CATEGORY',
+        categoryId: drinks.id,
+      },
+    });
+    const wholeMenuPromo = await prismaTest.promotion.create({
+      data: {
+        menuId: menu.id,
+        titleKa: 'მთელ მენიუზე -5₾',
+        isActive: true,
+        ...activeWindow,
+        discountType: 'FIXED_AMOUNT',
+        discountValue: 5,
+        applyTo: 'ENTIRE_MENU',
+      },
+    });
+    // Legacy row: a discount saved before applyTo existed.
+    const legacyPromo = await prismaTest.promotion.create({
+      data: {
+        menuId: menu.id,
+        titleKa: 'ძველი აქცია',
+        isActive: true,
+        ...activeWindow,
+        discountType: 'PERCENTAGE',
+        discountValue: 10,
+      },
+    });
+    const bannerPromo = await prismaTest.promotion.create({
+      data: {
+        menuId: menu.id,
+        titleKa: 'განცხადება',
+        isActive: true,
+        ...activeWindow,
+        type: 'BANNER',
+      },
+    });
+
+    await page.goto(`/admin/menus/${menu.id}?tab=promotions`);
+
+    await expect(
+      page.getByTestId(`editor-promotions-card-${categoryPromo.id}-applied`)
+    ).toHaveText('კატეგორია: სასმელები');
+    await expect(
+      page.getByTestId(`editor-promotions-card-${wholeMenuPromo.id}-applied`)
+    ).toHaveText('მთელ მენიუზე');
+    await expect(
+      page.getByTestId(`editor-promotions-card-${legacyPromo.id}-applied`)
+    ).toHaveText('მთელ მენიუზე');
+    await expect(
+      page.getByTestId(`editor-promotions-card-${bannerPromo.id}-applied`)
+    ).toHaveCount(0);
+  });
+});

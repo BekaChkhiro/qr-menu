@@ -608,7 +608,8 @@
         "ended": "Завершённая"
       },
       "card": {
-        "appliedToMenu": "Применяется ко всему меню",
+        "appliedToWholeMenu": "Всё меню",
+        "appliedToCategory": "Категория: {name}",
         "scansLabel": "скан. · 7 дней",
         "noDates": "Всегда",
         "fromDate": "С {date}",

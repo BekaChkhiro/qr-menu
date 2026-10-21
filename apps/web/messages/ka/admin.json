@@ -608,7 +608,8 @@
         "ended": "დასრულებული"
       },
       "card": {
-        "appliedToMenu": "ეხება მენიუს",
+        "appliedToWholeMenu": "მთელ მენიუზე",
+        "appliedToCategory": "კატეგორია: {name}",
         "scansLabel": "სკანი · 7 დღე",
         "noDates": "მუდმივი",
         "fromDate": "{date}-დან",

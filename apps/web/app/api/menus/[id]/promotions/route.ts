@@ -89,9 +89,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Fetch promotions
+    // Category name feeds the scope line on each card ("კატეგორია: …").
     const promotions = await prisma.promotion.findMany({
       where,
       orderBy: { startDate: 'desc' },
+      include: {
+        category: { select: { id: true, nameKa: true, nameEn: true, nameRu: true } },
+      },
     });
 
     return createSuccessResponse(promotions);

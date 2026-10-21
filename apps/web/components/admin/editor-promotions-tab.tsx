@@ -105,6 +105,30 @@ function localizedTitle(promotion: Promotion, locale: string): string {
   return promotion.titleKa;
 }
 
+/**
+ * Scope line for the card. CATEGORY names the category; ENTIRE_MENU and legacy
+ * rows (applyTo null) read as whole-menu. BANNER and COMBO promotions have no
+ * menu-wide price rule, so they show no scope line.
+ */
+function scopeText(
+  promotion: Promotion,
+  locale: string,
+  tCard: (key: string, values?: Record<string, string | number>) => string
+): string | null {
+  if (promotion.applyTo === 'CATEGORY') {
+    const category = promotion.category;
+    if (!category) return null;
+    const name =
+      (locale === 'en' && category.nameEn) || (locale === 'ru' && category.nameRu) || category.nameKa;
+    return tCard('appliedToCategory', { name });
+  }
+  if (promotion.applyTo === 'ENTIRE_MENU') return tCard('appliedToWholeMenu');
+  // Any other applyTo value is retired (SPECIFIC_ITEMS): show no scope rather than guess.
+  if (promotion.applyTo) return null;
+  if (promotion.type === 'BANNER' || promotion.type === 'COMBO') return null;
+  return tCard('appliedToWholeMenu');
+}
+
 function pickLocale(locale: string) {
   return DATE_LOCALES[locale as keyof typeof DATE_LOCALES] ?? enUS;
 }
@@ -273,6 +297,7 @@ function PromoCard({
   const title = localizedTitle(promotion, locale);
   const dateLocale = pickLocale(locale);
   const dateRange = formatDateRange(promotion, dateLocale, tCard);
+  const scope = scopeText(promotion, locale, tCard);
   const scanLabel = approxScansLabel(promotion, status);
 
   return (
@@ -322,13 +347,15 @@ function PromoCard({
             <Calendar className="size-3 shrink-0 text-text-subtle" strokeWidth={1.5} />
             <span>{dateRange}</span>
           </div>
-          <div
-            className="flex items-center gap-1.5"
-            data-testid={`editor-promotions-card-${promotion.id}-applied`}
-          >
-            <UtensilsCrossed className="size-3 shrink-0 text-text-subtle" strokeWidth={1.5} />
-            <span>{tCard('appliedToMenu')}</span>
-          </div>
+          {scope && (
+            <div
+              className="flex items-center gap-1.5"
+              data-testid={`editor-promotions-card-${promotion.id}-applied`}
+            >
+              <UtensilsCrossed className="size-3 shrink-0 text-text-subtle" strokeWidth={1.5} />
+              <span>{scope}</span>
+            </div>
+          )}
         </div>
 
         <div className="mt-auto flex items-center justify-between border-t border-border-soft pt-2.5">

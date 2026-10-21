@@ -608,7 +608,8 @@
         "ended": "Ended"
       },
       "card": {
-        "appliedToMenu": "Applies to menu",
+        "appliedToWholeMenu": "Whole menu",
+        "appliedToCategory": "Category: {name}",
         "scansLabel": "scans · 7d",
         "noDates": "Always on",
         "fromDate": "From {date}",
