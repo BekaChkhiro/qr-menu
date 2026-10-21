@@ -93,6 +93,12 @@ enum MenuTemplate {
   COMPACT
 }
 
+// T1.12 — where the Offers rail sits relative to the menu body.
+enum OffersRailPosition {
+  TOP
+  BOTTOM
+}
+
 enum ProductCardStyle {
   FLAT
   BORDERED
@@ -350,6 +356,13 @@ model Menu {
   // T24.19 — the "Most Ordered" rail at the top of the public menu is opt-out:
   // it has always rendered, so existing menus keep it until the owner says no.
   featuredEnabled   Boolean       @default(true)
+
+  // T1.12 — the Offers rail (combo promotions) on the public menu. When off,
+  // the Offers category renders as a normal category at its own sortOrder.
+  // TOP keeps the rail above the menu body (today's layout); BOTTOM places it
+  // after the body. Legacy menus default to ON / TOP.
+  offersRailEnabled  Boolean           @default(true)
+  offersRailPosition OffersRailPosition @default(TOP)
 
   // T24.4 — the venue's opening / closing hours, with an optional break
   // (split shift). Shape: [{ day: 'mon', closed: false, open: '09:00',

@@ -31,6 +31,9 @@ export const publicMenuSelect = {
   promoPopupEnabled: true,
   // T24.19 — opt-out switch for the "Most Ordered" rail.
   featuredEnabled: true,
+  // T1.12 — Offers rail on/off and its place relative to the menu body.
+  offersRailEnabled: true,
+  offersRailPosition: true,
   // T24.4 — venue opening hours (+ optional break), rendered in the footer.
   workingHours: true,
   timezone: true,
@@ -216,6 +219,9 @@ export interface SerializedPublicMenu {
   promoPopupEnabled: boolean;
   // T24.19 — false hides the "Most Ordered" rail.
   featuredEnabled: boolean;
+  // T1.12 — false renders Offers as a normal category; TOP/BOTTOM place the rail.
+  offersRailEnabled: boolean;
+  offersRailPosition: 'TOP' | 'BOTTOM';
   // T24.4 — venue opening hours; see lib/menu/working-hours.ts for the shape.
   workingHours: WorkingHoursDay[] | null;
   // T22.21 — café-local timezone that day/hour windows are evaluated against.

@@ -28,6 +28,7 @@ const productCardStyleValues = ['FLAT', 'BORDERED', 'ELEVATED', 'MINIMAL'] as co
 const productTouchEffectValues = ['NONE', 'SCALE', 'GLOW', 'GRADIENT'] as const;
 const logoSizeValues = ['SMALL', 'MEDIUM', 'LARGE'] as const;
 const logoAlignmentValues = ['LEFT', 'CENTER', 'RIGHT'] as const;
+export const offersRailPositionValues = ['TOP', 'BOTTOM'] as const;
 
 // T15.13 — Visibility is a derived field that the Settings tab writes alongside
 // `status` and `passwordHash` in a single PATCH. The server maps:
@@ -156,6 +157,10 @@ export const updateMenuSchema = z.object({
 
   // T24.19 — show/hide the "Most Ordered" rail on the public menu.
   featuredEnabled: z.boolean().optional(),
+
+  // T1.12 — Offers rail on/off and its place (TOP above the body, BOTTOM after it).
+  offersRailEnabled: z.boolean().optional(),
+  offersRailPosition: z.enum(offersRailPositionValues).optional(),
 
   // T24.4 — venue working hours (+ optional mid-day break). Always sent as the
   // full seven-day array; `closed: true` is how a day is switched off.

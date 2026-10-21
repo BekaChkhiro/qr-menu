@@ -78,6 +78,9 @@ export interface Menu {
   promoPopupEnabled?: boolean;
   // T24.19 — show the "Most Ordered" rail at the top of the public menu.
   featuredEnabled?: boolean;
+  // T1.12 — Offers rail on/off and placement (legacy fixtures may omit them).
+  offersRailEnabled?: boolean;
+  offersRailPosition?: 'TOP' | 'BOTTOM';
 
   // Layout & visual style
   splitByType: boolean;

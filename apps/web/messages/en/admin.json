@@ -587,6 +587,18 @@
           "sat": "Sat",
           "sun": "Sun"
         }
+      },
+      "offersRail": {
+        "label": "Offers row",
+        "helper": "Shows combo offers as a row on the public menu. When off, Offers appears as a normal category in the menu.",
+        "switchLabel": "Show Offers row",
+        "switchDescription": "Off: the Offers category is listed in the menu like any other category.",
+        "position": {
+          "label": "Row position",
+          "top": "Top, above the menu",
+          "bottom": "Bottom, below the menu"
+        },
+        "saveError": "Could not save the Offers row setting."
       }
     },
     "promotions": {
@@ -1551,7 +1563,9 @@
         "comboProductsHint": "Pick at least 2 products",
         "comboPriceLabel": "Combo price (₾)",
         "dayInactive": "Off",
-        "datesOptionalHint": "Dates are optional — leave them empty and the promotion runs until you switch it off.",
+        "dateRangeLabel": "Date range",
+        "dateRangeToggleTitle": "Limit to specific dates",
+        "dateRangeRequired": "Pick a start or end date, or switch the date range off",
         "addBreak": "Add break",
         "breakLabel": "Break",
         "useVenueHours": "Use venue hours"

@@ -15,8 +15,17 @@ import { prisma } from '@/lib/db';
  * end of the menu. Creating a normal category after it used to leave Offers
  * stranded in the middle, so every path that can disturb the order calls this
  * to snap Offers back past the last regular category.
+ *
+ * T1.12 — with the Offers rail switched OFF the category is an ordinary one:
+ * the owner's sortOrder stands, so this leaves it where it was placed.
  */
 export async function pushOffersCategoryLast(menuId: string): Promise<void> {
+  const menu = await prisma.menu.findUnique({
+    where: { id: menuId },
+    select: { offersRailEnabled: true },
+  });
+  if (menu?.offersRailEnabled === false) return;
+
   const offers = await prisma.category.findFirst({
     where: { menuId, isSystemOffers: true },
     select: { id: true, sortOrder: true },
