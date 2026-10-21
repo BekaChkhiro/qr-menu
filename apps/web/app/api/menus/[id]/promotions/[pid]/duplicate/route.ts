@@ -100,15 +100,6 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // T1.9 — a legacy COMBO copy would be a second creation path for combos.
-    if (source.type === 'COMBO') {
-      return createErrorResponse(
-        ERROR_CODES.VALIDATION_ERROR,
-        'Combo promotions are retired. Duplicate the combo product instead.',
-        400
-      );
-    }
-
     const last = await prisma.promotion.findFirst({
       where: { menuId },
       orderBy: { sortOrder: 'desc' },

@@ -176,15 +176,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { dateRangeEnabled, ...values } = createPromotionSchema.parse(body);
     const data = dateRangeEnabled === false ? { ...values, startDate: null, endDate: null } : values;
 
-    // T1.9 — one creation path for combos: a product with kind COMBO.
-    if (data.type === 'COMBO') {
-      return createErrorResponse(
-        ERROR_CODES.VALIDATION_ERROR,
-        'Combo promotions are retired. Create a combo product instead.',
-        400
-      );
-    }
-
     // Create promotion
     const promotion = await prisma.promotion.create({
       data: {

@@ -572,8 +572,7 @@ export function PromotionDrawer({
                     name="type"
                     render={({ field }) => (
                       <div className="grid grid-cols-3 gap-2">
-                        {/* T1.9 — COMBO is no longer creatable here; legacy COMBO promotions keep their type. */}
-                        {TYPE_OPTIONS.filter((opt) => opt.value !== 'COMBO' || promotion?.type === 'COMBO').map((opt) => (
+                        {TYPE_OPTIONS.map((opt) => (
                           <button
                             key={opt.value}
                             type="button"

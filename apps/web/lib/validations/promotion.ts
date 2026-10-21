@@ -226,7 +226,17 @@ export const createPromotionSchema = z
   .refine((data) => data.applyTo !== 'SPECIFIC_ITEMS', {
     message: 'Promotions apply to the whole menu or a category',
     path: ['applyTo'],
-  });
+  })
+  // COMBO promotion: at least two dishes and a positive combo price.
+  .refine(
+    (data) =>
+      data.type !== 'COMBO' ||
+      ((data.comboProductIds?.length ?? 0) >= 2 && data.comboPrice != null && Number(data.comboPrice) > 0),
+    {
+      message: 'A combo needs at least two dishes and a combo price',
+      path: ['comboPrice'],
+    },
+  );
 
 // ── Update promotion schema ─────────────────────────────────────────────────
 

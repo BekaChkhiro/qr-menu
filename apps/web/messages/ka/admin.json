@@ -656,7 +656,7 @@
         "hint": "აირჩიე შაბლონი დასაწყებად",
         "chips": {
           "weekendSpecial": "შაბათ-კვირის სპეციალი",
-          "lunchDiscount": "ლანჩის ფასდაკლება",
+          "lunchCombo": "Lunch კომბო ნაკრები",
           "loyaltyDiscount": "ერთგული კლიენტის ფასდაკლება"
         }
       },

@@ -15,13 +15,14 @@ import {
   resetIdCounter,
 } from './setup';
 
-const { mockPrisma, mockAuth, mockInvalidateCache, mockTriggerEvent, mockLogActivity } = vi.hoisted(() => {
+const { mockPrisma, mockAuth, mockInvalidateCache, mockTriggerEvent, mockLogActivity, mockSyncCombo } = vi.hoisted(() => {
   return {
     mockPrisma: {
       user: { findUnique: vi.fn() },
       menu: { findUnique: vi.fn() },
       promotion: {
         findUnique: vi.fn(),
+        findFirst: vi.fn(),
         create: vi.fn(),
         update: vi.fn(),
       },
@@ -30,6 +31,7 @@ const { mockPrisma, mockAuth, mockInvalidateCache, mockTriggerEvent, mockLogActi
     mockInvalidateCache: vi.fn(),
     mockTriggerEvent: vi.fn(),
     mockLogActivity: vi.fn(),
+    mockSyncCombo: vi.fn(async () => undefined),
   };
 });
 
@@ -50,12 +52,13 @@ vi.mock('@/lib/activity/log', () => ({
   logActivity: (...args: unknown[]) => mockLogActivity(...args),
 }));
 vi.mock('@/lib/promotions/combo', () => ({
-  syncComboProduct: vi.fn(async () => undefined),
+  syncComboProduct: (...args: unknown[]) => mockSyncCombo(...args),
   deleteComboProductFor: vi.fn(async () => undefined),
 }));
 
 import { POST } from '@/app/api/menus/[id]/promotions/route';
 import { PUT } from '@/app/api/menus/[id]/promotions/[pid]/route';
+import { POST as DUPLICATE } from '@/app/api/menus/[id]/promotions/[pid]/duplicate/route';
 
 const START = '2026-10-21T00:00:00.000Z';
 const END = '2026-10-28T00:00:00.000Z';
@@ -179,6 +182,101 @@ describe('Promotion API — dateRangeEnabled', () => {
       expect(data).not.toHaveProperty('dateRangeEnabled');
       expect(data).not.toHaveProperty('startDate');
       expect(data).not.toHaveProperty('endDate');
+    });
+  });
+
+  describe('COMBO promotions', () => {
+    const comboBody = (extra: Record<string, unknown> = {}) => ({
+      titleKa: 'ლანჩ-კომბო',
+      type: 'COMBO',
+      comboProductIds: ['dish-a', 'dish-b'],
+      comboPrice: 12,
+      isActive: true,
+      ...extra,
+    });
+
+    it('creates a COMBO promotion and materialises its product', async () => {
+      const request = createMockRequest(`http://localhost/api/menus/${menu.id}/promotions`, {
+        method: 'POST',
+        body: comboBody(),
+      });
+
+      const response = await POST(request, createRouteContext({ id: menu.id }));
+
+      expect(response.status).toBe(201);
+      const { data } = mockPrisma.promotion.create.mock.calls[0][0] as { data: Record<string, unknown> };
+      expect(data.type).toBe('COMBO');
+      expect(data.comboProductIds).toEqual(['dish-a', 'dish-b']);
+      expect(Number(data.comboPrice)).toBe(12);
+      expect(mockSyncCombo).toHaveBeenCalledWith('promo-1');
+    });
+
+    it('rejects a COMBO with fewer than two dishes', async () => {
+      const request = createMockRequest(`http://localhost/api/menus/${menu.id}/promotions`, {
+        method: 'POST',
+        body: comboBody({ comboProductIds: ['dish-a'] }),
+      });
+
+      const response = await POST(request, createRouteContext({ id: menu.id }));
+
+      expect(response.status).toBe(400);
+      expect(mockPrisma.promotion.create).not.toHaveBeenCalled();
+      expect(mockSyncCombo).not.toHaveBeenCalled();
+    });
+
+    it('rejects a COMBO without a positive combo price', async () => {
+      const request = createMockRequest(`http://localhost/api/menus/${menu.id}/promotions`, {
+        method: 'POST',
+        body: comboBody({ comboPrice: null }),
+      });
+
+      const response = await POST(request, createRouteContext({ id: menu.id }));
+
+      expect(response.status).toBe(400);
+      expect(mockPrisma.promotion.create).not.toHaveBeenCalled();
+    });
+
+    it('duplicates a COMBO promotion into a fresh, switched-off copy with its own product', async () => {
+      const source = {
+        id: 'promo-src',
+        menuId: menu.id,
+        type: 'COMBO',
+        titleKa: 'ლანჩ-კომბო',
+        titleEn: 'Lunch combo',
+        titleRu: null,
+        descriptionKa: null,
+        descriptionEn: null,
+        descriptionRu: null,
+        imageUrl: null,
+        startDate: null,
+        endDate: null,
+        discountType: null,
+        discountValue: null,
+        applyTo: null,
+        categoryId: null,
+        backgroundColor: null,
+        showTitle: true,
+        comboProductIds: ['dish-a', 'dish-b'],
+        comboPrice: 12,
+        comboProductId: 'product-src',
+        timeRestrictions: null,
+      };
+      mockPrisma.promotion.findFirst.mockImplementation(async ({ where }: { where: { id?: string } }) =>
+        where.id ? source : { sortOrder: 0 },
+      );
+
+      const response = await DUPLICATE(
+        createMockRequest(`http://localhost/api/menus/${menu.id}/promotions/promo-src/duplicate`, { method: 'POST' }),
+        createRouteContext({ id: menu.id, pid: 'promo-src' }),
+      );
+
+      expect(response.status).toBe(201);
+      const { data } = mockPrisma.promotion.create.mock.calls[0][0] as { data: Record<string, unknown> };
+      expect(data.type).toBe('COMBO');
+      expect(data.isActive).toBe(false);
+      expect(data.comboProductIds).toEqual(['dish-a', 'dish-b']);
+      expect(data.comboProductId).toBeNull();
+      expect(mockSyncCombo).toHaveBeenCalledWith('promo-1');
     });
   });
 });

@@ -656,7 +656,7 @@
         "hint": "click to start from a template",
         "chips": {
           "weekendSpecial": "Weekend special",
-          "lunchDiscount": "Lunch discount",
+          "lunchCombo": "Lunch combo bundle",
           "loyaltyDiscount": "Loyalty discount for repeat customers"
         }
       },

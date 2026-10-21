@@ -371,7 +371,7 @@ function PromoCard({
 
 // ── Suggestions ──────────────────────────────────────────────────────────────
 
-const SUGGESTION_KEYS = ['weekendSpecial', 'lunchDiscount', 'loyaltyDiscount'] as const;
+const SUGGESTION_KEYS = ['weekendSpecial', 'lunchCombo', 'loyaltyDiscount'] as const;
 type SuggestionKey = (typeof SUGGESTION_KEYS)[number];
 
 function Suggestions({
@@ -421,7 +421,7 @@ export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocke
   const [filter, setFilter] = React.useState<PromotionFilter>('all');
   const [dialogPromotion, setDialogPromotion] = React.useState<Promotion | null>(null);
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
-  const [prefillTitle, setPrefillTitle] = React.useState<string | undefined>();
+  const [prefill, setPrefill] = React.useState<{ title: string; type?: 'COMBO' } | undefined>();
   const [deleteTarget, setDeleteTarget] = React.useState<Promotion | null>(null);
 
   const { data: promotions, isLoading, error } = usePromotions(menuId, {
@@ -457,7 +457,7 @@ export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocke
     try {
       await createPromotion.mutateAsync(data);
       setIsCreateOpen(false);
-      setPrefillTitle(undefined);
+      setPrefill(undefined);
       toast.success(tPromo('toast.created'));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : tPromo('toast.createError'));
@@ -526,8 +526,8 @@ export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocke
     );
   }
 
-  const openNew = (templateTitle?: string) => {
-    setPrefillTitle(templateTitle);
+  const openNew = (template?: { title: string; type?: 'COMBO' }) => {
+    setPrefill(template);
     setIsCreateOpen(true);
   };
 
@@ -640,20 +640,27 @@ export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocke
 
       <Suggestions
         tSuggestions={(key) => t(`suggestions.${key}`)}
-        onPick={(key) => openNew(t(`suggestions.chips.${key}`))}
+        onPick={(key) =>
+          openNew({
+            title: t(`suggestions.chips.${key}`),
+            type: key === 'lunchCombo' ? 'COMBO' : undefined,
+          })
+        }
       />
 
       <PromotionDrawer
         open={isCreateOpen}
         onOpenChange={(open) => {
           setIsCreateOpen(open);
-          if (!open) setPrefillTitle(undefined);
+          if (!open) setPrefill(undefined);
         }}
         menuId={menuId}
         promotion={
-          prefillTitle
+          prefill
             ? ({
-                titleKa: prefillTitle,
+                titleKa: prefill.title,
+                // A suggestion can open the drawer with its type already chosen.
+                ...(prefill.type ? { type: prefill.type } : {}),
                 // T24.1 — templates start with no dates; the switch controls it.
                 startDate: null,
                 endDate: null,

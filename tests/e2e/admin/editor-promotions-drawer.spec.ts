@@ -235,9 +235,9 @@ test.describe('promotion drawer (T15.8)', () => {
     expect(saved!.endDate).not.toBeNull();
   });
 
-  // ── Functional: COMBO is no longer a promotion type (T1.9) ────────────────
+  // ── Functional: COMBO promotions are creatable again (owner decision) ─────
 
-  test('functional: a new promotion offers no COMBO type; combos are made as products', async ({
+  test('functional: a new promotion offers the COMBO type with its dish picker', async ({
     page,
   }) => {
     await seedStarterScenario(page);
@@ -247,7 +247,18 @@ test.describe('promotion drawer (T15.8)', () => {
 
     await expect(page.getByTestId('promotion-type-percentage')).toBeVisible();
     await expect(page.getByTestId('promotion-type-banner')).toBeVisible();
-    await expect(page.getByTestId('promotion-type-combo')).toHaveCount(0);
+    await page.getByTestId('promotion-type-combo').click();
+    await expect(page.getByTestId('promotion-drawer-combo')).toBeVisible();
+  });
+
+  test('functional: the Lunch combo suggestion opens the drawer with COMBO preselected', async ({
+    page,
+  }) => {
+    await seedStarterScenario(page);
+
+    await page.getByTestId('editor-promotions-suggestion-1').click();
+    await expect(page.getByTestId('promotion-drawer')).toBeVisible();
+    await expect(page.getByTestId('promotion-drawer-combo')).toBeVisible();
   });
 
   // ── Functional: promotion type switching (T22.19) ─────────────────────────
