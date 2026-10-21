@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, X, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isGifUrl } from '@/lib/media/gif';
 import type { Locale } from '@/i18n/config';
 
 interface Promotion {
@@ -248,7 +249,7 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
                       className="object-cover"
                       sizes="(min-width: 768px) 448px, 70vw"
                       priority={i === 0}
-                      unoptimized={promo.imageUrl.toLowerCase().endsWith('.gif')}
+                      unoptimized={isGifUrl(promo.imageUrl)}
                     />
                     {showTitle && (
                       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3">
@@ -355,7 +356,7 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
                   fill
                   className="object-cover"
                   sizes="(min-width: 640px) 448px, 100vw"
-                  unoptimized={expanded.imageUrl.toLowerCase().endsWith('.gif')}
+                  unoptimized={isGifUrl(expanded.imageUrl)}
                 />
               </div>
             )}

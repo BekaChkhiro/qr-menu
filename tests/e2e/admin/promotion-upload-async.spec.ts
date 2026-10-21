@@ -145,12 +145,18 @@ test.describe('T21.10 promotion upload performance', () => {
     const fileInput = dropzone.locator('input[type="file"]');
 
     // Drive the hidden input directly — bypasses the dropzone click.
-    const selectStart = Date.now();
     await fileInput.setInputFiles({
       name: 'banner.png',
       mimeType: 'image/png',
       buffer: TINY_PNG_BUFFER,
     });
+
+    // PNG still opens the cropper first (T24.16). The upload starts once the
+    // crop is applied, so the timings below run from that confirm click.
+    await expect(page.getByTestId('image-cropper')).toBeVisible();
+    await expect(page.getByTestId('image-cropper-confirm')).toBeEnabled();
+    const selectStart = Date.now();
+    await page.getByTestId('image-cropper-confirm').click();
 
     // ── Optimistic blob preview appears within 500ms ────────────────────────
     const preview = page.getByTestId('promotion-image-preview');
@@ -226,6 +232,9 @@ test.describe('T21.10 promotion upload performance', () => {
       mimeType: 'image/png',
       buffer: TINY_PNG_BUFFER,
     });
+    // PNG opens the cropper first (T24.16): apply the default crop to upload.
+    await expect(page.getByTestId('image-cropper-confirm')).toBeEnabled();
+    await page.getByTestId('image-cropper-confirm').click();
 
     // Wait for upload to finish (hidden input populated).
     await expect(page.getByTestId('promotion-image-url')).toHaveValue(

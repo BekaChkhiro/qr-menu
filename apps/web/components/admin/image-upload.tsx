@@ -12,6 +12,7 @@ import {
   ALLOWED_MIME_TYPES,
 } from '@/lib/validations/upload';
 import type { ImagePreset } from '@/lib/cloudinary';
+import { isGifMimeType, isGifUrl } from '@/lib/media/gif';
 import { ImageCropper, type CropAspect } from './image-cropper';
 
 interface ImageUploadProps {
@@ -100,7 +101,8 @@ export function ImageUpload({
         return;
       }
 
-      if (enableCropper) {
+      // GIFs skip the cropper: its canvas export flattens them to one JPEG frame.
+      if (enableCropper && !isGifMimeType(file.type)) {
         // Open cropper with this file
         const reader = new FileReader();
         reader.onload = () => {
@@ -226,7 +228,7 @@ export function ImageUpload({
               className="object-cover"
               sizes="(max-width: 768px) 100vw, 400px"
               data-testid={`${testIdPrefix}-preview`}
-              unoptimized={displayUrl.startsWith('blob:')}
+              unoptimized={displayUrl.startsWith('blob:') || isGifUrl(displayUrl)}
             />
             {!isUploading && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity hover:opacity-100">
@@ -294,7 +296,8 @@ export function ImageUpload({
 
       {displayUrl && !isUploading && !disabled && (
         <div className="flex gap-2">
-          {enableCropper && (
+          {/* Recrop would re-encode a stored GIF as one JPEG frame, so hide it. */}
+          {enableCropper && !isGifUrl(value) && (
             <Button
               type="button"
               variant="outline"
