@@ -54,11 +54,10 @@ import {
 import type { Promotion } from '@/types/menu';
 import type { CreatePromotionInput } from '@/lib/validations/promotion';
 import { cn } from '@/lib/utils';
-import { hasEnded, isScheduled } from '@/lib/promotions/time-windows';
+import { getPromotionStatus, type PromotionStatus } from '@/lib/promotions/status';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type PromotionStatus = 'active' | 'scheduled' | 'ended';
 type PromotionFilter = 'all' | PromotionStatus;
 
 interface EditorPromotionsTabProps {
@@ -81,20 +80,12 @@ function hashString(input: string): number {
   return Math.abs(h);
 }
 
-// T24.1 — dates are optional: a promotion with neither runs purely off its
-// on/off switch, so it can only ever be "active" or (switched off) "ended".
-function getPromotionStatus(promotion: Promotion, now: Date = new Date()): PromotionStatus {
-  if (!promotion.isActive || hasEnded(promotion, now)) return 'ended';
-  if (isScheduled(promotion, now)) return 'scheduled';
-  return 'active';
-}
-
 // Per-promotion scan tracking isn't in the analytics backend yet (Phase 15
 // scope note). Use a deterministic placeholder derived from the promo id so
-// visual baselines stay stable — "—" for Scheduled (matches design), a
-// rounded number for Active / Ended.
+// visual baselines stay stable — no number for Scheduled or Paused (nothing is
+// showing to customers), a rounded number for Active / Ended.
 function approxScansLabel(promotion: Promotion, status: PromotionStatus): string | null {
-  if (status === 'scheduled') return null;
+  if (status === 'scheduled' || status === 'paused') return null;
   const base = (hashString(promotion.id) % 400) + 40;
   return String(base);
 }
@@ -307,7 +298,11 @@ function PromoCard({
       className="flex flex-col overflow-hidden rounded-xl border border-border bg-card"
     >
       <div className="relative">
-        <PromoBanner promotion={promotion} title={title} desaturate={status === 'ended'} />
+        <PromoBanner
+          promotion={promotion}
+          title={title}
+          desaturate={status === 'ended' || status === 'paused'}
+        />
         <div
           className="absolute top-3 left-3"
           data-testid={`editor-promotions-card-${promotion.id}-status`}
@@ -475,7 +470,7 @@ export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocke
   );
 
   const counts = React.useMemo(() => {
-    const base = { all: annotated.length, active: 0, scheduled: 0, ended: 0 };
+    const base = { all: annotated.length, active: 0, scheduled: 0, paused: 0, ended: 0 };
     for (const { status } of annotated) base[status] += 1;
     return base;
   }, [annotated]);
@@ -602,7 +597,7 @@ export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocke
         data-testid="editor-promotions-filters"
         className="flex flex-wrap gap-1.5"
       >
-        {(['all', 'active', 'scheduled', 'ended'] as const).map((key) => (
+        {(['all', 'active', 'scheduled', 'paused', 'ended'] as const).map((key) => (
           <FilterChip
             key={key}
             label={t(`filter.${key}`)}

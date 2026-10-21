@@ -610,6 +610,7 @@
         "all": "All",
         "active": "Active",
         "scheduled": "Scheduled",
+        "paused": "Paused",
         "ended": "Ended",
         "noResults": "No promotions match this filter",
         "noResultsHint": "Switch to a different status, or create a new promotion."
@@ -617,6 +618,7 @@
       "status": {
         "active": "Active",
         "scheduled": "Scheduled",
+        "paused": "Paused",
         "ended": "Ended"
       },
       "card": {
@@ -1469,8 +1471,8 @@
       "endDate": "End Date",
       "image": "Promotion Image",
       "imageHint": "Upload a banner image for the promotion. Recommended size: 1200×675 pixels.",
-      "isActive": "Active",
-      "isActiveHint": "When enabled, the promotion will be visible to customers within the date range."
+      "isActive": "Enabled",
+      "isActiveHint": "When off, the promotion is hidden from the public menu; its dates and times stay unchanged"
     },
     "delete": {
       "title": "Delete Promotion",
@@ -1537,8 +1539,8 @@
         "bannerHint": "Upload a 16:9 banner image. Recommended: 1200×675 pixels. GIFs work too.",
         "startDate": "Start date",
         "endDate": "End date",
-        "isActive": "Active",
-        "isActiveHint": "When enabled, the promotion will be visible to customers within the date range.",
+        "isActive": "Enabled",
+        "isActiveHint": "When off, the promotion is hidden from the public menu; its dates and times stay unchanged",
         "typeLabel": "Promotion type",
         "types": {
           "percentage": {

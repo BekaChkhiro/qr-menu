@@ -222,6 +222,31 @@ test.describe('editor promotions tab (T15.7)', () => {
     ).toHaveCount(1);
   });
 
+  // ── Functional (T1.7): switching off reads Paused, never Ended ───────────
+
+  test('functional: switching an ended promo off shows Paused, not Ended', async ({
+    page,
+  }) => {
+    const { ended } = await seedFourPromotionsScenario(page);
+
+    const card = page.getByTestId(`editor-promotions-card-${ended.id}`);
+    await expect(card).toHaveAttribute('data-promotion-status', 'ended');
+
+    await page.getByTestId(`editor-promotions-card-${ended.id}-active-switch`).click();
+
+    await expect(card).toHaveAttribute('data-promotion-status', 'paused');
+    await expect(page.getByTestId(`editor-promotions-card-${ended.id}-status`)).toHaveText(
+      'Paused',
+    );
+    await expect(page.getByTestId('editor-promotions-filter-paused-count')).toHaveText('1');
+    await expect(page.getByTestId('editor-promotions-filter-ended-count')).toHaveText('0');
+
+    // The drawer's switch is labelled "Enabled" (ჩართული in Georgian).
+    await card.getByTestId(`editor-promotions-card-${ended.id}-kebab`).click();
+    await page.getByRole('menuitem', { name: 'Edit' }).click();
+    await expect(page.getByTestId('promotion-drawer-active-toggle')).toContainText('Enabled');
+  });
+
   // ── Functional: Suggestions card renders 3 template chips ────────────────
 
   test('functional: Ideas-to-try suggestions renders 3 chips', async ({ page }) => {

@@ -27,6 +27,7 @@ const statusPillVariants = cva(
         draft: "bg-warning-soft text-warning",
         scheduled: "bg-accent-soft text-accent",
         archived: "bg-chip text-text-muted",
+        paused: "bg-chip text-text-muted",
         ended: "bg-chip text-text-muted",
       },
     },
@@ -44,6 +45,7 @@ const dotVariants = cva("inline-block size-[6px] rounded-pill", {
       draft: "bg-warning",
       scheduled: "bg-accent",
       archived: "bg-text-subtle",
+      paused: "bg-text-subtle",
       ended: "bg-text-subtle",
     },
   },
@@ -58,6 +60,7 @@ export type StatusPillStatus =
   | "draft"
   | "scheduled"
   | "archived"
+  | "paused"
   | "ended"
 
 export interface StatusPillProps
@@ -75,6 +78,7 @@ const DEFAULT_LABELS: Record<StatusPillStatus, string> = {
   draft: "Draft",
   scheduled: "Scheduled",
   archived: "Archived",
+  paused: "Paused",
   ended: "Ended",
 }
 

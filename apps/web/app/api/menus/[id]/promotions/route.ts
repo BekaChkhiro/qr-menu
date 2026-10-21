@@ -61,11 +61,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
+    // Absent params arrive as null, and zod only applies defaults to undefined:
+    // without this, page=null fails the whole parse and expired promotions are
+    // dropped even when the editor asks for includeExpired=true.
     const queryResult = promotionQuerySchema.safeParse({
-      page: searchParams.get('page'),
-      limit: searchParams.get('limit'),
-      isActive: searchParams.get('isActive'),
-      includeExpired: searchParams.get('includeExpired'),
+      page: searchParams.get('page') ?? undefined,
+      limit: searchParams.get('limit') ?? undefined,
+      isActive: searchParams.get('isActive') ?? undefined,
+      includeExpired: searchParams.get('includeExpired') ?? undefined,
     });
 
     const { isActive, includeExpired } = queryResult.success
