@@ -171,7 +171,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Validate request body
     const body = await request.json();
-    const data = createPromotionSchema.parse(body);
+    // T1.5 — the "Date range" switch is UI-only: it is not a column, so it is
+    // stripped here and never reaches Prisma. Off = open-ended (both dates null).
+    const { dateRangeEnabled, ...values } = createPromotionSchema.parse(body);
+    const data = dateRangeEnabled === false ? { ...values, startDate: null, endDate: null } : values;
 
     // T1.9 — one creation path for combos: a product with kind COMBO.
     if (data.type === 'COMBO') {

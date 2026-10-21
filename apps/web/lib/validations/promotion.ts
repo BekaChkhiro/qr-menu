@@ -265,6 +265,8 @@ export const updatePromotionSchema = z
     imageUrl: z.string().url('Invalid image URL').nullable().optional(),
     startDate: optionalDate,
     endDate: optionalDate,
+    // Same drawer-only switch as createPromotionSchema; the route strips it.
+    dateRangeEnabled: z.boolean().optional(),
     isActive: z.boolean().optional(),
     sortOrder: z.number().int().nonnegative().optional(),
 

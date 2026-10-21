@@ -143,7 +143,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Validate request body
     const body = await request.json();
-    const data = updatePromotionSchema.parse(body);
+    // T1.5 — the "Date range" switch is UI-only: stripped before Prisma. Off clears
+    // both boundaries (open-ended); absent keeps the stored dates.
+    const { dateRangeEnabled, ...values } = updatePromotionSchema.parse(body);
+    const data = dateRangeEnabled === false ? { ...values, startDate: null, endDate: null } : values;
 
     // For partial updates, we need to validate dates together. `undefined` =
     // "not sent, keep stored value"; `null` = "explicitly cleared" (T24.1).
