@@ -1397,7 +1397,12 @@
       "availabilityLabel": "ხელმისაწვდომობა",
       "inStock": "მარაგშია",
       "inStockHelp": "ხელმისაწვდომია საჯარო მენიუში",
-      "scheduleAvailability": "განრიგის დაყენება"
+      "scheduleAvailability": "განრიგის დაყენება",
+      "featuredLabel": "რეკომენდებული",
+      "featuredHelp": "გამოჩნდეს საჯარო მენიუს „რეკომენდებული“ განყოფილებაში",
+      "featuredRankLabel": "რიგი",
+      "featuredRankHelp": "რაც უფრო მცირე რიცხვია, მით ადრე გამოჩნდება",
+      "featuredRankError": "შეიყვანეთ მთელი რიცხვი, 0-ზე მეტი ან ტოლი"
     },
     "variations": {
       "title": "ვარიაციები",

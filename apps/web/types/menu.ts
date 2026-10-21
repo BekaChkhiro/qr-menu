@@ -201,6 +201,8 @@ export interface Product {
   isAvailable: boolean;
   allergens: Allergen[];
   ribbons: Ribbon[];
+  // T1.11 — manual "Recommended" rail order; null = not picked.
+  featuredRank?: number | null;
   isVegan: boolean;
   isVegetarian: boolean;
   isHalal: boolean;

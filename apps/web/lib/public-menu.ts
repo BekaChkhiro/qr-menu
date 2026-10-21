@@ -91,6 +91,8 @@ export const publicMenuSelect = {
           imageZoom: true,
           allergens: true,
           ribbons: true,
+          // T1.11 — manual "Recommended" rail pick (null = ribbon fallback).
+          featuredRank: true,
           isVegan: true,
           isVegetarian: true,
           calories: true,
@@ -278,6 +280,8 @@ export interface SerializedPublicProduct {
   imageZoom: number | null;
   allergens: string[];
   ribbons: string[];
+  // T1.11 — manual "Recommended" rail order; null = not picked.
+  featuredRank: number | null;
   isVegan: boolean;
   isVegetarian: boolean;
   calories: number | null;

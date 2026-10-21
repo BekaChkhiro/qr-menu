@@ -544,6 +544,11 @@ model Product {
   // Ordering
   sortOrder   Int                 @default(0)
 
+  // T1.11 — manual "Recommended" (რეკომენდებული) rail pick. null = not picked;
+  // when any available product has a value, the public rail uses those, sorted
+  // ascending (lower shows earlier). Otherwise the ribbon fallback applies.
+  featuredRank Int?
+
   // Relations
   category         Category           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   variations       ProductVariation[]

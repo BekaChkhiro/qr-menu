@@ -24,6 +24,7 @@ import { OffersCarousel } from '@/components/public/offers-carousel';
 import { MenuFooter } from '@/components/public/menu-footer';
 import { GoogleReviewCard } from '@/components/public/google-review-card';
 import { normalizeWorkingHours } from '@/lib/menu/working-hours';
+import { selectFeaturedProducts } from '@/lib/menu/featured';
 import { ViewTracker } from '@/components/public/view-tracker';
 import { MenuPasswordGate } from '@/components/public/menu-password-gate';
 import { CreateTableLauncher } from '@/components/public/create-table-launcher';
@@ -147,13 +148,10 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
   const hasCategories = categoriesWithProducts.length > 0;
   const hasInfo = Boolean(menu.address || menu.phone || menu.wifiSsid || menu.wcDirection);
 
-  // Collect "featured" products — those with POPULAR, CHEF_CHOICE, or DAILY_DISH ribbons
-  const featuredProducts = categoriesWithProducts
-    .flatMap((c) => c.products)
-    .filter((p) =>
-      p.ribbons?.some((r) => r === 'POPULAR' || r === 'CHEF_CHOICE' || r === 'DAILY_DISH')
-    )
-    .slice(0, 8);
+  // T1.11 — manual "Recommended" picks win; otherwise the ribbon fallback.
+  const featuredProducts = selectFeaturedProducts(
+    categoriesWithProducts.flatMap((c) => c.products)
+  );
 
   // T24.18 — the combo-generated Offers category is mirrored as a rail above the
   // menu body. It still renders as the last category too (T24.8).

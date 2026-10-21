@@ -132,6 +132,9 @@ const productExtras = {
 
   ribbons: z.array(z.enum(ribbonValues)).optional(),
 
+  // T1.11 — manual "Recommended" rail pick; null removes the dish from the rail.
+  featuredRank: z.number().int().nonnegative().max(9999).nullable().optional(),
+
   isVegan: z.boolean().optional(),
   isVegetarian: z.boolean().optional(),
   isHalal: z.boolean().optional(),

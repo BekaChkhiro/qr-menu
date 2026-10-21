@@ -1397,7 +1397,12 @@
       "availabilityLabel": "Доступность",
       "inStock": "В наличии",
       "inStockHelp": "Доступно сейчас в публичном меню",
-      "scheduleAvailability": "Расписание доступности"
+      "scheduleAvailability": "Расписание доступности",
+      "featuredLabel": "Рекомендуем",
+      "featuredHelp": "Показать в блоке «Рекомендуем» в публичном меню",
+      "featuredRankLabel": "Порядок",
+      "featuredRankHelp": "Меньшее число отображается выше",
+      "featuredRankError": "Укажите целое число, 0 или больше"
     },
     "variations": {
       "title": "Вариации",

@@ -106,6 +106,8 @@ function formToApi(data: ProductFormValues) {
     carbs: numOrNull(data.carbs),
     fiber: numOrNull(data.fiber),
     isAvailable: data.isAvailable,
+    // T1.11 — the order only means something while the dish is picked.
+    featuredRank: data.featured ? intOrNull(data.featuredRank) : null,
   };
 }
 

@@ -72,6 +72,13 @@ const productFormSchema = z.object({
   carbs: z.string().optional(),
   fiber: z.string().optional(),
   isAvailable: z.boolean(),
+  // T1.11 — "Recommended" rail pick. The order is only required while the switch is on.
+  featured: z.boolean(),
+  featuredRank: z.string().optional(),
+}).superRefine((values, ctx) => {
+  if (values.featured && !/^\d{1,4}$/.test((values.featuredRank ?? '').trim())) {
+    ctx.addIssue({ code: 'custom', path: ['featuredRank'], message: 'featuredRankError' });
+  }
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -171,6 +178,9 @@ export function ProductForm({
           ? String(product.fiber)
           : '',
       isAvailable: product?.isAvailable ?? true,
+      featured: product?.featuredRank != null,
+      featuredRank:
+        product?.featuredRank != null ? String(product.featuredRank) : '',
     },
   });
 
@@ -188,6 +198,7 @@ export function ProductForm({
   const discountWindowsValue = watch('discountWindows');
   const discountWindowsEnabled = discountWindowsValue?.enabled ?? false;
   const isAvailable = watch('isAvailable');
+  const featured = watch('featured') || false;
   const ribbons = watch('ribbons') || [];
   const isVegan = watch('isVegan') || false;
   const isVegetarian = watch('isVegetarian') || false;
@@ -763,7 +774,68 @@ export function ProductForm({
           }}
         />
 
-        {/* ── 7. Availability ───────────────────────────────────────────── */}
+        {/* ── 7. Recommended rail (T1.11) ───────────────────────────────── */}
+        <div>
+          <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.1px] text-text-default">
+            {t('featuredLabel')}
+          </div>
+          <div className="rounded-[10px] border border-border bg-card p-3.5">
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={featured}
+                onCheckedChange={(v) => setValue('featured', v)}
+                data-testid="product-basics-featured-toggle"
+                aria-label={t('featuredLabel')}
+              />
+              <div className="flex-1 text-[13px] font-[550] text-text-default">
+                {t('featuredHelp')}
+              </div>
+            </div>
+            {featured && (
+              <div className="mt-3 flex items-center gap-3">
+                <div className="flex-1">
+                  <div className="text-[13px] font-[550] text-text-default">
+                    {t('featuredRankLabel')}
+                  </div>
+                  <div className="text-[11.5px] text-text-muted">{t('featuredRankHelp')}</div>
+                </div>
+                <div className="w-24">
+                  <Controller
+                    control={form.control}
+                    name="featuredRank"
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        type="number"
+                        inputMode="numeric"
+                        step="1"
+                        min="0"
+                        max="9999"
+                        placeholder="1"
+                        data-testid="product-basics-featured-rank-input"
+                        className={cn(
+                          'tabular-nums',
+                          errors.featuredRank && 'border-danger ring-[3px] ring-danger-soft',
+                        )}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          {errors.featuredRank && (
+            <p
+              data-testid="product-basics-featured-rank-error"
+              className="mt-1.5 flex items-center gap-1 text-[11.5px] text-danger"
+            >
+              <Info className="h-[11px] w-[11px]" strokeWidth={1.8} aria-hidden="true" />
+              {t('featuredRankError')}
+            </p>
+          )}
+        </div>
+
+        {/* ── 8. Availability ───────────────────────────────────────────── */}
         <div>
           <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.1px] text-text-default">
             {t('availabilityLabel')}
