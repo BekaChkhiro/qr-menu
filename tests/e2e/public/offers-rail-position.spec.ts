@@ -83,7 +83,8 @@ async function seedMenuWithOffers(
 
 async function openMenu(page: Page, slug: string) {
   await page.goto(`/m/${slug}`);
-  await expect(page.getByTestId('offers-carousel').or(page.locator('[id^="category-"]').first())).toBeVisible();
+  // Wait for the menu body only: with the rail on, `.or()` matched two elements.
+  await expect(page.locator('[id^="category-"]').first()).toBeVisible();
 }
 
 // Vertical position of the rail relative to the Offers category's own body

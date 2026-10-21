@@ -97,7 +97,8 @@ test('marked dishes appear in the rail in the chosen order', async ({ page }) =>
   });
   await publish(menu.id);
 
-  await page.goto(`/m/${menu.slug}`);
+  // Pin the locale: the rail title is asserted in Georgian.
+  await page.goto(`/m/${menu.slug}?locale=ka`);
 
   // Rail title is the KA "რეკომენდებული" (T1.11 rename).
   await expect(page.getByTestId('featured-carousel')).toHaveAttribute('aria-label', 'რეკომენდებული');
@@ -115,7 +116,8 @@ test('with no manual picks the rail falls back to ribbon dishes', async ({ page 
   const popular = await addProduct(category.id, 1, { nameKa: 'ჩაი', ribbons: ['POPULAR'] });
   await publish(menu.id);
 
-  await page.goto(`/m/${menu.slug}`);
+  // Pin the locale: the rail title is asserted in Georgian.
+  await page.goto(`/m/${menu.slug}?locale=ka`);
 
   await expect(railLinks(page)).toHaveCount(1);
   await expect(railLinks(page).first()).toHaveAttribute('href', `#product-${popular.id}`);
@@ -127,7 +129,8 @@ test('featuredEnabled=false hides the rail even when dishes are marked', async (
   await addProduct(category.id, 0, { nameKa: 'ყავა', featuredRank: 1 });
   await publish(menu.id);
 
-  await page.goto(`/m/${menu.slug}`);
+  // Pin the locale: the rail title is asserted in Georgian.
+  await page.goto(`/m/${menu.slug}?locale=ka`);
 
   await expect(page.getByTestId('featured-carousel')).toHaveCount(0);
 });
