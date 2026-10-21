@@ -22,7 +22,7 @@ import { OffersCarousel } from '@/components/public/offers-carousel';
 import { resolveOffersRail } from '@/lib/menu/offers-rail';
 import { MenuFooter } from '@/components/public/menu-footer';
 import { GoogleReviewCard } from '@/components/public/google-review-card';
-import { normalizeWorkingHours } from '@/lib/menu/working-hours';
+import { footerWorkingHours } from '@/lib/menu/working-hours';
 import { selectFeaturedProducts } from '@/lib/menu/featured';
 import { JoinTableForm } from '@/components/public/join-table-form';
 import { TableModeProvider, type TableSelection } from '@/components/public/table-mode-provider';
@@ -407,7 +407,7 @@ async function renderGuestMenu(args: RenderArgs) {
           hasAllergens={categoriesWithProducts.some((c) =>
             c.products.some((p) => p.allergens.length > 0)
           )}
-          workingHours={normalizeWorkingHours(menu.workingHours)}
+          workingHours={footerWorkingHours(menu)}
         />
       </div>
 

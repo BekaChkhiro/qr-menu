@@ -5,13 +5,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type ApiError } from '@/lib/api/client';
 import type { UpdateBusinessInput } from '@/lib/validations/business';
 
-export interface OpeningHour {
-  day: string;
-  open: string;
-  close: string;
-  closed: boolean;
-}
-
 export interface BusinessInfo {
   id: string;
   userId: string;
@@ -31,7 +24,6 @@ export interface BusinessInfo {
   publicPhone: string | null;
   websiteUrl: string | null;
   instagramHandle: string | null;
-  openingHours: OpeningHour[] | null;
 }
 
 const businessQueryKey = ['user', 'business'] as const;

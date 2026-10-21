@@ -24,7 +24,7 @@ import { OffersCarousel } from '@/components/public/offers-carousel';
 import { resolveOffersRail } from '@/lib/menu/offers-rail';
 import { MenuFooter } from '@/components/public/menu-footer';
 import { GoogleReviewCard } from '@/components/public/google-review-card';
-import { normalizeWorkingHours } from '@/lib/menu/working-hours';
+import { footerWorkingHours } from '@/lib/menu/working-hours';
 import { selectFeaturedProducts } from '@/lib/menu/featured';
 import { ViewTracker } from '@/components/public/view-tracker';
 import { MenuPasswordGate } from '@/components/public/menu-password-gate';
@@ -285,7 +285,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         hasAllergens={categoriesWithProducts.some((c) =>
           c.products.some((p) => p.allergens.length > 0)
         )}
-        workingHours={normalizeWorkingHours(menu.workingHours)}
+        workingHours={footerWorkingHours(menu)}
       />
 
       {!isPreview && menu.sharedTableEnabled && (

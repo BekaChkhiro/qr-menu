@@ -36,6 +36,7 @@ export const publicMenuSelect = {
   offersRailPosition: true,
   // T24.4 — venue opening hours (+ optional break), rendered in the footer.
   workingHours: true,
+  showWorkingHours: true,
   timezone: true,
   splitByType: true,
   menuLayout: true,
@@ -224,6 +225,7 @@ export interface SerializedPublicMenu {
   offersRailPosition: 'TOP' | 'BOTTOM';
   // T24.4 — venue opening hours; see lib/menu/working-hours.ts for the shape.
   workingHours: WorkingHoursDay[] | null;
+  showWorkingHours: boolean | null;
   // T22.21 — café-local timezone that day/hour windows are evaluated against.
   timezone: string;
   splitByType: boolean;

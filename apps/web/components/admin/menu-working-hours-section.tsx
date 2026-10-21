@@ -10,6 +10,7 @@ import { TimeField, type TimeFormat } from '@/components/admin/time-field';
 import { useUpdateMenu } from '@/hooks/use-menus';
 import {
   defaultWorkingHours,
+  hasWorkingHours,
   normalizeWorkingHours,
   type WeekdayKey,
   type WorkingHoursDay,
@@ -37,21 +38,23 @@ export function MenuWorkingHoursSection({ menu }: MenuWorkingHoursSectionProps) 
   const updateMenu = useUpdateMenu(menu.id);
 
   const stored = useMemo(() => normalizeWorkingHours(menu.workingHours), [menu.workingHours]);
-  // "Not configured" is a real state: nothing shows in the footer and the limit
-  // rules fall back to a plain 09:00–18:00.
-  const [enabled, setEnabled] = useState(!!stored);
+  // The show switch only decides whether the footer prints the hours. The hours
+  // themselves are always kept, because promotion windows pre-fill from them.
+  // `showWorkingHours` null = a row saved before the flag existed: follow the hours.
+  const storedShow = menu.showWorkingHours ?? hasWorkingHours(stored);
+  const [enabled, setEnabled] = useState(storedShow);
   const [hours, setHours] = useState<WorkingHoursDay[]>(stored ?? defaultWorkingHours());
   const [format, setFormat] = useState<TimeFormat>('H23');
 
-  const lastSyncedRef = useRef<string | null>(stored ? serialize(stored) : null);
+  const syncKey = `${stored ? serialize(stored) : ''}|${storedShow}`;
+  const lastSyncedRef = useRef(syncKey);
 
   useEffect(() => {
-    const next = stored ? serialize(stored) : null;
-    if (next === lastSyncedRef.current) return;
-    lastSyncedRef.current = next;
-    setEnabled(!!stored);
+    if (syncKey === lastSyncedRef.current) return;
+    lastSyncedRef.current = syncKey;
+    setEnabled(storedShow);
     setHours(stored ?? defaultWorkingHours());
-  }, [stored]);
+  }, [syncKey, stored, storedShow]);
 
   useEffect(() => {
     try {
@@ -75,20 +78,17 @@ export function MenuWorkingHoursSection({ menu }: MenuWorkingHoursSectionProps) 
     setHours((prev) => prev.map((h) => (h.day === day ? { ...h, ...patch } : h)));
   };
 
-  const initialEnabled = !!stored;
-  const initialSerialized = stored ? serialize(stored) : null;
-  const dirty = enabled !== initialEnabled || (enabled && serialize(hours) !== initialSerialized);
+  const initialSerialized = serialize(stored ?? defaultWorkingHours());
+  const dirty = enabled !== storedShow || serialize(hours) !== initialSerialized;
 
   const handleDiscard = () => {
-    setEnabled(initialEnabled);
+    setEnabled(storedShow);
     setHours(stored ?? defaultWorkingHours());
   };
 
   const handleSave = async () => {
     try {
-      // Null persists the disabled state across reloads.
-      const payload = enabled ? hours : null;
-      await updateMenu.mutateAsync({ workingHours: payload });
+      await updateMenu.mutateAsync({ workingHours: hours, showWorkingHours: enabled });
       toast.success(t('saved'));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('saveFailed'));
@@ -121,141 +121,139 @@ export function MenuWorkingHoursSection({ menu }: MenuWorkingHoursSectionProps) 
         />
       </div>
 
-      {enabled && (
-        <>
-          <div
-            className="inline-flex w-fit rounded-md border border-border p-0.5"
-            data-testid="settings-working-hours-time-format"
-          >
-            {(
-              [
-                { key: 'H23', label: '24h' },
-                { key: 'H12', label: 'AM/PM' },
-              ] as const
-            ).map((opt) => (
-              <button
-                key={opt.key}
-                type="button"
-                onClick={() => chooseFormat(opt.key)}
-                data-active={format === opt.key ? 'true' : 'false'}
+      <>
+        <div
+          className="inline-flex w-fit rounded-md border border-border p-0.5"
+          data-testid="settings-working-hours-time-format"
+        >
+          {(
+            [
+              { key: 'H23', label: '24h' },
+              { key: 'H12', label: 'AM/PM' },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => chooseFormat(opt.key)}
+              data-active={format === opt.key ? 'true' : 'false'}
+              className={cn(
+                'rounded px-2 py-0.5 text-[11px] font-semibold transition-colors',
+                format === opt.key
+                  ? 'bg-text-default text-white'
+                  : 'text-text-muted hover:bg-chip',
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {hours.map((h) => {
+            const hasBreak = !!(h.breakStart && h.breakEnd);
+            return (
+              <div
+                key={h.day}
+                data-testid={`settings-working-hours-row-${h.day}`}
+                data-closed={h.closed ? 'true' : 'false'}
                 className={cn(
-                  'rounded px-2 py-0.5 text-[11px] font-semibold transition-colors',
-                  format === opt.key
-                    ? 'bg-text-default text-white'
-                    : 'text-text-muted hover:bg-chip',
+                  'flex flex-col gap-2 rounded-lg border p-2.5',
+                  h.closed ? 'border-border bg-bg' : 'border-success bg-card',
                 )}
               >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            {hours.map((h) => {
-              const hasBreak = !!(h.breakStart && h.breakEnd);
-              return (
-                <div
-                  key={h.day}
-                  data-testid={`settings-working-hours-row-${h.day}`}
-                  data-closed={h.closed ? 'true' : 'false'}
-                  className={cn(
-                    'flex flex-col gap-2 rounded-lg border p-2.5',
-                    h.closed ? 'border-border bg-bg' : 'border-success bg-card',
-                  )}
-                >
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <span className="w-[42px] shrink-0 text-[12px] font-semibold uppercase tracking-[0.4px] text-text-default">
-                      {t(`days.${h.day}`)}
-                    </span>
-                    <Switch
-                      checked={!h.closed}
-                      onCheckedChange={(open) => patchDay(h.day, { closed: !open })}
-                      aria-label={t('openAriaLabel', { day: t(`days.${h.day}`) })}
-                      data-testid={`settings-working-hours-open-${h.day}`}
-                    />
-                    {h.closed ? (
-                      <span className="text-[12px] text-text-muted">{t('closed')}</span>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
-                          <TimeField
-                            value={h.open}
-                            onChange={(open) => patchDay(h.day, { open })}
-                            format={format}
-                            testId={`settings-working-hours-from-${h.day}`}
-                            ariaLabel={`${h.day} open`}
-                          />
-                        </div>
-                        <span className="text-[12px] text-text-muted">{t('to')}</span>
-                        <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
-                          <TimeField
-                            value={h.close}
-                            onChange={(close) => patchDay(h.day, { close })}
-                            format={format}
-                            testId={`settings-working-hours-until-${h.day}`}
-                            ariaLabel={`${h.day} close`}
-                          />
-                        </div>
-                        {!hasBreak && (
-                          <button
-                            type="button"
-                            onClick={() => patchDay(h.day, DEFAULT_BREAK)}
-                            data-testid={`settings-working-hours-add-break-${h.day}`}
-                            className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-2 py-1 text-[11px] font-medium text-text-muted transition-colors hover:bg-chip"
-                          >
-                            <Coffee className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
-                            {t('addBreak')}
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
-
-                  {!h.closed && hasBreak && (
-                    <div
-                      className="flex flex-wrap items-center gap-2 pl-[52px]"
-                      data-testid={`settings-working-hours-break-${h.day}`}
-                    >
-                      <span className="inline-flex items-center gap-1 text-[11.5px] font-medium text-text-muted">
-                        <Coffee className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
-                        {t('breakLabel')}
-                      </span>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="w-[42px] shrink-0 text-[12px] font-semibold uppercase tracking-[0.4px] text-text-default">
+                    {t(`days.${h.day}`)}
+                  </span>
+                  <Switch
+                    checked={!h.closed}
+                    onCheckedChange={(open) => patchDay(h.day, { closed: !open })}
+                    aria-label={t('openAriaLabel', { day: t(`days.${h.day}`) })}
+                    data-testid={`settings-working-hours-open-${h.day}`}
+                  />
+                  {h.closed ? (
+                    <span className="text-[12px] text-text-muted">{t('closed')}</span>
+                  ) : (
+                    <>
                       <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
                         <TimeField
-                          value={h.breakStart!}
-                          onChange={(breakStart) => patchDay(h.day, { breakStart })}
+                          value={h.open}
+                          onChange={(open) => patchDay(h.day, { open })}
                           format={format}
-                          testId={`settings-working-hours-break-start-${h.day}`}
-                          ariaLabel={`${h.day} break start`}
+                          testId={`settings-working-hours-from-${h.day}`}
+                          ariaLabel={`${h.day} open`}
                         />
                       </div>
                       <span className="text-[12px] text-text-muted">{t('to')}</span>
                       <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
                         <TimeField
-                          value={h.breakEnd!}
-                          onChange={(breakEnd) => patchDay(h.day, { breakEnd })}
+                          value={h.close}
+                          onChange={(close) => patchDay(h.day, { close })}
                           format={format}
-                          testId={`settings-working-hours-break-end-${h.day}`}
-                          ariaLabel={`${h.day} break end`}
+                          testId={`settings-working-hours-until-${h.day}`}
+                          ariaLabel={`${h.day} close`}
                         />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => patchDay(h.day, { breakStart: null, breakEnd: null })}
-                        data-testid={`settings-working-hours-remove-break-${h.day}`}
-                        aria-label={t('removeBreak')}
-                        className="flex h-6 w-6 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-chip hover:text-danger"
-                      >
-                        <X className="h-3.5 w-3.5" strokeWidth={1.5} />
-                      </button>
-                    </div>
+                      {!hasBreak && (
+                        <button
+                          type="button"
+                          onClick={() => patchDay(h.day, DEFAULT_BREAK)}
+                          data-testid={`settings-working-hours-add-break-${h.day}`}
+                          className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-2 py-1 text-[11px] font-medium text-text-muted transition-colors hover:bg-chip"
+                        >
+                          <Coffee className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
+                          {t('addBreak')}
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
-              );
-            })}
-          </div>
-        </>
-      )}
+
+                {!h.closed && hasBreak && (
+                  <div
+                    className="flex flex-wrap items-center gap-2 pl-[52px]"
+                    data-testid={`settings-working-hours-break-${h.day}`}
+                  >
+                    <span className="inline-flex items-center gap-1 text-[11.5px] font-medium text-text-muted">
+                      <Coffee className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
+                      {t('breakLabel')}
+                    </span>
+                    <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
+                      <TimeField
+                        value={h.breakStart!}
+                        onChange={(breakStart) => patchDay(h.day, { breakStart })}
+                        format={format}
+                        testId={`settings-working-hours-break-start-${h.day}`}
+                        ariaLabel={`${h.day} break start`}
+                      />
+                    </div>
+                    <span className="text-[12px] text-text-muted">{t('to')}</span>
+                    <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
+                      <TimeField
+                        value={h.breakEnd!}
+                        onChange={(breakEnd) => patchDay(h.day, { breakEnd })}
+                        format={format}
+                        testId={`settings-working-hours-break-end-${h.day}`}
+                        ariaLabel={`${h.day} break end`}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => patchDay(h.day, { breakStart: null, breakEnd: null })}
+                      data-testid={`settings-working-hours-remove-break-${h.day}`}
+                      aria-label={t('removeBreak')}
+                      className="flex h-6 w-6 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-chip hover:text-danger"
+                    >
+                      <X className="h-3.5 w-3.5" strokeWidth={1.5} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </>
 
       {dirty && (
         <div className="flex items-center justify-end gap-2 border-t border-border-soft pt-4">

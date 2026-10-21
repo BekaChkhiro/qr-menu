@@ -9,23 +9,12 @@ import { Loader2, Upload, X, Link as LinkIcon, Instagram } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { useUpload } from '@/hooks/use-upload';
-import { useBusiness, useUpdateBusiness, type BusinessInfo, type OpeningHour } from '@/hooks/use-business';
+import { useBusiness, useUpdateBusiness, type BusinessInfo } from '@/hooks/use-business';
 
 import { useSettingsForm } from './settings-form-context';
 
 const PRICE_RANGE_LABELS = ['₾', '₾₾', '₾₾₾', '₾₾₾₾'] as const;
-
-const DEFAULT_OPENING_HOURS: OpeningHour[] = [
-  { day: 'Monday', open: '08:00', close: '20:00', closed: false },
-  { day: 'Tuesday', open: '08:00', close: '20:00', closed: false },
-  { day: 'Wednesday', open: '08:00', close: '20:00', closed: false },
-  { day: 'Thursday', open: '08:00', close: '22:00', closed: false },
-  { day: 'Friday', open: '08:00', close: '22:00', closed: false },
-  { day: 'Saturday', open: '09:00', close: '22:00', closed: false },
-  { day: 'Sunday', open: '09:00', close: '18:00', closed: false },
-];
 
 interface FormState {
   logoUrl: string | null;
@@ -44,13 +33,6 @@ interface FormState {
   publicPhone: string;
   websiteUrl: string;
   instagramHandle: string;
-  openingHours: OpeningHour[];
-}
-
-function normalizeOpeningHours(raw: OpeningHour[] | null | undefined): OpeningHour[] {
-  if (!raw || raw.length === 0) return DEFAULT_OPENING_HOURS;
-  // Ensure all 7 days exist with defaults for missing ones
-  return DEFAULT_OPENING_HOURS.map((def, i) => raw[i] ?? def);
 }
 
 function toFormState(business: BusinessInfo | undefined | null): FormState {
@@ -71,7 +53,6 @@ function toFormState(business: BusinessInfo | undefined | null): FormState {
     publicPhone: business?.publicPhone ?? '',
     websiteUrl: business?.websiteUrl ?? '',
     instagramHandle: business?.instagramHandle ?? '',
-    openingHours: normalizeOpeningHours(business?.openingHours),
   };
 }
 
@@ -100,10 +81,6 @@ function diffPayload(initial: FormState, current: FormState) {
 
   if (JSON.stringify(current.cuisines) !== JSON.stringify(initial.cuisines)) {
     payload.cuisines = current.cuisines;
-  }
-
-  if (JSON.stringify(current.openingHours) !== JSON.stringify(initial.openingHours)) {
-    payload.openingHours = current.openingHours;
   }
 
   return payload;
@@ -187,31 +164,6 @@ export function BusinessForm() {
     setForm((f) => ({ ...f, cuisines: f.cuisines.filter((c) => c !== value) }));
   }, []);
 
-  const updateOpeningHour = useCallback(
-    (index: number, patch: Partial<OpeningHour>) => {
-      setForm((f) => {
-        const next = f.openingHours.map((oh, i) => (i === index ? { ...oh, ...patch } : oh));
-        return { ...f, openingHours: next };
-      });
-    },
-    []
-  );
-
-  const handleCopyToAll = useCallback(
-    (sourceIndex: number) => {
-      const source = form.openingHours[sourceIndex];
-      if (!source || source.closed) return;
-      setForm((f) => ({
-        ...f,
-        openingHours: f.openingHours.map((oh) =>
-          oh.day === source.day ? oh : { ...oh, open: source.open, close: source.close, closed: false }
-        ),
-      }));
-      toast.success(t('hours.copyToAllSuccess', { day: source.day }));
-    },
-    [form.openingHours, t]
-  );
-
   const handleDiscard = useCallback(() => {
     setForm(initial);
     setLogoError(null);
@@ -234,7 +186,6 @@ export function BusinessForm() {
   }, [dirtyPayload, isDirty, markClean, t, updateBusiness]);
 
   const isBusy = updateBusiness.isPending || isUploading;
-  const firstOpenDayIndex = form.openingHours.findIndex((oh) => !oh.closed);
 
   if (isLoading && !business) {
     return (
@@ -573,80 +524,6 @@ export function BusinessForm() {
             />
           </div>
         </LabeledField>
-      </FormSection>
-
-      {/* Opening hours */}
-      <FormSection label={t('sections.hours')}>
-        <div
-          data-testid="business-opening-hours"
-          className="overflow-hidden rounded-[10px] border border-border bg-card"
-        >
-          {form.openingHours.map((oh, i) => (
-            <div
-              key={oh.day}
-              data-testid={`business-hours-row-${oh.day.toLowerCase()}`}
-              data-closed={oh.closed ? 'true' : 'false'}
-              className="flex items-center gap-[10px] px-[14px] py-[10px] text-[13px]"
-              style={{
-                borderBottom: i < 6 ? '1px solid hsl(var(--border))' : 'none',
-              }}
-            >
-              <Switch
-                checked={!oh.closed}
-                onCheckedChange={(checked) =>
-                  updateOpeningHour(i, { closed: !checked })
-                }
-                disabled={isBusy}
-                data-testid={`business-hours-toggle-${oh.day.toLowerCase()}`}
-                aria-label={t('hours.toggle', { day: oh.day })}
-              />
-              <div
-                className="w-[96px] font-medium"
-                style={{ color: oh.closed ? 'hsl(var(--text-subtle))' : 'hsl(var(--text-default))' }}
-              >
-                {t(`days.${oh.day.toLowerCase()}`)}
-              </div>
-              {oh.closed ? (
-                <div className="text-[12.5px] italic text-text-subtle">
-                  {t('hours.closed')}
-                </div>
-              ) : (
-                <div className="flex items-center gap-[6px]">
-                  <input
-                    type="time"
-                    value={oh.open}
-                    onChange={(e) => updateOpeningHour(i, { open: e.target.value })}
-                    disabled={isBusy}
-                    data-testid={`business-hours-open-${oh.day.toLowerCase()}`}
-                    className="rounded-[6px] border border-border bg-[#FAFAF9] px-[10px] py-[4px] text-[12.5px] text-text-default tabular-nums focus:border-text-default focus:outline-none"
-                  />
-                  <span className="text-[12px] text-text-subtle">—</span>
-                  <input
-                    type="time"
-                    value={oh.close}
-                    onChange={(e) => updateOpeningHour(i, { close: e.target.value })}
-                    disabled={isBusy}
-                    data-testid={`business-hours-close-${oh.day.toLowerCase()}`}
-                    className="rounded-[6px] border border-border bg-[#FAFAF9] px-[10px] py-[4px] text-[12.5px] text-text-default tabular-nums focus:border-text-default focus:outline-none"
-                  />
-                </div>
-              )}
-              {!oh.closed && (
-                <button
-                  type="button"
-                  onClick={() => handleCopyToAll(i)}
-                  disabled={isBusy}
-                  data-testid={`business-hours-copy-${oh.day.toLowerCase()}`}
-                  className={`ml-auto text-[11.5px] font-[550] ${
-                    i === firstOpenDayIndex ? 'text-accent' : 'text-text-subtle hover:text-text-default'
-                  }`}
-                >
-                  {t('hours.copyToAll')}
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
       </FormSection>
 
       {/* Inline action row */}

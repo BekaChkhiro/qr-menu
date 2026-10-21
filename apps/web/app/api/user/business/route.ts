@@ -28,7 +28,6 @@ const BUSINESS_SELECT = {
   publicPhone: true,
   websiteUrl: true,
   instagramHandle: true,
-  openingHours: true,
 } as const;
 
 /**

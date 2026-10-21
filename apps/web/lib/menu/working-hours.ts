@@ -119,6 +119,19 @@ export function hasWorkingHours(hours: WorkingHoursDay[] | null | undefined): bo
   return !!hours?.some((h) => !h.closed);
 }
 
+/**
+ * The hours the public footer prints. The footer's show flag decides; the hours
+ * are kept either way. A null flag (row saved before it existed) follows the hours.
+ */
+export function footerWorkingHours(menu: {
+  workingHours: unknown;
+  showWorkingHours?: boolean | null;
+}): WorkingHoursDay[] | null {
+  const hours = normalizeWorkingHours(menu.workingHours);
+  const show = menu.showWorkingHours ?? hasWorkingHours(hours);
+  return show ? hours : null;
+}
+
 export interface WorkingHoursGroup {
   /** Consecutive weekdays that share the exact same schedule. */
   days: WeekdayKey[];

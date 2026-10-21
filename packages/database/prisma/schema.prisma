@@ -371,6 +371,11 @@ model Menu {
   // windows so an offer can never run while the venue is shut.
   workingHours    Json?
 
+  // Whether the public footer prints workingHours. Separate from the hours so
+  // switching the footer off never discards them (promotion windows still
+  // pre-fill from them). null = legacy row: the footer follows workingHours.
+  showWorkingHours Boolean?
+
   // Google review link (all plans). When set, the public menu renders a
   // "Rate us on Google" card above the footer that opens it in a new tab.
   googleReviewUrl String?

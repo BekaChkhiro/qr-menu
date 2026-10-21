@@ -165,6 +165,8 @@ export const updateMenuSchema = z.object({
   // T24.4 — venue working hours (+ optional mid-day break). Always sent as the
   // full seven-day array; `closed: true` is how a day is switched off.
   workingHours: z.array(workingHoursDaySchema).max(7).nullish(),
+  // Footer-only switch; the hours above are kept whether it is on or off.
+  showWorkingHours: z.boolean().nullish(),
 
   // Header info
   address: z.string().max(500).nullable().optional(),

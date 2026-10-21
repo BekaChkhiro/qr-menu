@@ -94,6 +94,7 @@ export interface Menu {
 
   // T24.4 — venue working hours (+ optional break); see lib/menu/working-hours.
   workingHours?: WorkingHoursDay[] | null;
+  showWorkingHours?: boolean | null;
 
   // Header info
   address: string | null;

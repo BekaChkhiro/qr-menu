@@ -17,16 +17,6 @@ export const updateBusinessSchema = z.object({
   publicPhone: z.string().trim().max(30).optional().or(z.literal('')),
   websiteUrl: z.string().trim().max(200).optional().or(z.literal('')),
   instagramHandle: z.string().trim().max(100).optional().or(z.literal('')),
-  openingHours: z
-    .array(
-      z.object({
-        day: z.string(),
-        open: z.string(),
-        close: z.string(),
-        closed: z.boolean(),
-      })
-    )
-    .optional(),
 });
 
 export type UpdateBusinessInput = z.infer<typeof updateBusinessSchema>;
