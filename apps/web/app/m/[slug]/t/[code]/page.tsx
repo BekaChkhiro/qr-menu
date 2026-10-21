@@ -19,7 +19,7 @@ import { MenuBody } from '@/components/public/menu-body';
 import { PromotionCarousel } from '@/components/public/promotion-carousel';
 import { FeaturedCarousel } from '@/components/public/featured-carousel';
 import { OffersCarousel } from '@/components/public/offers-carousel';
-import { resolveOffersRail } from '@/lib/menu/offers-rail';
+import { resolveOffersRail, selectOffersRailProducts } from '@/lib/menu/offers-rail';
 import { MenuFooter } from '@/components/public/menu-footer';
 import { GoogleReviewCard } from '@/components/public/google-review-card';
 import { footerWorkingHours } from '@/lib/menu/working-hours';
@@ -265,8 +265,11 @@ async function renderGuestMenu(args: RenderArgs) {
     categoriesWithProducts.flatMap((c) => c.products)
   );
 
-  // T24.18 — Offers rail above the body; the category itself still sits last.
-  const offersCategory = categoriesWithProducts.find((c) => c.isSystemOffers);
+  // T24.18 — Offers rail above the body. T1.12 follow-up — every available combo
+  // (kind COMBO) from any category, plus legacy Offers products.
+  const offersRailProducts = selectOffersRailProducts(categoriesWithProducts);
+  // "See all" jumps to the legacy Offers section when one still exists.
+  const offersCategoryId = categoriesWithProducts.find((c) => c.isSystemOffers)?.id;
 
   const currencySymbol = menu.currencySymbol || '₾';
 
@@ -284,10 +287,10 @@ async function renderGuestMenu(args: RenderArgs) {
   // renders it after the body. OFF leaves Offers in the body as a normal category.
   const offersRailLayout = resolveOffersRail(menu);
   const offersRail =
-    offersRailLayout.enabled && offersCategory ? (
+    offersRailLayout.enabled && offersRailProducts.length > 0 ? (
       <OffersCarousel
-        products={offersCategory.products}
-        categoryId={offersCategory.id}
+        products={offersRailProducts}
+        categoryId={offersCategoryId}
         locale={args.locale}
         settings={displaySettings}
       />

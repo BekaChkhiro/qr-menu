@@ -21,7 +21,7 @@ import { PromotionCarousel } from '@/components/public/promotion-carousel';
 import { PromotionPopup } from '@/components/public/promotion-popup';
 import { FeaturedCarousel } from '@/components/public/featured-carousel';
 import { OffersCarousel } from '@/components/public/offers-carousel';
-import { resolveOffersRail } from '@/lib/menu/offers-rail';
+import { resolveOffersRail, selectOffersRailProducts } from '@/lib/menu/offers-rail';
 import { MenuFooter } from '@/components/public/menu-footer';
 import { GoogleReviewCard } from '@/components/public/google-review-card';
 import { footerWorkingHours } from '@/lib/menu/working-hours';
@@ -154,9 +154,11 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
     categoriesWithProducts.flatMap((c) => c.products)
   );
 
-  // T24.18 — the combo-generated Offers category is mirrored as a rail above the
-  // menu body. It still renders as the last category too (T24.8).
-  const offersCategory = categoriesWithProducts.find((c) => c.isSystemOffers);
+  // T24.18 — the Offers rail above the menu body. T1.12 follow-up — it gathers every
+  // available combo (kind COMBO) from any category plus legacy Offers products.
+  const offersRailProducts = selectOffersRailProducts(categoriesWithProducts);
+  // "See all" jumps to the legacy Offers section when one still exists.
+  const offersCategoryId = categoriesWithProducts.find((c) => c.isSystemOffers)?.id;
 
   const currencySymbol = menu.currencySymbol || '₾';
 
@@ -174,10 +176,10 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
   // renders it after the body. OFF leaves Offers in the body as a normal category.
   const offersRailLayout = resolveOffersRail(menu);
   const offersRail =
-    offersRailLayout.enabled && offersCategory ? (
+    offersRailLayout.enabled && offersRailProducts.length > 0 ? (
       <OffersCarousel
-        products={offersCategory.products}
-        categoryId={offersCategory.id}
+        products={offersRailProducts}
+        categoryId={offersCategoryId}
         locale={locale}
         settings={displaySettings}
       />

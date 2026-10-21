@@ -13,8 +13,8 @@ import type { PublicProduct, PublicDisplaySettings } from './product-card';
 interface OffersCarouselProps {
   /** Products of the auto-managed Offers category. */
   products: PublicProduct[];
-  /** Id of that category, so "see all" can scroll to its section. */
-  categoryId: string;
+  /** Id of the legacy Offers category, so "see all" can scroll to its section. */
+  categoryId?: string;
   locale: Locale;
   settings: PublicDisplaySettings;
 }

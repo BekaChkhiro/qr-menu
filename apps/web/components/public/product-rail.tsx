@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import type { Locale } from '@/i18n/config';
 import type { PublicProduct, PublicDisplaySettings } from './product-card';
 import { requestCategoryJump } from './jump-to-category';
+import { comboItemLabels } from '@/lib/products/combo-rules';
 
 // T24.18 — the horizontally-scrolling product rail that sits above the menu
 // body. Two of them exist: "Most Ordered" (ribbon-driven) and "Offers" (the
@@ -132,6 +133,11 @@ export function ProductRail({
                 <p className="line-clamp-2 text-xs font-medium leading-tight">
                   {getName(product, locale)}
                 </p>
+                {product.kind === 'COMBO' && product.comboItems && product.comboItems.length > 0 && (
+                  <p className="mt-0.5 line-clamp-2 text-[10px] leading-tight text-muted-foreground">
+                    {comboItemLabels(product.comboItems, locale).join(' + ')}
+                  </p>
+                )}
                 <div className="mt-1 flex items-center gap-1.5">
                   <span className={cn('text-sm font-semibold text-[var(--menu-accent)]')}>
                     {price.toFixed(2)} {settings.currencySymbol}
