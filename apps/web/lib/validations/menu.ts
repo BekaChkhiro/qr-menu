@@ -42,18 +42,47 @@ export const menuVisibilityValues = [
 ] as const;
 export type MenuVisibility = (typeof menuVisibilityValues)[number];
 
+export interface CreateMenuMessages {
+  nameRequired: string;
+  nameTooLong: string;
+  descriptionTooLong: string;
+  slugMin: string;
+  slugMax: string;
+  slugFormat: string;
+}
+
+const ENGLISH_CREATE_MENU_MESSAGES: CreateMenuMessages = {
+  nameRequired: 'Menu name is required',
+  nameTooLong: 'Menu name must be less than 100 characters',
+  descriptionTooLong: 'Description must be less than 500 characters',
+  slugMin: 'Slug must be at least 3 characters',
+  slugMax: 'Slug must be less than 50 characters',
+  slugFormat: 'Slug must contain only lowercase letters, numbers, and hyphens',
+};
+
+// The create-menu schema with its messages supplied by the caller. The
+// "Create menu" form passes the viewer's translations so errors show in their
+// language; the API uses createMenuSchema below (English).
+export function buildCreateMenuSchema(messages: CreateMenuMessages) {
+  return z.object({
+    name: z
+      .string()
+      .min(1, messages.nameRequired)
+      .max(100, messages.nameTooLong),
+    slug: z
+      .string()
+      .min(3, messages.slugMin)
+      .max(50, messages.slugMax)
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, messages.slugFormat),
+    description: z
+      .string()
+      .max(500, messages.descriptionTooLong)
+      .optional(),
+  });
+}
+
 // Create menu schema (legacy path — used by the "Create menu" form)
-export const createMenuSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Menu name is required')
-    .max(100, 'Menu name must be less than 100 characters'),
-  slug: slugSchema,
-  description: z
-    .string()
-    .max(500, 'Description must be less than 500 characters')
-    .optional(),
-});
+export const createMenuSchema = buildCreateMenuSchema(ENGLISH_CREATE_MENU_MESSAGES);
 
 // Empty-state template IDs (T12.3). When the client POSTs
 // `{ template: 'cafe-bakery' }`, the server generates a default name + unique

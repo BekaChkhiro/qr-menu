@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Clock, Coffee, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TimeInput } from '@/components/admin/time-input';
@@ -35,14 +36,15 @@ export interface DayWindow {
 }
 export type DayWindows = Record<string, DayWindow>;
 
+// Short day names come from admin.dayWindows.short (ka / en / ru).
 const WEEK_DAYS = [
-  { key: 'mon', label: 'M' },
-  { key: 'tue', label: 'T' },
-  { key: 'wed', label: 'W' },
-  { key: 'thu', label: 'T' },
-  { key: 'fri', label: 'F' },
-  { key: 'sat', label: 'S' },
-  { key: 'sun', label: 'S' },
+  { key: 'mon' },
+  { key: 'tue' },
+  { key: 'wed' },
+  { key: 'thu' },
+  { key: 'fri' },
+  { key: 'sat' },
+  { key: 'sun' },
 ] as const;
 
 const FALLBACK_WINDOW: DayWindow = { start: '09:00', end: '18:00' };
@@ -120,6 +122,8 @@ export function DayWindowsEditor({
   useVenueHoursLabel = 'Use venue hours',
   breakErrorLabels,
 }: DayWindowsEditorProps) {
+  const tShort = useTranslations('admin.dayWindows.short');
+
   const setWindow = (day: string, next: DayWindow | null) => {
     const draft = { ...value };
     if (next) draft[day] = next;
@@ -199,7 +203,7 @@ export function DayWindowsEditor({
                     : 'border-danger bg-card text-danger hover:bg-danger-soft',
                 )}
               >
-                {day.label}
+                {tShort(day.key)}
               </button>
 
               {active ? (

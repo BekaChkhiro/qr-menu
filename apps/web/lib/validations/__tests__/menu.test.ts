@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createMenuSchema, updateMenuSchema, publishMenuSchema, menuQuerySchema } from '../menu'
+import { buildCreateMenuSchema, createMenuSchema, updateMenuSchema, publishMenuSchema, menuQuerySchema } from '../menu'
 
 describe('createMenuSchema', () => {
   describe('valid inputs', () => {
@@ -319,5 +319,35 @@ describe('menuQuerySchema', () => {
   it('rejects zero page', () => {
     const result = menuQuerySchema.safeParse({ page: 0 })
     expect(result.success).toBe(false)
+  })
+})
+
+describe('buildCreateMenuSchema', () => {
+  // The create form passes the viewer's translations; the Georgian UI must not
+  // show the English default when the name is missing.
+  const ka = {
+    nameRequired: 'სახელის შეყვანა სავალდებულოა',
+    nameTooLong: 'სახელი არ უნდა აღემატებოდეს 100 სიმბოლოს',
+    descriptionTooLong: 'აღწერა არ უნდა აღემატებოდეს 500 სიმბოლოს',
+    slugMin: 'მისამართი უნდა იყოს მინიმუმ 3 სიმბოლო',
+    slugMax: 'მისამართი არ უნდა აღემატებოდეს 50 სიმბოლოს',
+    slugFormat: 'მისამართში შეიძლება მხოლოდ პატარა ლათინური ასოები, ციფრები და ტირე',
+  }
+
+  it('uses the supplied language for every message', () => {
+    const schema = buildCreateMenuSchema(ka)
+    const empty = schema.safeParse({ name: '', slug: 'test-slug' })
+    expect(empty.success).toBe(false)
+    if (!empty.success) expect(empty.error.issues[0].message).toBe(ka.nameRequired)
+
+    const badSlug = schema.safeParse({ name: 'მენიუ', slug: 'BAD SLUG' })
+    expect(badSlug.success).toBe(false)
+    if (!badSlug.success) expect(badSlug.error.issues[0].message).toBe(ka.slugFormat)
+  })
+
+  it('accepts the same input the English schema accepts', () => {
+    const input = { name: 'Cafe', slug: 'cafe-one', description: 'Hello' }
+    expect(buildCreateMenuSchema(ka).safeParse(input).success).toBe(true)
+    expect(createMenuSchema.safeParse(input).success).toBe(true)
   })
 })

@@ -495,6 +495,14 @@ function SortableProductItem({
                 {tStatus('hidden')}
               </span>
             )}
+            {product.kind === 'COMBO' && (
+              <span
+                className="inline-flex shrink-0 items-center rounded-sm bg-accent-soft px-1 py-0.5 text-[9.5px] font-semibold text-accent"
+                data-testid="product-combo-badge"
+              >
+                {t('comboBadge')}
+              </span>
+            )}
           </div>
           {product.descriptionKa ? (
             <p className="truncate text-[10.5px] text-text-muted" data-testid="product-subtitle">

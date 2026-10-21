@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
@@ -17,7 +17,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { createMenuSchema, type CreateMenuInput } from '@/lib/validations/menu';
+import { buildCreateMenuSchema, type CreateMenuInput } from '@/lib/validations/menu';
 import type { Menu } from '@/types/menu';
 
 interface MenuFormProps {
@@ -39,8 +39,22 @@ export function MenuForm({ menu, onSubmit, isLoading }: MenuFormProps) {
   const t = useTranslations('admin.menus.form');
   const tActions = useTranslations('actions');
 
+  // Validation messages come from admin.menus.form.validation (ka / en / ru).
+  const schema = useMemo(
+    () =>
+      buildCreateMenuSchema({
+        nameRequired: t('validation.nameRequired'),
+        nameTooLong: t('validation.nameTooLong'),
+        descriptionTooLong: t('validation.descriptionTooLong'),
+        slugMin: t('validation.slugMin'),
+        slugMax: t('validation.slugMax'),
+        slugFormat: t('validation.slugFormat'),
+      }),
+    [t],
+  );
+
   const form = useForm<CreateMenuInput>({
-    resolver: zodResolver(createMenuSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       name: menu?.name || '',
       slug: menu?.slug || '',

@@ -315,7 +315,15 @@
       "description": "Description",
       "descriptionPlaceholder": "Short description of the menu",
       "create": "Create Menu",
-      "update": "Update"
+      "update": "Update",
+      "validation": {
+        "nameRequired": "Menu name is required",
+        "nameTooLong": "Menu name must be less than 100 characters",
+        "descriptionTooLong": "Description must be less than 500 characters",
+        "slugMin": "Slug must be at least 3 characters",
+        "slugMax": "Slug must be less than 50 characters",
+        "slugFormat": "Slug must contain only lowercase letters, numbers, and hyphens"
+      }
     },
     "info": {
       "title": "Menu Information",
@@ -1455,7 +1463,8 @@
       "createError": "Failed to create product",
       "updateError": "Failed to update product",
       "deleteError": "Failed to delete product"
-    }
+    },
+    "comboBadge": "Combo"
   },
   "promotions": {
     "title": "Promotions",
@@ -1941,7 +1950,7 @@
         "businessType": "Business type",
         "businessTypePlaceholder": "e.g. LLC, Sole proprietorship",
         "description": "Short description",
-        "descriptionHint": "Shown on your public menu page. Keep it under 140 characters.",
+        "descriptionHint": "Shown on your public menu page. Up to 500 characters.",
         "streetAddress": "Street address",
         "city": "City",
         "postalCode": "Postal code",
@@ -2076,5 +2085,16 @@
     "requiresStarter": "Requires Starter plan",
     "requiresPro": "Requires Pro plan",
     "upgradeToAccess": "Upgrade to access this feature"
+  },
+  "dayWindows": {
+    "short": {
+      "mon": "Mo",
+      "tue": "Tu",
+      "wed": "We",
+      "thu": "Th",
+      "fri": "Fr",
+      "sat": "Sa",
+      "sun": "Su"
+    }
   }
 }
