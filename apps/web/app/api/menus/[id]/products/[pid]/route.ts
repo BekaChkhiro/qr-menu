@@ -13,6 +13,8 @@ import { hasFeature } from '@/lib/auth/permissions';
 import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 import { logActivity } from '@/lib/activity/log';
+import { validateComboItems } from '@/lib/products/combo-items';
+import { COMBO_ERROR_MESSAGES } from '@/lib/products/combo-rules';
 
 // T22.23 — `discountWindows` is a Prisma Json? column: it accepts a JSON value
 // or Prisma.DbNull, never a bare `null`. Normalize the validated payload so the
@@ -157,6 +159,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         id: productId,
         category: { menuId },
       },
+      include: {
+        comboItems: { select: { componentId: true } },
+      },
     });
 
     if (!existingProduct) {
@@ -186,6 +191,26 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           'Target category not found or does not belong to this menu',
           400
         );
+      }
+    }
+
+    // T1.9 — the final kind decides whether a combo's items are checked. Items
+    // are replaced only when the request sends them or the kind changes.
+    const { kind, comboItems, ...fields } = data;
+    const nextKind = kind ?? existingProduct.kind;
+    const replaceItems =
+      comboItems !== undefined || (kind !== undefined && kind !== existingProduct.kind);
+    if (nextKind === 'COMBO') {
+      const comboError = await validateComboItems({
+        userId: session.user.id,
+        menuId,
+        comboId: productId,
+        componentIds: replaceItems
+          ? (comboItems ?? []).map((item) => item.componentId)
+          : existingProduct.comboItems.map((item) => item.componentId),
+      });
+      if (comboError) {
+        return createErrorResponse(ERROR_CODES.VALIDATION_ERROR, COMBO_ERROR_MESSAGES[comboError], 400);
       }
     }
 
@@ -229,26 +254,45 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Update product
-    const product = await prisma.product.update({
-      where: { id: productId },
-      data: withJsonWindows(data),
-      include: {
-        category: {
-          select: {
-            id: true,
-            nameKa: true,
-            nameEn: true,
-            nameRu: true,
+    // Update product (and its combo items, atomically with the kind change)
+    const product = await prisma.$transaction(async (tx) => {
+      if (replaceItems) {
+        await tx.comboItem.deleteMany({ where: { comboId: productId } });
+      }
+      return tx.product.update({
+        where: { id: productId },
+        data: {
+          ...withJsonWindows(fields),
+          ...(kind !== undefined ? { kind } : {}),
+          ...(replaceItems && nextKind === 'COMBO'
+            ? {
+                comboItems: {
+                  create: (comboItems ?? []).map((item, index) => ({
+                    componentId: item.componentId,
+                    quantity: item.quantity,
+                    sortOrder: index,
+                  })),
+                },
+              }
+            : {}),
+        },
+        include: {
+          category: {
+            select: {
+              id: true,
+              nameKa: true,
+              nameEn: true,
+              nameRu: true,
+            },
+          },
+          variations: {
+            orderBy: { sortOrder: 'asc' },
+          },
+          _count: {
+            select: { variations: true },
           },
         },
-        variations: {
-          orderBy: { sortOrder: 'asc' },
-        },
-        _count: {
-          select: { variations: true },
-        },
-      },
+      });
     });
 
     // Invalidate cache

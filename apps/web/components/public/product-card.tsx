@@ -32,6 +32,7 @@ import {
   getProductDescription,
   getVariationName,
 } from './product-card-shared';
+import { comboItemLabels } from '@/lib/products/combo-rules';
 
 export interface PublicDisplaySettings {
   currencySymbol: string;
@@ -98,6 +99,12 @@ export interface PublicProduct {
   arModelUrl?: string | null;
   arModelUrlIos?: string | null;
   arPosterUrl?: string | null;
+  // T1.9 — a COMBO lists the dishes it includes.
+  kind?: 'STANDARD' | 'COMBO';
+  comboItems?: Array<{
+    quantity: number;
+    component: { nameKa: string; nameEn: string | null; nameRu: string | null };
+  }>;
 }
 
 interface ProductCardProps {
@@ -123,6 +130,8 @@ export function ProductCard({ product, locale, settings }: ProductCardProps) {
 
   const name = getProductName(product, locale);
   const description = getProductDescription(product, locale);
+  const comboLabels =
+    product.kind === 'COMBO' && product.comboItems ? comboItemLabels(product.comboItems, locale) : [];
 
   const hasVariations = product.variations.length > 0;
   const hasAllergens = product.allergens.length > 0;
@@ -287,6 +296,16 @@ export function ProductCard({ product, locale, settings }: ProductCardProps) {
             {description && (
               <p className="line-clamp-2 text-[13px] leading-[1.55] text-muted-foreground">
                 {description}
+              </p>
+            )}
+
+            {/* Row 2b — a combo's included dishes */}
+            {comboLabels.length > 0 && (
+              <p
+                data-testid="product-combo-items"
+                className="line-clamp-3 text-[13px] leading-[1.55] text-muted-foreground"
+              >
+                {comboLabels.join(' + ')}
               </p>
             )}
 

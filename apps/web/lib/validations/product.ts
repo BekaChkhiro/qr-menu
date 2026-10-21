@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { COMBO_MAX_COMPONENTS } from '../products/combo-rules';
 
 // Allergen enum values — full library
 const allergenValues = [
@@ -154,6 +155,20 @@ const productExtras = {
   arPosterUrl: z.string().url('Invalid AR poster URL').nullable().optional(),
 };
 
+// T1.9 — product kind and the dishes a COMBO includes. Ownership and the
+// >= 2 / no-self rules need the database, so they are checked in
+// lib/products/combo-items.ts, not here.
+const productKindSchema = z.enum(['STANDARD', 'COMBO']);
+
+const comboItemSchema = z.object({
+  componentId: z.string().min(1, 'Dish is required'),
+  quantity: z.number().int().min(1).max(20).default(1),
+});
+
+const comboItemsSchema = z
+  .array(comboItemSchema)
+  .max(COMBO_MAX_COMPONENTS, `A combo can include at most ${COMBO_MAX_COMPONENTS} dishes`);
+
 // Create product schema
 export const createProductSchema = z.object({
   categoryId: z.string().cuid('Invalid category ID'),
@@ -165,6 +180,8 @@ export const createProductSchema = z.object({
   allergens: z.array(z.enum(allergenValues)).optional(),
   isAvailable: z.boolean().default(true),
   sortOrder: z.number().int().nonnegative().optional(),
+  kind: productKindSchema.default('STANDARD'),
+  comboItems: comboItemsSchema.optional(),
   ...productExtras,
 });
 
@@ -193,6 +210,8 @@ export const updateProductSchema = z.object({
   allergens: z.array(z.enum(allergenValues)).optional(),
   isAvailable: z.boolean().optional(),
   sortOrder: z.number().int().nonnegative().optional(),
+  kind: productKindSchema.optional(),
+  comboItems: comboItemsSchema.optional(),
   ...productExtras,
 });
 

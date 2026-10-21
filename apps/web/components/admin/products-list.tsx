@@ -108,6 +108,12 @@ function formToApi(data: ProductFormValues) {
     isAvailable: data.isAvailable,
     // T1.11 — the order only means something while the dish is picked.
     featuredRank: data.featured ? intOrNull(data.featuredRank) : null,
+    // T1.9 — a combo's price is its own price field; its dishes are the picked ids.
+    kind: data.kind,
+    comboItems:
+      data.kind === 'COMBO'
+        ? data.comboItems.map((componentId) => ({ componentId, quantity: 1 }))
+        : undefined,
   };
 }
 

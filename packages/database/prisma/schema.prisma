@@ -99,6 +99,13 @@ enum OffersRailPosition {
   BOTTOM
 }
 
+// T1.9 — STANDARD is a plain dish. COMBO is a bundle: its included dishes live
+// in ComboItem rows and its own `price` is the combo price.
+enum ProductKind {
+  STANDARD
+  COMBO
+}
+
 enum ProductCardStyle {
   FLAT
   BORDERED
@@ -567,10 +574,16 @@ model Product {
   // ascending (lower shows earlier). Otherwise the ribbon fallback applies.
   featuredRank Int?
 
+  // T1.9 — STANDARD dish or COMBO bundle (components in comboItems).
+  kind         ProductKind        @default(STANDARD)
+
   // Relations
   category         Category           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   variations       ProductVariation[]
   tableSelections  TableSelection[]
+  // COMBO: the dishes it includes (comboItems) / COMPONENT: the combos it sits in (usedInCombos).
+  comboItems       ComboItem[]        @relation("ComboParent")
+  usedInCombos     ComboItem[]        @relation("ComboComponent")
 
   // Timestamps
   createdAt   DateTime            @default(now())
@@ -614,6 +627,31 @@ model ProductVariation {
   @@index([productId])
   @@index([productId, sortOrder])
   @@map("product_variations")
+}
+
+// ============================================================================
+// COMBO ITEM MODEL (T1.9)
+// ============================================================================
+
+// One dish included in a COMBO product. Both sides cascade: deleting the combo
+// or any component removes the row. Components are plain Products of the same
+// menu; the service layer enforces >= 2 distinct components and no self reference.
+model ComboItem {
+  id          String   @id @default(cuid())
+  comboId     String   // the COMBO product
+  componentId String   // the included product
+  quantity    Int      @default(1)
+  sortOrder   Int      @default(0)
+
+  combo       Product  @relation("ComboParent", fields: [comboId], references: [id], onDelete: Cascade)
+  component   Product  @relation("ComboComponent", fields: [componentId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+
+  @@unique([comboId, componentId])
+  @@index([comboId, sortOrder])
+  @@index([componentId])
+  @@map("combo_items")
 }
 
 // ============================================================================

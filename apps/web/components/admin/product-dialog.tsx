@@ -18,6 +18,7 @@ import { ProductDrawerArTab } from './product-drawer-ar-tab';
 import { LangTabsInline, menuLanguages, type LangCode } from './product-drawer/lang-tabs-inline';
 import type { Product, Category } from '@/types/menu';
 import { useMenu } from '@/hooks/use-menus';
+import { useProducts } from '@/hooks/use-products';
 import { normalizeWorkingHours } from '@/lib/menu/working-hours';
 
 const FORM_ID = 'product-drawer-form';
@@ -71,6 +72,8 @@ export function ProductDialog({
 
   // T24.4 — the venue's opening hours pre-fill the dish-discount day windows.
   const { data: menu } = useMenu(menuId);
+  // T1.9 — the combo picker chooses among the menu's dishes (100 = API cap).
+  const { data: menuProducts } = useProducts(menuId, { limit: 100 });
   const workingHours = normalizeWorkingHours(menu?.workingHours);
   // T24.12 — only offer the languages this menu actually publishes.
   const menuLangs = menuLanguages(menu?.enabledLanguages);
@@ -356,6 +359,7 @@ export function ProductDialog({
                 onLangStatusesChange={setLangStatuses}
                 onForceLang={setActiveLang}
                 workingHours={workingHours}
+                comboProducts={menuProducts ?? []}
                 /* T24.20 — the strip used to sit in the drawer header above the
                    tab bar, reading as if it scoped the whole product. It only
                    scopes the name and description, so the form places it right

@@ -235,49 +235,24 @@ test.describe('promotion drawer (T15.8)', () => {
     expect(saved!.endDate).not.toBeNull();
   });
 
-  // ── Functional: combo promotion generates an Offers product (T22.24) ──────
+  // ── Functional: COMBO is no longer a promotion type (T1.9) ────────────────
 
-  test('functional: saving a combo promotion creates an Offers-category product', async ({
+  test('functional: a new promotion offers no COMBO type; combos are made as products', async ({
     page,
   }) => {
-    const { menu } = await seedStarterScenario(page);
+    await seedStarterScenario(page);
 
     await page.getByTestId('editor-promotions-new').click();
     await expect(page.getByTestId('promotion-drawer')).toBeVisible();
 
-    await page.getByTestId('promotion-title-input').fill('Lunch Break');
-    await page.getByTestId('promotion-type-combo').click();
-
-    // Pick the first two products from the combo picker
-    const comboProducts = page.locator('[data-testid^="promotion-combo-product-"]');
-    await comboProducts.nth(0).click();
-    await comboProducts.nth(1).click();
-
-    await page.getByTestId('promotion-combo-price-input').fill('12');
-
-    // Set the dates (the date range switch must be on first)
-    await page.getByTestId('promotion-date-range-toggle').click();
-    await page.getByTestId('promotion-start-date').fill(day(0).toISOString().split('T')[0]);
-    await page.getByTestId('promotion-end-date').fill(day(14).toISOString().split('T')[0]);
-
-    await page.getByTestId('promotion-drawer-save').click();
-    await expect(page.getByTestId('promotion-drawer')).toHaveCount(0);
-
-    // The combo materializes an "Offers" category + a product at the combo price.
-    const offers = await prismaTest.category.findFirst({
-      where: { menuId: menu.id, isSystemOffers: true },
-      include: { products: true },
-    });
-    expect(offers).not.toBeNull();
-    expect(offers!.nameKa).toBe('შეთავაზება');
-    const combo = offers!.products.find((p) => p.nameKa === 'Lunch Break');
-    expect(combo).toBeTruthy();
-    expect(Number(combo!.price)).toBe(12);
+    await expect(page.getByTestId('promotion-type-percentage')).toBeVisible();
+    await expect(page.getByTestId('promotion-type-banner')).toBeVisible();
+    await expect(page.getByTestId('promotion-type-combo')).toHaveCount(0);
   });
 
   // ── Functional: promotion type switching (T22.19) ─────────────────────────
 
-  test('functional: promotion type Percentage/Banner/Combo switches fields', async ({
+  test('functional: promotion type Percentage/Banner switches fields', async ({
     page,
   }) => {
     await seedStarterScenario(page);
@@ -296,10 +271,6 @@ test.describe('promotion drawer (T15.8)', () => {
     await page.getByTestId('promotion-type-banner').click();
     await expect(page.getByTestId('promotion-drawer-discount-value')).toHaveCount(0);
     await expect(page.getByTestId('promotion-drawer-apply-to')).toHaveCount(0);
-
-    // Combo → no percentage discount value either
-    await page.getByTestId('promotion-type-combo').click();
-    await expect(page.getByTestId('promotion-drawer-discount-value')).toHaveCount(0);
   });
 
   // ── Functional: edit mode pre-populates fields ────────────────────────────

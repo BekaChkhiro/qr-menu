@@ -97,6 +97,17 @@ export const publicMenuSelect = {
           ribbons: true,
           // T1.11 — manual "Recommended" rail pick (null = ribbon fallback).
           featuredRank: true,
+          // T1.9 — COMBO products list the dishes they include.
+          kind: true,
+          comboItems: {
+            orderBy: { sortOrder: 'asc' as const },
+            select: {
+              quantity: true,
+              component: {
+                select: { nameKa: true, nameEn: true, nameRu: true },
+              },
+            },
+          },
           isVegan: true,
           isVegetarian: true,
           calories: true,
@@ -290,6 +301,13 @@ export interface SerializedPublicProduct {
   ribbons: string[];
   // T1.11 — manual "Recommended" rail order; null = not picked.
   featuredRank: number | null;
+  // T1.9 — COMBO products carry the dishes they include (optional: absent on
+  // menus cached before the combo change, treated as STANDARD).
+  kind?: 'STANDARD' | 'COMBO';
+  comboItems?: Array<{
+    quantity: number;
+    component: { nameKa: string; nameEn: string | null; nameRu: string | null };
+  }>;
   isVegan: boolean;
   isVegetarian: boolean;
   calories: number | null;

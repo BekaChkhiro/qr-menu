@@ -207,6 +207,13 @@ export interface Product {
   ribbons: Ribbon[];
   // T1.11 — manual "Recommended" rail order; null = not picked.
   featuredRank?: number | null;
+  // T1.9 — STANDARD dish or COMBO bundle; comboItems lists a combo's dishes.
+  kind?: 'STANDARD' | 'COMBO';
+  comboItems?: Array<{
+    componentId: string;
+    quantity: number;
+    component: { nameKa: string; nameEn: string | null; nameRu: string | null };
+  }>;
   isVegan: boolean;
   isVegetarian: boolean;
   isHalal: boolean;

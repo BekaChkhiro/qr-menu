@@ -14,6 +14,8 @@ import { canCreateProduct, hasFeature } from '@/lib/auth/permissions';
 import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 import { logActivity } from '@/lib/activity/log';
+import { validateComboItems } from '@/lib/products/combo-items';
+import { COMBO_ERROR_MESSAGES } from '@/lib/products/combo-rules';
 
 // T22.23 — `discountWindows` is a Prisma Json? column: it accepts a JSON value
 // or Prisma.DbNull, never a bare `null`. Normalize the validated payload so the
@@ -117,6 +119,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
         variations: {
           orderBy: { sortOrder: 'asc' },
+        },
+        // T1.9 — each combo's dishes: ids for the picker, names for previews.
+        comboItems: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            componentId: true,
+            quantity: true,
+            component: { select: { nameKa: true, nameEn: true, nameRu: true } },
+          },
         },
         _count: {
           select: { variations: true },
@@ -234,6 +245,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // T1.9 — a COMBO needs >= 2 owned components of this menu (no self, no combos).
+    const { kind, comboItems, ...fields } = data;
+    if (kind === 'COMBO') {
+      const comboError = await validateComboItems({
+        userId: session.user.id,
+        menuId,
+        componentIds: (comboItems ?? []).map((item) => item.componentId),
+      });
+      if (comboError) {
+        return createErrorResponse(ERROR_CODES.VALIDATION_ERROR, COMBO_ERROR_MESSAGES[comboError], 400);
+      }
+    }
+
     // If sortOrder not provided, put at the end of the category
     const sortOrder =
       data.sortOrder ??
@@ -242,8 +266,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Create product
     const product = await prisma.product.create({
       data: {
-        ...withJsonWindows(data),
+        ...withJsonWindows(fields),
+        kind,
         sortOrder,
+        comboItems:
+          kind === 'COMBO'
+            ? {
+                create: (comboItems ?? []).map((item, index) => ({
+                  componentId: item.componentId,
+                  quantity: item.quantity,
+                  sortOrder: index,
+                })),
+              }
+            : undefined,
       },
       include: {
         category: {

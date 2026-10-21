@@ -27,6 +27,7 @@ import { Banner } from '@/components/ui/banner';
 import { ImageUpload } from './image-upload';
 import { LangTabsInline, menuLanguages } from './product-drawer/lang-tabs-inline';
 import { DayWindowsEditor, breakErrorLabelsFrom, defaultDayWindows } from './day-windows-editor';
+import { ComboItemsPicker } from './combo-items-picker';
 import { cn } from '@/lib/utils';
 import { createPromotionSchema, type CreatePromotionInput } from '@/lib/validations/promotion';
 import type { Promotion } from '@/types/menu';
@@ -190,7 +191,8 @@ export function PromotionDrawer({
   const [isImageUploading, setIsImageUploading] = useState(false);
 
   const { data: categories } = useCategories(menuId);
-  const { data: products } = useProducts(menuId);
+  // T1.9 — 100 is the API cap; the default 20 would hide dishes from the picker.
+  const { data: products } = useProducts(menuId, { limit: 100 });
   // T24.4 — the venue's opening hours pre-fill the day/hour limit rules.
   const { data: menu } = useMenu(menuId);
   const workingHours = useMemo(
@@ -569,7 +571,8 @@ export function PromotionDrawer({
                     name="type"
                     render={({ field }) => (
                       <div className="grid grid-cols-3 gap-2">
-                        {TYPE_OPTIONS.map((opt) => (
+                        {/* T1.9 — COMBO is no longer creatable here; legacy COMBO promotions keep their type. */}
+                        {TYPE_OPTIONS.filter((opt) => opt.value !== 'COMBO' || promotion?.type === 'COMBO').map((opt) => (
                           <button
                             key={opt.value}
                             type="button"
@@ -644,6 +647,130 @@ export function PromotionDrawer({
                         )}
                       />
                     </div>
+                    <p className="mt-1.5 text-[12px] text-text-muted">
+                      {t('fields.discountValueHint', { example: '20%' })}
+                    </p>
+                    {form.formState.errors.discountValue && (
+                      <p className="mt-1 text-[12px] text-danger">{form.formState.errors.discountValue.message}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Apply to — percentage only (T22.19) */}
+                {promoType === 'PERCENTAGE' && (
+                <div data-testid="promotion-drawer-apply-to">
+                  <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
+                    {t('fields.applyToLabel')}
+                  </div>
+                  <Controller
+                    control={form.control}
+                    name="applyTo"
+                    render={({ field }) => (
+                      <RadioGroup
+                        value={field.value || 'ENTIRE_MENU'}
+                        onValueChange={(v) => field.onChange(v)}
+                        className="gap-2"
+                      >
+                        {/* Entire menu */}
+                        <label
+                          className={cn(
+                            'flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors',
+                            field.value === 'ENTIRE_MENU'
+                              ? 'border-accent shadow-[0_0_0_3px_hsl(var(--accent-soft))]'
+                              : 'border-border hover:bg-chip',
+                          )}
+                          data-testid="promotion-apply-to-entire"
+                        >
+                          <RadioGroupItem value="ENTIRE_MENU" />
+                          <div className="flex-1">
+                            <div className="text-[13px] font-medium text-text-default">
+                              {t('fields.applyTo.entireMenu.title')}
+                            </div>
+                            <div className="text-[11.5px] text-text-muted">
+                              {t('fields.applyTo.entireMenu.hint')}
+                            </div>
+                          </div>
+                        </label>
+
+                        {/* Category */}
+                        <div
+                          className={cn(
+                            'rounded-lg border p-3 transition-colors',
+                            field.value === 'CATEGORY'
+                              ? 'border-accent shadow-[0_0_0_3px_hsl(var(--accent-soft))]'
+                              : 'border-border hover:bg-chip',
+                          )}
+                          data-testid="promotion-apply-to-category"
+                        >
+                          <label className="flex cursor-pointer items-center gap-3">
+                            <RadioGroupItem value="CATEGORY" />
+                            <div className="flex-1">
+                              <div className="text-[13px] font-medium text-text-default">
+                                {t('fields.applyTo.category.title')}
+                              </div>
+                              <div className="text-[11.5px] text-text-muted">
+                                {t('fields.applyTo.category.hint')}
+                              </div>
+                            </div>
+                          </label>
+                          {field.value === 'CATEGORY' && (
+                            <div className="mt-2.5 ml-7">
+                              <Controller
+                                control={form.control}
+                                name="categoryId"
+                                render={({ field: catField }) => (
+                                  <Select
+                                    value={catField.value || ''}
+                                    onValueChange={catField.onChange}
+                                  >
+                                    <SelectTrigger data-testid="promotion-category-select">
+                                      <SelectValue placeholder={t('fields.applyTo.category.placeholder')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {(categories || []).map((cat) => (
+                                        <SelectItem key={cat.id} value={cat.id}>
+                                          {cat.nameKa}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              />
+                              {form.formState.errors.categoryId && (
+                                <p className="mt-1 text-[12px] text-danger">
+                                  {form.formState.errors.categoryId.message}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {/* T22.18 — "Specific items" scope removed for promotions;
+                            per-dish discounting lives in the product editor. */}
+                      </RadioGroup>
+                    )}
+                  />
+                </div>
+                )}
+
+                {/* Combo builder — combo type only (T22.24) */}
+                {promoType === 'COMBO' && (
+                  <div data-testid="promotion-drawer-combo">
+                    <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
+                      {t('fields.comboProductsLabel')}
+                    </div>
+                    <Controller
+                      control={form.control}
+                      name="comboProductIds"
+                      render={({ field }) => (
+                        <ComboItemsPicker
+                          products={products ?? []}
+                          value={field.value ?? []}
+                          onChange={field.onChange}
+                          emptyText={t('fields.comboProductsHint')}
+                          testIdPrefix="promotion-combo-product"
+                        />
+                      )}
+                    />
                     <p className="mt-1.5 text-[12px] text-text-muted">
                       {t('fields.discountValueHint', { example: '20%' })}
                     </p>

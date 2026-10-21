@@ -173,6 +173,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
     const data = createPromotionSchema.parse(body);
 
+    // T1.9 — one creation path for combos: a product with kind COMBO.
+    if (data.type === 'COMBO') {
+      return createErrorResponse(
+        ERROR_CODES.VALIDATION_ERROR,
+        'Combo promotions are retired. Create a combo product instead.',
+        400
+      );
+    }
+
     // Create promotion
     const promotion = await prisma.promotion.create({
       data: {

@@ -13,6 +13,8 @@ import type {
 export interface ProductFilters {
   categoryId?: string;
   isAvailable?: boolean;
+  /** Page size; the API caps it at 100. Default is the API's 20. */
+  limit?: number;
 }
 
 /**
@@ -25,6 +27,7 @@ export function useProducts(menuId: string | undefined, filters?: ProductFilters
       const params = new URLSearchParams();
       if (filters?.categoryId) params.set('categoryId', filters.categoryId);
       if (filters?.isAvailable !== undefined) params.set('isAvailable', String(filters.isAvailable));
+      if (filters?.limit) params.set('limit', String(filters.limit));
 
       const queryString = params.toString();
       const url = `/menus/${menuId}/products${queryString ? `?${queryString}` : ''}`;

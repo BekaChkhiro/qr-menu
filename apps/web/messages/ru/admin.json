@@ -1423,7 +1423,14 @@
       "featuredHelp": "Показать в блоке «Рекомендуем» в публичном меню",
       "featuredRankLabel": "Порядок",
       "featuredRankHelp": "Меньшее число отображается выше",
-      "featuredRankError": "Укажите целое число, 0 или больше"
+      "featuredRankError": "Укажите целое число, 0 или больше",
+      "kindLabel": "Тип",
+      "kindStandard": "Блюдо",
+      "kindCombo": "Комбо / набор",
+      "comboItemsLabel": "Состав (минимум 2 блюда)",
+      "comboItemsHint": "Выберите блюда, которые входят в этот комбо. Цену задаёте вы.",
+      "comboEmpty": "В меню пока нет блюд",
+      "comboMinError": "Выберите минимум 2 блюда"
     },
     "variations": {
       "title": "Вариации",

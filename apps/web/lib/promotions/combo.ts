@@ -4,6 +4,12 @@ import { prisma } from '@/lib/db';
 // auto-managed "Offers / შეთავაზება" category. This keeps the combo visible on
 // the public menu (as a product card) in addition to the promotions carousel.
 //
+// T1.9 — COMBO promotions are retired as a creation path (the API rejects new
+// ones); combos are products with kind COMBO in any category. This module now
+// only keeps legacy COMBO promotions and their generated products in step. The
+// generated product is kind COMBO, and scripts/migrate-combo-products.ts gives
+// existing ones their ComboItem rows.
+//
 // syncComboProduct is idempotent: call it after creating/updating any promotion.
 // - COMBO promotion with a price → upsert the Offers category + combo product,
 //   and link it back via Promotion.comboProductId.
@@ -141,6 +147,7 @@ export async function syncComboProduct(promotionId: string): Promise<void> {
     ordered.length ? ordered.map((c) => pick(c) || c.nameKa).join(' + ') : null;
 
   const data = {
+    kind: 'COMBO' as const,
     categoryId,
     nameKa: promo.titleKa,
     nameEn: promo.titleEn,
@@ -157,16 +164,35 @@ export async function syncComboProduct(promotionId: string): Promise<void> {
   };
 
   // Update the linked product if it still exists, else (re)create + relink.
+  // The promotion drawer is still the only editor of a legacy combo's dishes,
+  // so its ComboItem rows follow the promotion's list.
   if (promo.comboProductId) {
     const updated = await prisma.product.updateMany({
       where: { id: promo.comboProductId },
       data,
     });
-    if (updated.count > 0) return;
+    if (updated.count > 0) {
+      await prisma.comboItem.deleteMany({ where: { comboId: promo.comboProductId } });
+      await prisma.comboItem.createMany({
+        data: ordered.map((c, index) => ({
+          comboId: promo.comboProductId!,
+          componentId: c.id,
+          quantity: 1,
+          sortOrder: index,
+        })),
+      });
+      return;
+    }
   }
 
   const product = await prisma.product.create({
-    data: { ...data, categoryId },
+    data: {
+      ...data,
+      categoryId,
+      comboItems: {
+        create: ordered.map((c, index) => ({ componentId: c.id, quantity: 1, sortOrder: index })),
+      },
+    },
     select: { id: true },
   });
   await prisma.promotion.update({

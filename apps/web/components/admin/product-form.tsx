@@ -21,6 +21,7 @@ import type { LangCode } from './product-drawer/lang-tabs-inline';
 import { DayWindowsEditor, breakErrorLabelsFrom, defaultDayWindows } from './day-windows-editor';
 import type { WorkingHoursDay } from '@/lib/menu/working-hours';
 import { TagsInput } from './product-drawer/tags-input';
+import { ComboItemsPicker, type ComboPickerProduct } from './combo-items-picker';
 import { ProductImageField } from './product-drawer/product-image-field';
 import type { Product, Category } from '@/types/menu';
 
@@ -75,9 +76,15 @@ const productFormSchema = z.object({
   // T1.11 — "Recommended" rail pick. The order is only required while the switch is on.
   featured: z.boolean(),
   featuredRank: z.string().optional(),
+  // T1.9 — STANDARD dish or COMBO bundle; comboItems are the included dishes' ids, in order.
+  kind: z.enum(['STANDARD', 'COMBO']),
+  comboItems: z.array(z.string()),
 }).superRefine((values, ctx) => {
   if (values.featured && !/^\d{1,4}$/.test((values.featuredRank ?? '').trim())) {
     ctx.addIssue({ code: 'custom', path: ['featuredRank'], message: 'featuredRankError' });
+  }
+  if (values.kind === 'COMBO' && new Set(values.comboItems).size < 2) {
+    ctx.addIssue({ code: 'custom', path: ['comboItems'], message: 'comboMinError' });
   }
 });
 
@@ -109,6 +116,8 @@ interface ProductFormProps {
    * form only decides where the control sits, next to the fields it governs.
    */
   langTabs?: React.ReactNode;
+  /** T1.9 — the menu's dishes offered in the combo picker (the product itself is excluded). */
+  comboProducts?: ComboPickerProduct[];
 }
 
 export function ProductForm({
@@ -127,6 +136,7 @@ export function ProductForm({
   onForceLang,
   workingHours,
   langTabs,
+  comboProducts = [],
 }: ProductFormProps) {
   const t = useTranslations('admin.products.form');
   const tActions = useTranslations('actions');
@@ -181,6 +191,8 @@ export function ProductForm({
       featured: product?.featuredRank != null,
       featuredRank:
         product?.featuredRank != null ? String(product.featuredRank) : '',
+      kind: product?.kind ?? 'STANDARD',
+      comboItems: product?.comboItems?.map((item) => item.componentId) ?? [],
     },
   });
 
@@ -199,6 +211,8 @@ export function ProductForm({
   const discountWindowsEnabled = discountWindowsValue?.enabled ?? false;
   const isAvailable = watch('isAvailable');
   const featured = watch('featured') || false;
+  const kind = watch('kind');
+  const comboItems = watch('comboItems') ?? [];
   const ribbons = watch('ribbons') || [];
   const isVegan = watch('isVegan') || false;
   const isVegetarian = watch('isVegetarian') || false;
@@ -446,6 +460,64 @@ export function ProductForm({
             </span>
           </div>
         </div>
+
+        {/* ── 3b. Type: dish or combo (T1.9) ───────────────────────────── */}
+        <div className="mb-[22px]" data-testid="product-basics-kind">
+          <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.1px] text-text-default">
+            {t('kindLabel')}
+          </div>
+          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t('kindLabel')}>
+            {(['STANDARD', 'COMBO'] as const).map((value) => {
+              const active = kind === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  data-testid={`product-kind-${value.toLowerCase()}`}
+                  data-active={active ? 'true' : 'false'}
+                  onClick={() => setValue('kind', value)}
+                  className={cn(
+                    'rounded-lg border px-3 py-2.5 text-left text-[13.5px] transition-colors',
+                    active
+                      ? 'border-accent bg-accent-soft font-semibold text-text-default'
+                      : 'border-border text-text-muted hover:bg-chip',
+                  )}
+                >
+                  {value === 'STANDARD' ? t('kindStandard') : t('kindCombo')}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── 3c. Combo: the dishes it includes (T1.9) ─────────────────── */}
+        {kind === 'COMBO' && (
+          <div className="mb-[22px]" data-testid="product-basics-combo">
+            <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.1px] text-text-default">
+              {t('comboItemsLabel')}
+            </div>
+            <ComboItemsPicker
+              products={comboProducts}
+              value={comboItems}
+              onChange={(ids) => setValue('comboItems', ids, { shouldValidate: true })}
+              excludeId={product?.id}
+              emptyText={t('comboEmpty')}
+              testIdPrefix="product-combo-component"
+            />
+            <p className="mt-1.5 text-[12px] text-text-muted">{t('comboItemsHint')}</p>
+            {errors.comboItems && (
+              <p
+                data-testid="product-combo-min-error"
+                className="mt-1.5 flex items-center gap-1 text-[11.5px] text-danger"
+              >
+                <Info className="h-[11px] w-[11px]" strokeWidth={1.8} aria-hidden="true" />
+                {t('comboMinError')}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* ── 4. Category + Price grid ──────────────────────────────────── */}
         <div className="mb-[22px] grid grid-cols-2 gap-3.5">

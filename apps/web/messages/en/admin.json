@@ -1423,7 +1423,14 @@
       "featuredHelp": "Show in the Recommended rail on the public menu",
       "featuredRankLabel": "Order",
       "featuredRankHelp": "Lower numbers show first",
-      "featuredRankError": "Enter a whole number, 0 or more"
+      "featuredRankError": "Enter a whole number, 0 or more",
+      "kindLabel": "Type",
+      "kindStandard": "Dish",
+      "kindCombo": "Combo / set",
+      "comboItemsLabel": "Included dishes (at least 2)",
+      "comboItemsHint": "Pick the dishes included in this combo. You set its price.",
+      "comboEmpty": "No dishes on this menu yet",
+      "comboMinError": "Pick at least 2 dishes"
     },
     "variations": {
       "title": "Variations",
