@@ -1503,8 +1503,7 @@
       "deletePromotion": "Delete promotion",
       "tabs": {
         "details": "Details",
-        "appearance": "Appearance",
-        "schedule": "Schedule"
+        "appearance": "Appearance"
       },
       "fields": {
         "titleLabel": "Title",

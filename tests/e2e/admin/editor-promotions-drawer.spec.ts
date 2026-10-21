@@ -1,4 +1,4 @@
-// Tests for T15.8 — Promotions Tab · Drawer (Details/Appearance/Schedule).
+// Tests for T15.8 — Promotions Tab · Drawer (Details/Appearance).
 // Run:     pnpm test:e2e tests/e2e/admin/editor-promotions-drawer.spec.ts
 // Update:  pnpm test:e2e:update tests/e2e/admin/editor-promotions-drawer.spec.ts
 //
@@ -90,6 +90,28 @@ test.describe('promotion drawer (T15.8)', () => {
     );
   });
 
+  // ── Visual: Details tab with time restrictions on ─────────────────────────
+
+  test('visual: promotion drawer — Details tab, time restrictions on', async ({
+    page,
+  }, testInfo) => {
+    await seedStarterScenario(page);
+
+    await page.getByTestId('editor-promotions-new').click();
+    await expect(page.getByTestId('promotion-drawer')).toBeVisible();
+
+    await page.getByTestId('promotion-time-restrictions-toggle').click();
+    await expect(page.getByTestId('promotion-day-windows')).toBeVisible();
+    await page.getByTestId('promotion-drawer-time-restrictions').scrollIntoViewIfNeeded();
+
+    await stabilizeAnimations(page);
+
+    await expect(page.getByTestId('promotion-drawer')).toHaveScreenshot(
+      `editor-promotions-drawer-time-restrictions-${testInfo.project.name}.png`,
+      { maxDiffPixelRatio: 0.05 },
+    );
+  });
+
   // ── Functional: create promotion with all fields ──────────────────────────
 
   test('functional: create promotion with all fields', async ({ page }) => {
@@ -124,13 +146,32 @@ test.describe('promotion drawer (T15.8)', () => {
     await page.getByTestId('promotion-category-select').click();
     await page.getByRole('option').first().click();
 
-    // Enable time restrictions
+    // Date range: off by default; the switch sits in Details above time restrictions.
+    await page.getByTestId('promotion-date-range-toggle').click();
+    await expect(page.getByTestId('promotion-drawer-date-range')).toBeVisible();
+    const startStr = day(0).toISOString().split('T')[0];
+    const endStr = day(14).toISOString().split('T')[0];
+    await page.getByTestId('promotion-start-date').fill(startStr);
+    await page.getByTestId('promotion-end-date').fill(endStr);
+
+    // Enable time restrictions. Every day starts ON (the drawer seeds all seven
+    // days), so assert that default, then switch off the days this offer must
+    // not run. Only Monday and Friday stay on.
     await page.getByTestId('promotion-time-restrictions-toggle').click();
     await expect(page.getByTestId('promotion-day-windows')).toBeVisible();
-
-    // Enable Monday and Friday, each with its own window (T22.21 per-day)
-    await page.getByTestId('promotion-day-toggle-mon').click();
-    await page.getByTestId('promotion-day-toggle-fri').click();
+    for (const d of ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']) {
+      await expect(page.getByTestId(`promotion-day-toggle-${d}`)).toHaveAttribute(
+        'data-active',
+        'true',
+      );
+    }
+    for (const d of ['tue', 'wed', 'thu', 'sat', 'sun']) {
+      await page.getByTestId(`promotion-day-toggle-${d}`).click();
+      await expect(page.getByTestId(`promotion-day-toggle-${d}`)).toHaveAttribute(
+        'data-active',
+        'false',
+      );
+    }
 
     // Set Monday's window with native time inputs (canonical 24h HH:MM).
     await page.getByTestId('promotion-day-start-mon').fill('09:30');
@@ -145,18 +186,11 @@ test.describe('promotion drawer (T15.8)', () => {
     await page.getByTestId('promotion-day-break-end-mon').fill('14:00');
     await expect(page.getByTestId('promotion-day-break-end-mon')).toHaveValue('14:00');
 
-    // Switch to Appearance tab and upload is skipped in test (complex)
+    // Appearance tab: upload is skipped in test (complex), just confirm it renders.
     await page.getByTestId('promotion-drawer-tab-appearance').click();
     await expect(page.getByTestId('promotion-drawer-banner-upload')).toBeVisible();
-
-    // Switch to Schedule tab, turn the date range on (off by default) and set dates
-    await page.getByTestId('promotion-drawer-tab-schedule').click();
-    await page.getByTestId('promotion-date-range-toggle').click();
+    await page.getByTestId('promotion-drawer-tab-details').click();
     await expect(page.getByTestId('promotion-drawer-date-range')).toBeVisible();
-    const startStr = day(0).toISOString().split('T')[0];
-    const endStr = day(14).toISOString().split('T')[0];
-    await page.getByTestId('promotion-start-date').fill(startStr);
-    await page.getByTestId('promotion-end-date').fill(endStr);
 
     // Save
     await page.getByTestId('promotion-drawer-save').click();
@@ -183,6 +217,9 @@ test.describe('promotion drawer (T15.8)', () => {
       breakStart: '13:00',
       breakEnd: '14:00',
     });
+    expect(Object.keys(restrictions.windows ?? {}).sort()).toEqual(['fri', 'mon']);
+    expect(saved!.startDate).not.toBeNull();
+    expect(saved!.endDate).not.toBeNull();
   });
 
   // ── Functional: combo promotion generates an Offers product (T22.24) ──────
@@ -205,8 +242,7 @@ test.describe('promotion drawer (T15.8)', () => {
 
     await page.getByTestId('promotion-combo-price-input').fill('12');
 
-    // Set the schedule dates (the date range switch must be on first)
-    await page.getByTestId('promotion-drawer-tab-schedule').click();
+    // Set the dates (the date range switch must be on first)
     await page.getByTestId('promotion-date-range-toggle').click();
     await page.getByTestId('promotion-start-date').fill(day(0).toISOString().split('T')[0]);
     await page.getByTestId('promotion-end-date').fill(day(14).toISOString().split('T')[0]);
@@ -314,7 +350,6 @@ test.describe('promotion drawer (T15.8)', () => {
     await expect(page.getByTestId('promotion-day-end-sat')).toHaveValue('13:00');
 
     // A promotion that already has dates opens with the date range switch on.
-    await page.getByTestId('promotion-drawer-tab-schedule').click();
     await expect(page.getByTestId('promotion-date-range-toggle')).toBeChecked();
     await expect(page.getByTestId('promotion-start-date')).toBeVisible();
   });
@@ -383,7 +418,6 @@ test.describe('promotion date range switch (T1.5)', () => {
     await expect(page.getByTestId('promotion-drawer')).toBeVisible();
     await page.getByTestId('promotion-title-input').fill(title);
     await page.getByTestId('promotion-type-banner').click();
-    await page.getByTestId('promotion-drawer-tab-schedule').click();
     await expect(page.getByTestId('promotion-date-range-toggle')).not.toBeChecked();
     await expect(page.getByTestId('promotion-start-date')).toHaveCount(0);
     await expect(page.getByTestId('promotion-date-range-status')).toHaveText('Always on');
@@ -406,7 +440,6 @@ test.describe('promotion date range switch (T1.5)', () => {
     await card.getByTestId(`editor-promotions-card-${saved!.id}-kebab`).click();
     await page.getByRole('menuitem', { name: 'Edit' }).click();
     await expect(page.getByTestId('promotion-drawer')).toBeVisible();
-    await page.getByTestId('promotion-drawer-tab-schedule').click();
     await expect(page.getByTestId('promotion-date-range-toggle')).toBeChecked();
     await page.getByTestId('promotion-date-range-toggle').click();
     await expect(page.getByTestId('promotion-date-range-status')).toHaveText('Always on');
@@ -425,7 +458,6 @@ test.describe('promotion date range switch (T1.5)', () => {
     await card.getByTestId(`editor-promotions-card-${saved!.id}-kebab`).click();
     await page.getByRole('menuitem', { name: 'Edit' }).click();
     await expect(page.getByTestId('promotion-drawer')).toBeVisible();
-    await page.getByTestId('promotion-drawer-tab-schedule').click();
     await expect(page.getByTestId('promotion-date-range-toggle')).not.toBeChecked();
     await expect(page.getByTestId('promotion-date-range-status')).toHaveText('Always on');
   });

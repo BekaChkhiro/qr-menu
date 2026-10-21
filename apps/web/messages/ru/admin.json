@@ -1503,8 +1503,7 @@
       "deletePromotion": "Удалить акцию",
       "tabs": {
         "details": "Детали",
-        "appearance": "Оформление",
-        "schedule": "Расписание"
+        "appearance": "Оформление"
       },
       "fields": {
         "titleLabel": "Заголовок",

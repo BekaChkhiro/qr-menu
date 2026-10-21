@@ -1503,8 +1503,7 @@
       "deletePromotion": "აქციის წაშლა",
       "tabs": {
         "details": "დეტალები",
-        "appearance": "გაფორმება",
-        "schedule": "განრიგი"
+        "appearance": "გაფორმება"
       },
       "fields": {
         "titleLabel": "სათაური",

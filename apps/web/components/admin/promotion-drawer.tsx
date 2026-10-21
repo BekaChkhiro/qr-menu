@@ -39,7 +39,7 @@ const FORM_ID = 'promotion-drawer-form';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-type DrawerTab = 'details' | 'appearance' | 'schedule';
+type DrawerTab = 'details' | 'appearance';
 type LangCode = 'KA' | 'EN' | 'RU';
 
 interface PromotionDrawerProps {
@@ -456,9 +456,6 @@ export function PromotionDrawer({
             <TabsTrigger value="appearance" className="px-[14px]" data-testid="promotion-drawer-tab-appearance">
               {t('tabs.appearance')}
             </TabsTrigger>
-            <TabsTrigger value="schedule" className="px-[14px]" data-testid="promotion-drawer-tab-schedule">
-              {t('tabs.schedule')}
-            </TabsTrigger>
           </TabsList>
 
           {/* ── Body (scrollable) ─────────────────────────────────────── */}
@@ -844,6 +841,116 @@ export function PromotionDrawer({
                   </div>
                 )}
 
+                {/* Date range — T24.1: off means open-ended (permanent until Active is switched off). */}
+                <div data-testid="promotion-drawer-date-range-section">
+                  <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
+                    {t('fields.dateRangeLabel')}
+                  </div>
+                  <Controller
+                    control={form.control}
+                    name="dateRangeEnabled"
+                    render={({ field }) => (
+                      <div
+                        className={cn(
+                          'flex items-center gap-3 rounded-lg border p-3',
+                          field.value ? 'border-accent shadow-[0_0_0_3px_hsl(var(--accent-soft))]' : 'border-border',
+                        )}
+                      >
+                        <div className="flex-1">
+                          <div className="text-[13px] font-medium text-text-default">
+                            {t('fields.dateRangeToggleTitle')}
+                          </div>
+                        </div>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="promotion-date-range-toggle"
+                        />
+                      </div>
+                    )}
+                  />
+                  <p
+                    className="mt-2 text-[12px] text-text-muted"
+                    data-testid="promotion-date-range-status"
+                  >
+                    {dateRangeStatus}
+                  </p>
+                  {form.formState.errors.dateRangeEnabled && (
+                    <p className="mt-1 text-[12px] text-danger">{t('fields.dateRangeRequired')}</p>
+                  )}
+                </div>
+                {dateRangeEnabled && (
+                  <div className="grid gap-4 sm:grid-cols-2" data-testid="promotion-drawer-date-range">
+                    <div>
+                      <Label className="mb-2 block text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
+                        {t('fields.startDate')}
+                      </Label>
+                      <Controller
+                        control={form.control}
+                        name="startDate"
+                        render={({ field }) => (
+                          <Input
+                            type="date"
+                            value={formatDateForInput(field.value)}
+                            onChange={(e) => {
+                              const date = e.target.value ? new Date(e.target.value) : null;
+                              field.onChange(date);
+                            }}
+                            data-testid="promotion-start-date"
+                          />
+                        )}
+                      />
+                      {form.formState.errors.startDate && (
+                        <p className="mt-1 text-[12px] text-danger">{form.formState.errors.startDate.message}</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="mb-2 block text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
+                        {t('fields.endDate')}
+                      </Label>
+                      <Controller
+                        control={form.control}
+                        name="endDate"
+                        render={({ field }) => (
+                          <Input
+                            type="date"
+                            value={formatDateForInput(field.value)}
+                            onChange={(e) => {
+                              const date = e.target.value ? new Date(e.target.value) : null;
+                              field.onChange(date);
+                            }}
+                            data-testid="promotion-end-date"
+                          />
+                        )}
+                      />
+                      {form.formState.errors.endDate && (
+                        <p className="mt-1 text-[12px] text-danger">{form.formState.errors.endDate.message}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Active toggle */}
+                <Controller
+                  control={form.control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <div
+                      className={cn(
+                        'flex items-center gap-3 rounded-lg border p-3',
+                        field.value ? 'border-accent shadow-[0_0_0_3px_hsl(var(--accent-soft))]' : 'border-border',
+                      )}
+                      data-testid="promotion-drawer-active-toggle"
+                    >
+                      <div className="flex-1">
+                        <div className="text-[13px] font-medium text-text-default">{t('fields.isActive')}</div>
+                        <div className="text-[11.5px] text-text-muted">{t('fields.isActiveHint')}</div>
+                      </div>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="promotion-is-active" />
+                    </div>
+                  )}
+                />
+
                 {/* Time restrictions */}
                 <div data-testid="promotion-drawer-time-restrictions">
                   <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
@@ -1037,118 +1144,6 @@ export function PromotionDrawer({
                 )}
               </TabsContent>
 
-              {/* ── Schedule tab ────────────────────────────────────────── */}
-              <TabsContent value="schedule" className="m-0 space-y-6 p-6 focus-visible:outline-none">
-                {/* Date range — T24.1: off means open-ended (permanent until Active is switched off). */}
-                <div data-testid="promotion-drawer-date-range-section">
-                  <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
-                    {t('fields.dateRangeLabel')}
-                  </div>
-                  <Controller
-                    control={form.control}
-                    name="dateRangeEnabled"
-                    render={({ field }) => (
-                      <div
-                        className={cn(
-                          'flex items-center gap-3 rounded-lg border p-3',
-                          field.value ? 'border-accent shadow-[0_0_0_3px_hsl(var(--accent-soft))]' : 'border-border',
-                        )}
-                      >
-                        <div className="flex-1">
-                          <div className="text-[13px] font-medium text-text-default">
-                            {t('fields.dateRangeToggleTitle')}
-                          </div>
-                        </div>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          data-testid="promotion-date-range-toggle"
-                        />
-                      </div>
-                    )}
-                  />
-                  <p
-                    className="mt-2 text-[12px] text-text-muted"
-                    data-testid="promotion-date-range-status"
-                  >
-                    {dateRangeStatus}
-                  </p>
-                  {form.formState.errors.dateRangeEnabled && (
-                    <p className="mt-1 text-[12px] text-danger">{t('fields.dateRangeRequired')}</p>
-                  )}
-                </div>
-                {dateRangeEnabled && (
-                  <div className="grid gap-4 sm:grid-cols-2" data-testid="promotion-drawer-date-range">
-                    <div>
-                      <Label className="mb-2 block text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
-                        {t('fields.startDate')}
-                      </Label>
-                      <Controller
-                        control={form.control}
-                        name="startDate"
-                        render={({ field }) => (
-                          <Input
-                            type="date"
-                            value={formatDateForInput(field.value)}
-                            onChange={(e) => {
-                              const date = e.target.value ? new Date(e.target.value) : null;
-                              field.onChange(date);
-                            }}
-                            data-testid="promotion-start-date"
-                          />
-                        )}
-                      />
-                      {form.formState.errors.startDate && (
-                        <p className="mt-1 text-[12px] text-danger">{form.formState.errors.startDate.message}</p>
-                      )}
-                    </div>
-                    <div>
-                      <Label className="mb-2 block text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
-                        {t('fields.endDate')}
-                      </Label>
-                      <Controller
-                        control={form.control}
-                        name="endDate"
-                        render={({ field }) => (
-                          <Input
-                            type="date"
-                            value={formatDateForInput(field.value)}
-                            onChange={(e) => {
-                              const date = e.target.value ? new Date(e.target.value) : null;
-                              field.onChange(date);
-                            }}
-                            data-testid="promotion-end-date"
-                          />
-                        )}
-                      />
-                      {form.formState.errors.endDate && (
-                        <p className="mt-1 text-[12px] text-danger">{form.formState.errors.endDate.message}</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Active toggle */}
-                <Controller
-                  control={form.control}
-                  name="isActive"
-                  render={({ field }) => (
-                    <div
-                      className={cn(
-                        'flex items-center gap-3 rounded-lg border p-3',
-                        field.value ? 'border-accent shadow-[0_0_0_3px_hsl(var(--accent-soft))]' : 'border-border',
-                      )}
-                      data-testid="promotion-drawer-active-toggle"
-                    >
-                      <div className="flex-1">
-                        <div className="text-[13px] font-medium text-text-default">{t('fields.isActive')}</div>
-                        <div className="text-[11.5px] text-text-muted">{t('fields.isActiveHint')}</div>
-                      </div>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="promotion-is-active" />
-                    </div>
-                  )}
-                />
-              </TabsContent>
             </form>
           </div>
         </Tabs>
