@@ -18,6 +18,7 @@ interface Promotion {
   imageUrl: string | null;
   // T22.19/T22.20 — type + appearance drive which visual variant renders.
   type?: 'PERCENTAGE' | 'BANNER' | 'COMBO' | null;
+  discountValue?: number | string | null;
   backgroundColor?: string | null;
   showTitle?: boolean;
   // T22.21 — per-day windows (or legacy flat shape) for the detail view.
@@ -88,12 +89,20 @@ function timeRows(p: Promotion, locale: Locale): string[] {
   );
 }
 
-// A promotion shows in the carousel when it has a banner image, OR it is a
-// title-only BANNER announcement (T22.20 — "café without a designer"). Pure
-// percentage/combo promotions with no image surface via prices / the Offers
-// category instead, so they are not carded here.
+// A promotion shows in the carousel when it has a banner image, OR an owner-chosen
+// backgroundColor, OR it is a title-only BANNER / PERCENTAGE announcement (T22.20 —
+// "café without a designer"). A COMBO with neither image nor colour surfaces via
+// prices / the Offers category instead, so it is not carded here.
 function isCarded(p: Promotion): boolean {
-  return Boolean(p.imageUrl) || p.type === 'BANNER';
+  if (p.imageUrl || p.backgroundColor) return true;
+  return (p.type === 'BANNER' || p.type === 'PERCENTAGE') && p.titleKa.trim().length > 0;
+}
+
+// T1.2 — a PERCENTAGE promotion carries its discount on the card, e.g. "-20%".
+function discountLabel(p: Promotion): string | null {
+  if (p.type !== 'PERCENTAGE' || p.discountValue == null) return null;
+  const value = Number(p.discountValue);
+  return Number.isFinite(value) && value > 0 ? `-${value}%` : null;
 }
 
 /**
@@ -217,6 +226,7 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
           {slides.map((promo, i) => {
             const title = getTitle(promo, locale);
             const showTitle = promo.showTitle ?? true;
+            const discount = discountLabel(promo);
             const isNeutral = !promo.imageUrl && !promo.backgroundColor;
             return (
               <button
@@ -265,16 +275,28 @@ export function PromotionCarousel({ promotions, locale }: PromotionCarouselProps
                 ) : (
                   /* T24.21 — only an explicitly chosen colour uses white title text. */
                   <div className="flex h-full items-center justify-center px-4 text-center">
-                    <span
-                      className={cn(
-                        'text-[16px] font-semibold leading-snug',
-                        isNeutral ? 'text-foreground' : 'text-white drop-shadow',
-                      )}
-                      data-testid="promotion-slide-title"
-                    >
-                      {title}
-                    </span>
+                    {showTitle && (
+                      <span
+                        className={cn(
+                          'text-[16px] font-semibold leading-snug',
+                          isNeutral ? 'text-foreground' : 'text-white drop-shadow',
+                        )}
+                        data-testid="promotion-slide-title"
+                      >
+                        {title}
+                      </span>
+                    )}
                   </div>
+                )}
+
+                {/* T1.2 — PERCENTAGE discount label, on image and title-only cards alike */}
+                {discount && (
+                  <span
+                    className="absolute left-1.5 top-1.5 rounded-full bg-[var(--menu-primary)] px-2 py-0.5 text-[10.5px] font-semibold tabular-nums text-white"
+                    data-testid="promotion-slide-discount"
+                  >
+                    {discount}
+                  </span>
                 )}
 
                 {/* T22.22 — "see full" expand affordance */}
