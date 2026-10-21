@@ -624,7 +624,6 @@
       "card": {
         "appliedToWholeMenu": "Всё меню",
         "appliedToCategory": "Категория: {name}",
-        "scansLabel": "скан. · 7 дней",
         "noDates": "Всегда",
         "fromDate": "С {date}",
         "untilDate": "До {date}",
@@ -649,7 +648,7 @@
         "hint": "нажми, чтобы начать с шаблона",
         "chips": {
           "weekendSpecial": "Спецпредложение на выходные",
-          "lunchCombo": "Ланч-комбо",
+          "lunchDiscount": "Скидка на ланч",
           "loyaltyDiscount": "Скидка постоянным гостям"
         }
       },

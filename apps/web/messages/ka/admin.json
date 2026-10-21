@@ -624,7 +624,6 @@
       "card": {
         "appliedToWholeMenu": "მთელ მენიუზე",
         "appliedToCategory": "კატეგორია: {name}",
-        "scansLabel": "სკანი · 7 დღე",
         "noDates": "მუდმივი",
         "fromDate": "{date}-დან",
         "untilDate": "{date}-მდე",
@@ -649,7 +648,7 @@
         "hint": "აირჩიე შაბლონი დასაწყებად",
         "chips": {
           "weekendSpecial": "შაბათ-კვირის სპეციალი",
-          "lunchCombo": "Lunch კომბო ნაკრები",
+          "lunchDiscount": "ლანჩის ფასდაკლება",
           "loyaltyDiscount": "ერთგული კლიენტის ფასდაკლება"
         }
       },

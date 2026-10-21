@@ -72,24 +72,6 @@ interface EditorPromotionsTabProps {
 
 const DATE_LOCALES = { ka, en: enUS, ru } as const;
 
-function hashString(input: string): number {
-  let h = 0;
-  for (let i = 0; i < input.length; i++) {
-    h = (h * 31 + input.charCodeAt(i)) | 0;
-  }
-  return Math.abs(h);
-}
-
-// Per-promotion scan tracking isn't in the analytics backend yet (Phase 15
-// scope note). Use a deterministic placeholder derived from the promo id so
-// visual baselines stay stable — no number for Scheduled or Paused (nothing is
-// showing to customers), a rounded number for Active / Ended.
-function approxScansLabel(promotion: Promotion, status: PromotionStatus): string | null {
-  if (status === 'scheduled' || status === 'paused') return null;
-  const base = (hashString(promotion.id) % 400) + 40;
-  return String(base);
-}
-
 function localizedTitle(promotion: Promotion, locale: string): string {
   if (locale === 'en' && promotion.titleEn) return promotion.titleEn;
   if (locale === 'ru' && promotion.titleRu) return promotion.titleRu;
@@ -289,7 +271,6 @@ function PromoCard({
   const dateLocale = pickLocale(locale);
   const dateRange = formatDateRange(promotion, dateLocale, tCard);
   const scope = scopeText(promotion, locale, tCard);
-  const scanLabel = approxScansLabel(promotion, status);
 
   return (
     <article
@@ -354,26 +335,15 @@ function PromoCard({
         </div>
 
         <div className="mt-auto flex items-center justify-between border-t border-border-soft pt-2.5">
+          {/* Per-promotion scan tracking doesn't exist yet, so no number is shown. */}
           <div className="flex items-center gap-1.5 text-[11.5px] text-text-muted">
             <Eye className="size-3 text-text-subtle" strokeWidth={1.5} />
-            {scanLabel ? (
-              <>
-                <span
-                  className="font-semibold tabular-nums text-text-default"
-                  data-testid={`editor-promotions-card-${promotion.id}-scans`}
-                >
-                  {scanLabel}
-                </span>
-                <span>{tCard('scansLabel')}</span>
-              </>
-            ) : (
-              <span
-                className="tabular-nums text-text-subtle"
-                data-testid={`editor-promotions-card-${promotion.id}-scans`}
-              >
-                —
-              </span>
-            )}
+            <span
+              className="tabular-nums text-text-subtle"
+              data-testid={`editor-promotions-card-${promotion.id}-scans`}
+            >
+              —
+            </span>
           </div>
           <KebabMenu>
             <KebabMenuIconTrigger
@@ -401,7 +371,7 @@ function PromoCard({
 
 // ── Suggestions ──────────────────────────────────────────────────────────────
 
-const SUGGESTION_KEYS = ['weekendSpecial', 'lunchCombo', 'loyaltyDiscount'] as const;
+const SUGGESTION_KEYS = ['weekendSpecial', 'lunchDiscount', 'loyaltyDiscount'] as const;
 type SuggestionKey = (typeof SUGGESTION_KEYS)[number];
 
 function Suggestions({

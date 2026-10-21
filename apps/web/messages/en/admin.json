@@ -624,7 +624,6 @@
       "card": {
         "appliedToWholeMenu": "Whole menu",
         "appliedToCategory": "Category: {name}",
-        "scansLabel": "scans · 7d",
         "noDates": "Always on",
         "fromDate": "From {date}",
         "untilDate": "Until {date}",
@@ -649,7 +648,7 @@
         "hint": "click to start from a template",
         "chips": {
           "weekendSpecial": "Weekend special",
-          "lunchCombo": "Lunch combo bundle",
+          "lunchDiscount": "Lunch discount",
           "loyaltyDiscount": "Loyalty discount for repeat customers"
         }
       },
