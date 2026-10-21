@@ -1,9 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Clock, Coffee, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { TimeField, type TimeFormat } from './time-field';
 import {
   WEEKDAY_KEYS,
   workingHoursToWindows,
@@ -19,8 +17,9 @@ import {
 // turns its row red: "the offer does NOT run this day". T24.4 — each active day
 // can also carve out a mid-day break (venue shut 15:00–17:00).
 //
-// The 24h ↔ AM/PM choice is an operator display preference (not a property of
-// the menu), so it lives in localStorage and never changes what is stored.
+// Times are edited with native <input type="time"> (same as the business hours
+// form), so the 24h / AM-PM display follows the browser locale. Storage is
+// always the canonical 24h "HH:MM" string.
 
 export interface DayWindow {
   start: string;
@@ -39,8 +38,6 @@ const WEEK_DAYS = [
   { key: 'sat', label: 'S' },
   { key: 'sun', label: 'S' },
 ] as const;
-
-const FORMAT_STORAGE_KEY = 'dm-admin-time-format';
 
 const FALLBACK_WINDOW: DayWindow = { start: '09:00', end: '18:00' };
 const DEFAULT_BREAK = { breakStart: '15:00', breakEnd: '17:00' };
@@ -87,6 +84,33 @@ interface DayWindowsEditorProps {
   useVenueHoursLabel?: string;
 }
 
+/** Native time input, styled like the business hours form. Value is 24h "HH:MM". */
+function TimeInput({
+  value,
+  onChange,
+  testId,
+  ariaLabel,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  testId: string;
+  ariaLabel: string;
+}) {
+  return (
+    <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
+      <Clock className="h-3.5 w-3.5 text-text-muted" strokeWidth={1.5} aria-hidden="true" />
+      <input
+        type="time"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={ariaLabel}
+        data-testid={testId}
+        className="rounded-[6px] border border-border bg-[#FAFAF9] px-[10px] py-[4px] text-[12.5px] text-text-default tabular-nums focus:border-text-default focus:outline-none"
+      />
+    </div>
+  );
+}
+
 export function DayWindowsEditor({
   value,
   onChange,
@@ -98,27 +122,6 @@ export function DayWindowsEditor({
   breakLabel = 'Break',
   useVenueHoursLabel = 'Use venue hours',
 }: DayWindowsEditorProps) {
-  const [format, setFormat] = useState<TimeFormat>('H23');
-
-  // Restore the operator's preferred style.
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(FORMAT_STORAGE_KEY);
-      if (stored === 'H12' || stored === 'H23') setFormat(stored);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  const chooseFormat = (next: TimeFormat) => {
-    setFormat(next);
-    try {
-      localStorage.setItem(FORMAT_STORAGE_KEY, next);
-    } catch {
-      /* ignore */
-    }
-  };
-
   const setWindow = (day: string, next: DayWindow | null) => {
     const draft = { ...value };
     if (next) draft[day] = next;
@@ -152,36 +155,9 @@ export function DayWindowsEditor({
 
   return (
     <div className="space-y-2" data-testid={`${testIdPrefix}-day-windows`}>
-      <div className="flex flex-wrap items-center gap-2">
-        {/* 24h ↔ AM/PM style toggle */}
-        <div
-          className="inline-flex rounded-md border border-border p-0.5"
-          data-testid={`${testIdPrefix}-time-format`}
-        >
-          {(
-            [
-              { key: 'H23', label: '24h' },
-              { key: 'H12', label: 'AM/PM' },
-            ] as const
-          ).map((opt) => (
-            <button
-              key={opt.key}
-              type="button"
-              onClick={() => chooseFormat(opt.key)}
-              data-testid={`${testIdPrefix}-time-format-${opt.key}`}
-              data-active={format === opt.key ? 'true' : 'false'}
-              className={cn(
-                'rounded px-2 py-0.5 text-[11px] font-semibold transition-colors',
-                format === opt.key ? 'bg-text-default text-white' : 'text-text-muted hover:bg-chip',
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {/* T24.4 — snap every day back to the venue's opening hours. */}
-        {venueHoursAvailable && (
+      {/* T24.4 — snap every day back to the venue's opening hours. */}
+      {venueHoursAvailable && (
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => onChange(defaultDayWindows(workingHours))}
@@ -191,8 +167,8 @@ export function DayWindowsEditor({
             <Clock className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
             {useVenueHoursLabel}
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {WEEK_DAYS.map((day) => {
         const win = value?.[day.key];
@@ -227,27 +203,19 @@ export function DayWindowsEditor({
 
               {active ? (
                 <div className="flex flex-1 flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
-                    <Clock className="h-3.5 w-3.5 text-text-muted" strokeWidth={1.5} />
-                    <TimeField
-                      value={win!.start}
-                      onChange={(start) => patchWindow(day.key, { start })}
-                      format={format}
-                      testId={`${testIdPrefix}-day-start-${day.key}`}
-                      ariaLabel={`${day.key} start`}
-                    />
-                  </div>
+                  <TimeInput
+                    value={win!.start}
+                    onChange={(start) => patchWindow(day.key, { start })}
+                    testId={`${testIdPrefix}-day-start-${day.key}`}
+                    ariaLabel={`${day.key} start`}
+                  />
                   <span className="text-[12px] text-text-muted">{toLabel}</span>
-                  <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
-                    <Clock className="h-3.5 w-3.5 text-text-muted" strokeWidth={1.5} />
-                    <TimeField
-                      value={win!.end}
-                      onChange={(end) => patchWindow(day.key, { end })}
-                      format={format}
-                      testId={`${testIdPrefix}-day-end-${day.key}`}
-                      ariaLabel={`${day.key} end`}
-                    />
-                  </div>
+                  <TimeInput
+                    value={win!.end}
+                    onChange={(end) => patchWindow(day.key, { end })}
+                    testId={`${testIdPrefix}-day-end-${day.key}`}
+                    ariaLabel={`${day.key} end`}
+                  />
                   {!hasBreak && (
                     <button
                       type="button"
@@ -275,25 +243,19 @@ export function DayWindowsEditor({
                   <Coffee className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
                   {breakLabel}
                 </span>
-                <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
-                  <TimeField
-                    value={win!.breakStart!}
-                    onChange={(breakStart) => patchWindow(day.key, { breakStart })}
-                    format={format}
-                    testId={`${testIdPrefix}-day-break-start-${day.key}`}
-                    ariaLabel={`${day.key} break start`}
-                  />
-                </div>
+                <TimeInput
+                  value={win!.breakStart!}
+                  onChange={(breakStart) => patchWindow(day.key, { breakStart })}
+                  testId={`${testIdPrefix}-day-break-start-${day.key}`}
+                  ariaLabel={`${day.key} break start`}
+                />
                 <span className="text-[12px] text-text-muted">{toLabel}</span>
-                <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
-                  <TimeField
-                    value={win!.breakEnd!}
-                    onChange={(breakEnd) => patchWindow(day.key, { breakEnd })}
-                    format={format}
-                    testId={`${testIdPrefix}-day-break-end-${day.key}`}
-                    ariaLabel={`${day.key} break end`}
-                  />
-                </div>
+                <TimeInput
+                  value={win!.breakEnd!}
+                  onChange={(breakEnd) => patchWindow(day.key, { breakEnd })}
+                  testId={`${testIdPrefix}-day-break-end-${day.key}`}
+                  ariaLabel={`${day.key} break end`}
+                />
                 <button
                   type="button"
                   onClick={() => patchWindow(day.key, { breakStart: null, breakEnd: null })}

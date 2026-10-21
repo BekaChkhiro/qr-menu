@@ -131,16 +131,18 @@ test.describe('promotion drawer (T15.8)', () => {
     await page.getByTestId('promotion-day-toggle-mon').click();
     await page.getByTestId('promotion-day-toggle-fri').click();
 
-    // Set Monday's window. TimeField renders hour/minute as separate segments
-    // (T22.21), and mirrors the canonical 24h value on the group's data-value.
-    await page.getByTestId('promotion-day-start-mon-hour').fill('18');
-    await page.getByTestId('promotion-day-start-mon-minute').fill('00');
-    await page.getByTestId('promotion-day-end-mon-hour').fill('20');
-    await page.getByTestId('promotion-day-end-mon-minute').fill('00');
-    await expect(page.getByTestId('promotion-day-start-mon')).toHaveAttribute(
-      'data-value',
-      '18:00',
-    );
+    // Set Monday's window with native time inputs (canonical 24h HH:MM).
+    await page.getByTestId('promotion-day-start-mon').fill('09:30');
+    await expect(page.getByTestId('promotion-day-start-mon')).toHaveValue('09:30');
+    await page.getByTestId('promotion-day-end-mon').fill('18:00');
+    await expect(page.getByTestId('promotion-day-end-mon')).toHaveValue('18:00');
+
+    // Break start/end use the same native inputs.
+    await page.getByTestId('promotion-day-add-break-mon').click();
+    await page.getByTestId('promotion-day-break-start-mon').fill('13:00');
+    await expect(page.getByTestId('promotion-day-break-start-mon')).toHaveValue('13:00');
+    await page.getByTestId('promotion-day-break-end-mon').fill('14:00');
+    await expect(page.getByTestId('promotion-day-break-end-mon')).toHaveValue('14:00');
 
     // Switch to Appearance tab and upload is skipped in test (complex)
     await page.getByTestId('promotion-drawer-tab-appearance').click();
@@ -163,9 +165,21 @@ test.describe('promotion drawer (T15.8)', () => {
     await expect(
       page.getByTestId('editor-promotions-grid').locator('article'),
     ).toHaveCount(1);
+    const saved = await prismaTest.promotion.findFirst({ where: { menuId: menu.id } });
     await expect(
-      page.getByTestId('editor-promotions-card-' + (await prismaTest.promotion.findFirst({ where: { menuId: menu.id } }))!.id + '-title'),
+      page.getByTestId('editor-promotions-card-' + saved!.id + '-title'),
     ).toHaveText('Happy Hour');
+
+    // The typed times are stored as canonical 24h HH:MM.
+    const restrictions = saved!.timeRestrictions as {
+      windows?: Record<string, { start: string; end: string; breakStart?: string; breakEnd?: string }>;
+    };
+    expect(restrictions.windows?.mon).toMatchObject({
+      start: '09:30',
+      end: '18:00',
+      breakStart: '13:00',
+      breakEnd: '14:00',
+    });
   });
 
   // ── Functional: combo promotion generates an Offers product (T22.24) ──────
@@ -292,13 +306,7 @@ test.describe('promotion drawer (T15.8)', () => {
       'data-active',
       'true',
     );
-    await expect(page.getByTestId('promotion-day-start-sat')).toHaveAttribute(
-      'data-value',
-      '09:00',
-    );
-    await expect(page.getByTestId('promotion-day-end-sat')).toHaveAttribute(
-      'data-value',
-      '13:00',
-    );
+    await expect(page.getByTestId('promotion-day-start-sat')).toHaveValue('09:00');
+    await expect(page.getByTestId('promotion-day-end-sat')).toHaveValue('13:00');
   });
 });
