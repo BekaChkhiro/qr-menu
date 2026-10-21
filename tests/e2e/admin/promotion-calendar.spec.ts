@@ -22,7 +22,7 @@ test.afterAll(async () => {
   }
 });
 
-test('calendar renders a bar per promotion, including overlapping ones', async ({ page }) => {
+test('calendar renders a bar per promotion, including overlapping and open-ended ones', async ({ page }) => {
   const email = `promo-cal-${RUN_ID}@test.local`;
   const user = await prismaTest.user.create({
     data: {
@@ -69,6 +69,16 @@ test('calendar renders a bar per promotion, including overlapping ones', async (
     },
   });
 
+  // T24.1 — a permanent (open-ended, no dates) promotion is drawn too, running to the grid edge.
+  const promoOpen = await prismaTest.promotion.create({
+    data: {
+      ...base,
+      titleKa: 'მუდმივი აქცია',
+      startDate: null,
+      endDate: null,
+    },
+  });
+
   await loginAs(page, email);
   await page.goto(`/admin/menus/${menu.id}?tab=promotions`);
 
@@ -78,6 +88,7 @@ test('calendar renders a bar per promotion, including overlapping ones', async (
   // Each promotion is drawn at least once in the current month view.
   await expect(page.getByTestId(`promotion-calendar-bar-${promoA.id}`).first()).toBeVisible();
   await expect(page.getByTestId(`promotion-calendar-bar-${promoB.id}`).first()).toBeVisible();
+  await expect(page.getByTestId(`promotion-calendar-bar-${promoOpen.id}`).first()).toBeVisible();
 
   // Month navigation works and is reversible.
   const monthLabel = calendar.getByTestId('promotion-calendar-month');

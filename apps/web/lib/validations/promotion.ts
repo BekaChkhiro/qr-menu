@@ -157,6 +157,9 @@ export const createPromotionSchema = z
     // until its `isActive` switch is turned off.
     startDate: optionalDate,
     endDate: optionalDate,
+    // Drawer-only "Date range" switch. Off = open-ended (the drawer sends both
+    // dates as null); on = at least one date is required. Absent = treated as on.
+    dateRangeEnabled: z.boolean().optional(),
     isActive: z.boolean().default(true),
     sortOrder: z.number().int().nonnegative().optional(),
 
@@ -176,9 +179,20 @@ export const createPromotionSchema = z
     timeRestrictions: timeRestrictionsSchema.optional().nullable(),
     ...promotionExtraFields,
   })
-  .refine((data) => !data.startDate || !data.endDate || data.endDate > data.startDate, {
-    message: 'End date must be after start date',
-    path: ['endDate'],
+  .refine(
+    (data) =>
+      data.dateRangeEnabled === false ||
+      !data.startDate ||
+      !data.endDate ||
+      data.endDate > data.startDate,
+    {
+      message: 'End date must be after start date',
+      path: ['endDate'],
+    },
+  )
+  .refine((data) => data.dateRangeEnabled !== true || !!data.startDate || !!data.endDate, {
+    message: 'Pick a start or end date, or switch the date range off',
+    path: ['dateRangeEnabled'],
   })
   .refine(
     (data) => {

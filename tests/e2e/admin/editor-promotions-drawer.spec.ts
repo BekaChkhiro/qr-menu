@@ -9,6 +9,7 @@
 //                edit mode pre-population.
 
 import { expect, test, type Page } from '@playwright/test';
+import bcrypt from 'bcryptjs';
 
 import { loginAs } from '../fixtures/auth';
 import {
@@ -148,8 +149,10 @@ test.describe('promotion drawer (T15.8)', () => {
     await page.getByTestId('promotion-drawer-tab-appearance').click();
     await expect(page.getByTestId('promotion-drawer-banner-upload')).toBeVisible();
 
-    // Switch to Schedule tab and set dates
+    // Switch to Schedule tab, turn the date range on (off by default) and set dates
     await page.getByTestId('promotion-drawer-tab-schedule').click();
+    await page.getByTestId('promotion-date-range-toggle').click();
+    await expect(page.getByTestId('promotion-drawer-date-range')).toBeVisible();
     const startStr = day(0).toISOString().split('T')[0];
     const endStr = day(14).toISOString().split('T')[0];
     await page.getByTestId('promotion-start-date').fill(startStr);
@@ -202,8 +205,9 @@ test.describe('promotion drawer (T15.8)', () => {
 
     await page.getByTestId('promotion-combo-price-input').fill('12');
 
-    // Set the schedule dates
+    // Set the schedule dates (the date range switch must be on first)
     await page.getByTestId('promotion-drawer-tab-schedule').click();
+    await page.getByTestId('promotion-date-range-toggle').click();
     await page.getByTestId('promotion-start-date').fill(day(0).toISOString().split('T')[0]);
     await page.getByTestId('promotion-end-date').fill(day(14).toISOString().split('T')[0]);
 
@@ -308,5 +312,121 @@ test.describe('promotion drawer (T15.8)', () => {
     );
     await expect(page.getByTestId('promotion-day-start-sat')).toHaveValue('09:00');
     await expect(page.getByTestId('promotion-day-end-sat')).toHaveValue('13:00');
+
+    // A promotion that already has dates opens with the date range switch on.
+    await page.getByTestId('promotion-drawer-tab-schedule').click();
+    await expect(page.getByTestId('promotion-date-range-toggle')).toBeChecked();
+    await expect(page.getByTestId('promotion-start-date')).toBeVisible();
+  });
+});
+
+// ── T1.5 — Date range switch: toggle, save, reopen ──────────────────────────
+//
+// Additive seeds only (no resetDb / TRUNCATE): the user and menu are created
+// here and removed by id in afterAll, so this block runs against any DB the
+// other specs in this file cannot reset.
+
+const RUN_ID = `t15-daterange-${Date.now()}`;
+const cleanupUserIds: string[] = [];
+
+test.describe('promotion date range switch (T1.5)', () => {
+  test.describe.configure({ mode: 'serial' });
+
+  test.afterAll(async () => {
+    for (const id of cleanupUserIds) {
+      await prismaTest.user.delete({ where: { id } }).catch(() => {});
+    }
+  });
+
+  test.beforeEach(async ({ context }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Desktop-only drawer');
+    await context.clearCookies();
+    await context.addCookies([
+      { name: 'NEXT_LOCALE', value: 'en', domain: 'localhost', path: '/' },
+    ]);
+  });
+
+  test('toggle, save, reopen: the switch and the card show permanent vs dated', async ({
+    page,
+  }) => {
+    const email = `t15-daterange-${RUN_ID}@test.local`;
+    const user = await prismaTest.user.create({
+      data: {
+        email: email.toLowerCase(),
+        name: 'Nino Kapanadze',
+        plan: 'STARTER',
+        password: await bcrypt.hash('password-not-used', 10),
+        emailVerified: new Date(),
+      },
+    });
+    cleanupUserIds.push(user.id);
+    const menu = await prismaTest.menu.create({
+      data: {
+        userId: user.id,
+        name: 'Café Linville',
+        nameKa: 'Café Linville',
+        slug: `linville-${RUN_ID}`,
+        status: 'PUBLISHED',
+        publishedAt: new Date(),
+        enabledLanguages: ['KA'],
+      },
+    });
+    const title = 'Date range flow';
+
+    await loginAs(page, email);
+    await page.goto(`/admin/menus/${menu.id}?tab=promotions`);
+    await expect(page.getByTestId('editor-promotions-tab')).toBeVisible();
+
+    // New promotion: the switch starts off, so there are no date inputs and the
+    // status reads "Always on" (the permanent copy).
+    await page.getByTestId('editor-promotions-new').click();
+    await expect(page.getByTestId('promotion-drawer')).toBeVisible();
+    await page.getByTestId('promotion-title-input').fill(title);
+    await page.getByTestId('promotion-type-banner').click();
+    await page.getByTestId('promotion-drawer-tab-schedule').click();
+    await expect(page.getByTestId('promotion-date-range-toggle')).not.toBeChecked();
+    await expect(page.getByTestId('promotion-start-date')).toHaveCount(0);
+    await expect(page.getByTestId('promotion-date-range-status')).toHaveText('Always on');
+
+    // Toggle on, pick a range, and save.
+    await page.getByTestId('promotion-date-range-toggle').click();
+    await page.getByTestId('promotion-start-date').fill(day(0).toISOString().split('T')[0]);
+    await page.getByTestId('promotion-end-date').fill(day(14).toISOString().split('T')[0]);
+    await expect(page.getByTestId('promotion-date-range-status')).toContainText(/\d{4}/);
+    await page.getByTestId('promotion-drawer-save').click();
+    await expect(page.getByTestId('promotion-drawer')).toHaveCount(0);
+
+    const saved = await prismaTest.promotion.findFirst({ where: { menuId: menu.id, titleKa: title } });
+    expect(saved!.startDate).not.toBeNull();
+    expect(saved!.endDate).not.toBeNull();
+    const card = page.getByTestId(`editor-promotions-card-${saved!.id}`);
+    await expect(card.getByTestId(`editor-promotions-card-${saved!.id}-dates`)).toContainText(/\d{4}/);
+
+    // Reopen: the switch is on because the promotion has dates. Turn it off and save.
+    await card.getByTestId(`editor-promotions-card-${saved!.id}-kebab`).click();
+    await page.getByRole('menuitem', { name: 'Edit' }).click();
+    await expect(page.getByTestId('promotion-drawer')).toBeVisible();
+    await page.getByTestId('promotion-drawer-tab-schedule').click();
+    await expect(page.getByTestId('promotion-date-range-toggle')).toBeChecked();
+    await page.getByTestId('promotion-date-range-toggle').click();
+    await expect(page.getByTestId('promotion-date-range-status')).toHaveText('Always on');
+    await page.getByTestId('promotion-drawer-save').click();
+    await expect(page.getByTestId('promotion-drawer')).toHaveCount(0);
+
+    // Stored as open-ended, and the card now reads "Always on".
+    const reopened = await prismaTest.promotion.findUnique({ where: { id: saved!.id } });
+    expect(reopened!.startDate).toBeNull();
+    expect(reopened!.endDate).toBeNull();
+    await expect(card.getByTestId(`editor-promotions-card-${saved!.id}-dates`)).toHaveText(
+      'Always on',
+    );
+
+    // Reopen once more: the switch stays off.
+    await card.getByTestId(`editor-promotions-card-${saved!.id}-kebab`).click();
+    await page.getByRole('menuitem', { name: 'Edit' }).click();
+    await expect(page.getByTestId('promotion-drawer')).toBeVisible();
+    await page.getByTestId('promotion-drawer-tab-schedule').click();
+    await expect(page.getByTestId('promotion-date-range-toggle')).not.toBeChecked();
+    await expect(page.getByTestId('promotion-date-range-status')).toHaveText('Always on');
   });
 });

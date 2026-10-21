@@ -3,7 +3,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { format } from 'date-fns';
+import { enUS, ka, ru } from 'date-fns/locale';
 import { Percent, Megaphone, Gift, X, Loader2, Trash2 } from 'lucide-react';
 import * as SheetPrimitive from '@radix-ui/react-dialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -65,6 +67,8 @@ interface PromotionFormValues {
   // T24.1 — optional: `null` means "no boundary" (runs until switched off).
   startDate: Date | null;
   endDate: Date | null;
+  // "Date range" switch. Off saves both dates as null (open-ended).
+  dateRangeEnabled: boolean;
   isActive: boolean;
   // T22.19 — top-level promotion type drives which fields show.
   type: PromotionType;
@@ -120,6 +124,8 @@ function formatDateForInput(date: Date | null | undefined): string {
   return date.toISOString().split('T')[0];
 }
 
+const DATE_LOCALES = { ka, en: enUS, ru } as const;
+
 function hashString(input: string): number {
   let h = 0;
   for (let i = 0; i < input.length; i++) {
@@ -173,7 +179,9 @@ export function PromotionDrawer({
   multilangUnlocked = false,
 }: PromotionDrawerProps) {
   const t = useTranslations('admin.promotions.drawer');
+  const tCard = useTranslations('admin.editor.promotions.card');
   const tActions = useTranslations('actions');
+  const locale = useLocale();
   const isEditing = !!promotion;
   const [activeTab, setActiveTab] = useState<DrawerTab>('details');
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -209,6 +217,7 @@ export function PromotionDrawer({
       // T24.1 — no dates by default: a new promotion just runs once it's on.
       startDate: null,
       endDate: null,
+      dateRangeEnabled: false,
       isActive: true,
       type: 'PERCENTAGE',
       discountType: null,
@@ -242,6 +251,8 @@ export function PromotionDrawer({
         imageUrl: promotion?.imageUrl || null,
         startDate: promotion?.startDate ? new Date(promotion.startDate) : null,
         endDate: promotion?.endDate ? new Date(promotion.endDate) : null,
+        // A promotion that already has a boundary opens with the switch on.
+        dateRangeEnabled: !!(promotion?.startDate || promotion?.endDate),
         isActive: promotion?.isActive ?? true,
         type: inferPromotionType(promotion),
         discountType: (promotion?.discountType as PromotionFormValues['discountType']) || null,
@@ -268,7 +279,14 @@ export function PromotionDrawer({
     setSaveError(null);
     try {
       // T22.19 — normalize by type so only the relevant fields persist.
-      const payload: PromotionFormValues = { ...data };
+      // The Date range switch is UI-only: it is not a column, so it never leaves
+      // the drawer. Switch off → open-ended, both boundaries cleared.
+      const { dateRangeEnabled, ...values } = data;
+      const payload: Omit<PromotionFormValues, 'dateRangeEnabled'> = { ...values };
+      if (!dateRangeEnabled) {
+        payload.startDate = null;
+        payload.endDate = null;
+      }
       if (data.type === 'PERCENTAGE') {
         payload.discountType = 'PERCENTAGE';
         payload.comboProductIds = [];
@@ -301,6 +319,23 @@ export function PromotionDrawer({
   const imageUrlWatch = form.watch('imageUrl');
   const timeEnabled = form.watch('timeRestrictions.enabled');
   const timeWindows = form.watch('timeRestrictions.windows');
+  const dateRangeEnabled = form.watch('dateRangeEnabled');
+  const startDateWatch = form.watch('startDate');
+  const endDateWatch = form.watch('endDate');
+
+  // Status line under the Date range switch. Same wording as the card: no
+  // boundary reads as permanent, otherwise the span "from–to".
+  const dateRangeStatus = (() => {
+    if (!dateRangeEnabled || (!startDateWatch && !endDateWatch)) return tCard('noDates');
+    const dateLocale = DATE_LOCALES[locale as keyof typeof DATE_LOCALES] ?? enUS;
+    if (startDateWatch && endDateWatch) {
+      return `${format(startDateWatch, 'MMM d', { locale: dateLocale })}–${format(endDateWatch, 'MMM d, yyyy', { locale: dateLocale })}`;
+    }
+    if (startDateWatch) {
+      return tCard('fromDate', { date: format(startDateWatch, 'MMM d, yyyy', { locale: dateLocale }) });
+    }
+    return tCard('untilDate', { date: format(endDateWatch!, 'MMM d, yyyy', { locale: dateLocale }) });
+  })();
 
   // Header dots: language is "filled" once either its title or description has content.
   const titleKaWatch = form.watch('titleKa');
@@ -1004,61 +1039,94 @@ export function PromotionDrawer({
 
               {/* ── Schedule tab ────────────────────────────────────────── */}
               <TabsContent value="schedule" className="m-0 space-y-6 p-6 focus-visible:outline-none">
-                {/* Date range — T24.1: both sides optional. */}
-                <p
-                  className="text-[12px] leading-[1.45] text-text-muted"
-                  data-testid="promotion-drawer-dates-optional-hint"
-                >
-                  {t('fields.datesOptionalHint')}
-                </p>
-                <div className="grid gap-4 sm:grid-cols-2" data-testid="promotion-drawer-date-range">
-                  <div>
-                    <Label className="mb-2 block text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
-                      {t('fields.startDate')}
-                    </Label>
-                    <Controller
-                      control={form.control}
-                      name="startDate"
-                      render={({ field }) => (
-                        <Input
-                          type="date"
-                          value={formatDateForInput(field.value)}
-                          onChange={(e) => {
-                            const date = e.target.value ? new Date(e.target.value) : null;
-                            field.onChange(date);
-                          }}
-                          data-testid="promotion-start-date"
-                        />
-                      )}
-                    />
-                    {form.formState.errors.startDate && (
-                      <p className="mt-1 text-[12px] text-danger">{form.formState.errors.startDate.message}</p>
-                    )}
+                {/* Date range — T24.1: off means open-ended (permanent until Active is switched off). */}
+                <div data-testid="promotion-drawer-date-range-section">
+                  <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
+                    {t('fields.dateRangeLabel')}
                   </div>
-                  <div>
-                    <Label className="mb-2 block text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
-                      {t('fields.endDate')}
-                    </Label>
-                    <Controller
-                      control={form.control}
-                      name="endDate"
-                      render={({ field }) => (
-                        <Input
-                          type="date"
-                          value={formatDateForInput(field.value)}
-                          onChange={(e) => {
-                            const date = e.target.value ? new Date(e.target.value) : null;
-                            field.onChange(date);
-                          }}
-                          data-testid="promotion-end-date"
+                  <Controller
+                    control={form.control}
+                    name="dateRangeEnabled"
+                    render={({ field }) => (
+                      <div
+                        className={cn(
+                          'flex items-center gap-3 rounded-lg border p-3',
+                          field.value ? 'border-accent shadow-[0_0_0_3px_hsl(var(--accent-soft))]' : 'border-border',
+                        )}
+                      >
+                        <div className="flex-1">
+                          <div className="text-[13px] font-medium text-text-default">
+                            {t('fields.dateRangeToggleTitle')}
+                          </div>
+                        </div>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="promotion-date-range-toggle"
                         />
-                      )}
-                    />
-                    {form.formState.errors.endDate && (
-                      <p className="mt-1 text-[12px] text-danger">{form.formState.errors.endDate.message}</p>
+                      </div>
                     )}
-                  </div>
+                  />
+                  <p
+                    className="mt-2 text-[12px] text-text-muted"
+                    data-testid="promotion-date-range-status"
+                  >
+                    {dateRangeStatus}
+                  </p>
+                  {form.formState.errors.dateRangeEnabled && (
+                    <p className="mt-1 text-[12px] text-danger">{t('fields.dateRangeRequired')}</p>
+                  )}
                 </div>
+                {dateRangeEnabled && (
+                  <div className="grid gap-4 sm:grid-cols-2" data-testid="promotion-drawer-date-range">
+                    <div>
+                      <Label className="mb-2 block text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
+                        {t('fields.startDate')}
+                      </Label>
+                      <Controller
+                        control={form.control}
+                        name="startDate"
+                        render={({ field }) => (
+                          <Input
+                            type="date"
+                            value={formatDateForInput(field.value)}
+                            onChange={(e) => {
+                              const date = e.target.value ? new Date(e.target.value) : null;
+                              field.onChange(date);
+                            }}
+                            data-testid="promotion-start-date"
+                          />
+                        )}
+                      />
+                      {form.formState.errors.startDate && (
+                        <p className="mt-1 text-[12px] text-danger">{form.formState.errors.startDate.message}</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="mb-2 block text-[11.5px] font-semibold uppercase tracking-[0.4px] text-text-default">
+                        {t('fields.endDate')}
+                      </Label>
+                      <Controller
+                        control={form.control}
+                        name="endDate"
+                        render={({ field }) => (
+                          <Input
+                            type="date"
+                            value={formatDateForInput(field.value)}
+                            onChange={(e) => {
+                              const date = e.target.value ? new Date(e.target.value) : null;
+                              field.onChange(date);
+                            }}
+                            data-testid="promotion-end-date"
+                          />
+                        )}
+                      />
+                      {form.formState.errors.endDate && (
+                        <p className="mt-1 text-[12px] text-danger">{form.formState.errors.endDate.message}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Active toggle */}
                 <Controller
