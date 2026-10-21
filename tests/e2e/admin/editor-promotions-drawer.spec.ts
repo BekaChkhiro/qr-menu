@@ -408,6 +408,11 @@ test.describe('promotion date range switch (T1.5)', () => {
 
     // Toggle on, pick a range, and save.
     await page.getByTestId('promotion-date-range-toggle').click();
+    // T1.5 — ON with no dates prefills today → +7 days, so the shown fields match the
+    // form value and the status reads the range instead of "Always on".
+    await expect(page.getByTestId('promotion-start-date')).toHaveValue(/^\d{4}-\d{2}-\d{2}$/);
+    await expect(page.getByTestId('promotion-end-date')).toHaveValue(/^\d{4}-\d{2}-\d{2}$/);
+    await expect(page.getByTestId('promotion-date-range-status')).not.toHaveText('Always on');
     await page.getByTestId('promotion-start-date').fill(day(0).toISOString().split('T')[0]);
     await page.getByTestId('promotion-end-date').fill(day(14).toISOString().split('T')[0]);
     await expect(page.getByTestId('promotion-date-range-status')).toContainText(/\d{4}/);

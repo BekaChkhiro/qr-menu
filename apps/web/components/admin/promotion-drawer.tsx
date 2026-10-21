@@ -35,6 +35,7 @@ import { useCategories } from '@/hooks/use-categories';
 import { useProducts } from '@/hooks/use-products';
 import { useMenu } from '@/hooks/use-menus';
 import { normalizeWorkingHours } from '@/lib/menu/working-hours';
+import { defaultDateRange } from '@/lib/promotions/date-range';
 
 const FORM_ID = 'promotion-drawer-form';
 
@@ -831,7 +832,17 @@ export function PromotionDrawer({
                         </div>
                         <Switch
                           checked={field.value}
-                          onCheckedChange={field.onChange}
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked);
+                            // T1.5 — ON with no dates prefills today → +7 days so the
+                            // visible fields match the form (Safari shows today anyway).
+                            const { startDate, endDate } = form.getValues();
+                            if (checked && !startDate && !endDate) {
+                              const range = defaultDateRange();
+                              form.setValue('startDate', range.startDate, { shouldDirty: true, shouldValidate: true });
+                              form.setValue('endDate', range.endDate, { shouldDirty: true, shouldValidate: true });
+                            }
+                          }}
                           data-testid="promotion-date-range-toggle"
                         />
                       </div>
