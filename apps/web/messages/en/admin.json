@@ -671,6 +671,24 @@
           "c": "Schedule ahead of time"
         },
         "proLink": "See PRO features →"
+      },
+      "calendar": {
+        "ariaLabel": "Promotions calendar",
+        "prev": "Previous month",
+        "next": "Next month",
+        "today": "Today",
+        "alwaysOn": "Always on",
+        "more": "+{count}",
+        "emptyMonth": "No dated promotions this month.",
+        "weekdays": {
+          "mon": "Mon",
+          "tue": "Tue",
+          "wed": "Wed",
+          "thu": "Thu",
+          "fri": "Fri",
+          "sat": "Sat",
+          "sun": "Sun"
+        }
       }
     },
     "analytics": {

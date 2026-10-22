@@ -608,6 +608,7 @@ export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocke
         <PromotionCalendar
           promotions={annotated.map((a) => a.promotion)}
           locale={locale as 'ka' | 'en' | 'ru'}
+          onSelect={(promotion) => setDialogPromotion(promotion)}
         />
         <div
           data-testid="editor-promotions-grid"
