@@ -572,9 +572,9 @@
       },
       "workingHours": {
         "label": "Working hours",
-        "helper": "Opening and closing times for the venue, with an optional mid-day break. Shown at the bottom of the public menu and used to pre-fill promotion time limits.",
-        "toggleTitle": "Show working hours",
-        "toggleHint": "When off, the hours are hidden from the bottom of the public menu. Promotion time windows still pre-fill from them.",
+        "helper": "Your opening and closing time for each day, with an optional break. The hours appear at the bottom of the public menu, and new promotion times are pre-filled from them.",
+        "toggleTitle": "Show hours on the menu",
+        "toggleHint": "When on, your working hours appear at the bottom of the public menu. When off, they are hidden, but promotion times are still pre-filled from these hours.",
         "closed": "Closed",
         "to": "to",
         "addBreak": "Add break",
@@ -585,7 +585,7 @@
         "saving": "Saving…",
         "saved": "Working hours saved",
         "saveFailed": "Failed to save working hours",
-        "discard": "Discard",
+        "discard": "Discard changes",
         "days": {
           "mon": "Mon",
           "tue": "Tue",
