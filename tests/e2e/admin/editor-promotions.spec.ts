@@ -141,6 +141,8 @@ test.describe('editor promotions tab (T15.7)', () => {
     await expect(
       page.getByTestId('editor-promotions-grid').locator('article'),
     ).toHaveCount(4);
+    // #8: no eye + "—" scans placeholder in the card footer.
+    await expect(page.locator('[data-testid$="-scans"]')).toHaveCount(0);
 
     // Mask the date-range row — the span shifts by one day at month
     // boundaries and the card content is the thing under test here.

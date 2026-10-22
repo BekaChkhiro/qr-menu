@@ -11,7 +11,6 @@ import {
   Calendar,
   Check,
   Copy,
-  Eye,
   Pencil,
   Plus,
   Sparkles,
@@ -334,17 +333,7 @@ function PromoCard({
           )}
         </div>
 
-        <div className="mt-auto flex items-center justify-between border-t border-border-soft pt-2.5">
-          {/* Per-promotion scan tracking doesn't exist yet, so no number is shown. */}
-          <div className="flex items-center gap-1.5 text-[11.5px] text-text-muted">
-            <Eye className="size-3 text-text-subtle" strokeWidth={1.5} />
-            <span
-              className="tabular-nums text-text-subtle"
-              data-testid={`editor-promotions-card-${promotion.id}-scans`}
-            >
-              —
-            </span>
-          </div>
+        <div className="mt-auto flex items-center justify-end border-t border-border-soft pt-2.5">
           <KebabMenu>
             <KebabMenuIconTrigger
               label={tKebab('menuLabel')}
