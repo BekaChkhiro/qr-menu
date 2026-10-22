@@ -130,10 +130,10 @@ describe('OffersCarousel', () => {
 });
 
 describe('FeaturedCarousel', () => {
-  it('renders the "Recommended" heading with no "see all" shortcut', () => {
+  it('renders the "Most ordered" heading with no "see all" shortcut', () => {
     render(<FeaturedCarousel products={[product()]} locale="en" settings={settings} />);
 
-    expect(screen.getByRole('region', { name: 'Recommended' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Most ordered' })).toBeInTheDocument();
     expect(screen.queryByTestId('featured-carousel-see-all')).not.toBeInTheDocument();
   });
 

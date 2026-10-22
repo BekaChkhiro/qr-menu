@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@/tests/utils';
 import userEvent from '@testing-library/user-event';
 import { ProductForm } from '../product-form';
 
-// T1.11 — the "Recommended" switch in the product drawer. Switching it on reveals
+// T1.11 — the "Most ordered" switch in the product drawer. Switching it on reveals
 // the order field, and the order is required while it's on. Switching it off
 // submits no order at all, so a dish can't keep a stale rail position.
 
@@ -30,13 +30,13 @@ const featuredToggle = () =>
 const rankInput = () =>
   screen.queryByTestId('product-basics-featured-rank-input') as HTMLInputElement | null;
 
-// Fill the fields every submit needs, so only the Recommended rule is under test.
+// Fill the fields every submit needs, so only the Most ordered rule is under test.
 async function fillRequired(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByTestId('product-basics-name-input'), 'ხაჭაპური');
   await user.type(screen.getByTestId('product-basics-price-input'), '12');
 }
 
-describe('ProductForm — Recommended (T1.11)', () => {
+describe('ProductForm — Most ordered (T1.11)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

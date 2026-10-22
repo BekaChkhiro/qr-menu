@@ -1,4 +1,4 @@
-// T1.11 — the public "რეკომენდებული / Recommended" rail on /m/[slug].
+// T1.11 — the public "ხშირად შეკვეთილი / Most ordered" rail on /m/[slug].
 //
 // Run: pnpm test:e2e tests/e2e/public/featured-rail-order.spec.ts
 //
@@ -100,8 +100,8 @@ test('marked dishes appear in the rail in the chosen order', async ({ page }) =>
   // Pin the locale: the rail title is asserted in Georgian.
   await page.goto(`/m/${menu.slug}?locale=ka`);
 
-  // Rail title is the KA "რეკომენდებული" (T1.11 rename).
-  await expect(page.getByTestId('featured-carousel')).toHaveAttribute('aria-label', 'რეკომენდებული');
+  // Rail title is the KA "ხშირად შეკვეთილი" (T2.4: label reverted by the client).
+  await expect(page.getByTestId('featured-carousel')).toHaveAttribute('aria-label', 'ხშირად შეკვეთილი');
 
   const hrefs = await railLinks(page).evaluateAll((els) => els.map((el) => el.getAttribute('href')));
   expect(hrefs).toEqual([`#product-${first.id}`, `#product-${second.id}`]);

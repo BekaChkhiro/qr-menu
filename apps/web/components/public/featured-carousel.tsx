@@ -11,12 +11,12 @@ interface FeaturedCarouselProps {
   settings: PublicDisplaySettings;
 }
 
-// T1.11 — renamed from "Most Ordered": the rail is hand-picked or ribbon-driven,
-// nothing counts orders.
+// T2.4 — the client prefers the original "Most ordered" label (2026-10-22 #11).
+// The rail is still hand-picked or ribbon-driven; nothing counts orders.
 const title: Record<Locale, string> = {
-  ka: 'რეკომენდებული',
-  en: 'Recommended',
-  ru: 'Рекомендуем',
+  ka: 'ხშირად შეკვეთილი',
+  en: 'Most ordered',
+  ru: 'Часто заказывают',
 };
 
 export function FeaturedCarousel({ products, locale, settings }: FeaturedCarouselProps) {
