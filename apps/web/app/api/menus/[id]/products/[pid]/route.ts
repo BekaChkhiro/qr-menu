@@ -15,6 +15,7 @@ import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 import { logActivity } from '@/lib/activity/log';
 import { validateComboItems } from '@/lib/products/combo-items';
 import { COMBO_ERROR_MESSAGES } from '@/lib/products/combo-rules';
+import { findManagingPromotion, promotionManagedMessage } from '@/lib/promotions/combo';
 
 // T22.23 — `discountWindows` is a Prisma Json? column: it accepts a JSON value
 // or Prisma.DbNull, never a bare `null`. Normalize the validated payload so the
@@ -169,6 +170,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ERROR_CODES.PRODUCT_NOT_FOUND,
         'Product not found',
         404
+      );
+    }
+
+    // T2.6 — a COMBO promotion's generated Offers product is edited through
+    // the promotion; a direct write would be undone (or orphaned) by the sync.
+    const managingPromotion = await findManagingPromotion(menuId, productId);
+    if (managingPromotion) {
+      return createErrorResponse(
+        ERROR_CODES.PROMOTION_MANAGED,
+        promotionManagedMessage(managingPromotion),
+        409,
+        { promotionId: managingPromotion.id }
       );
     }
 
@@ -376,6 +389,18 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         ERROR_CODES.PRODUCT_NOT_FOUND,
         'Product not found',
         404
+      );
+    }
+
+    // T2.6 — a COMBO promotion's generated Offers product is edited through
+    // the promotion; a direct write would be undone (or orphaned) by the sync.
+    const managingPromotion = await findManagingPromotion(menuId, productId);
+    if (managingPromotion) {
+      return createErrorResponse(
+        ERROR_CODES.PROMOTION_MANAGED,
+        promotionManagedMessage(managingPromotion),
+        409,
+        { promotionId: managingPromotion.id }
       );
     }
 

@@ -93,9 +93,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Fetch promotions
     // Category name feeds the scope line on each card ("კატეგორია: …").
+    // T2.6 — undated promotions all tie on startDate (NULLS FIRST), so without a
+    // tiebreak Postgres returned them in arbitrary order and a just-created
+    // permanent promotion could land anywhere in the grid. Newest first.
     const promotions = await prisma.promotion.findMany({
       where,
-      orderBy: { startDate: 'desc' },
+      orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
       include: {
         category: { select: { id: true, nameKa: true, nameEn: true, nameRu: true } },
       },

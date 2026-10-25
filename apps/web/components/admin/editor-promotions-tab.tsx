@@ -453,9 +453,27 @@ export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocke
     [annotated, filter],
   );
 
+  // T2.6 — after a create, bring the new card into view once the refetched list
+  // holds it. On a phone the grid sits below the calendar, so a fresh card was
+  // easy to miss; a filter that would hide it is reset to "all".
+  const [revealId, setRevealId] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (!revealId) return;
+    if (!annotated.some(({ promotion }) => promotion.id === revealId)) return;
+    if (!visible.some(({ promotion }) => promotion.id === revealId)) {
+      setFilter('all');
+      return;
+    }
+    document
+      .querySelector(`[data-testid="editor-promotions-card-${revealId}"]`)
+      ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    setRevealId(null);
+  }, [revealId, annotated, visible]);
+
   const handleCreate = async (data: CreatePromotionInput) => {
     try {
-      await createPromotion.mutateAsync(data);
+      const created = await createPromotion.mutateAsync(data);
+      setRevealId(created.id);
       setIsCreateOpen(false);
       setPrefill(undefined);
       toast.success(tPromo('toast.created'));

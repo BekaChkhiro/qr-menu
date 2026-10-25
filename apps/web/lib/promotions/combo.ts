@@ -201,6 +201,27 @@ export async function syncComboProduct(promotionId: string): Promise<void> {
   });
 }
 
+/**
+ * T2.6 — the COMBO promotion that owns a generated Offers product, if any.
+ * That product is rebuilt from the promotion on every save (name, price, image,
+ * dishes, availability), so editing or deleting it directly would only desync
+ * it until the next sync. The product routes refuse such writes and point the
+ * owner at the promotion instead.
+ */
+export async function findManagingPromotion(
+  menuId: string,
+  productId: string,
+): Promise<{ id: string; titleKa: string } | null> {
+  return prisma.promotion.findFirst({
+    where: { menuId, type: 'COMBO', comboProductId: productId },
+    select: { id: true, titleKa: true },
+  });
+}
+
+export function promotionManagedMessage(promotion: { titleKa: string }): string {
+  return `This combo is managed by the promotion "${promotion.titleKa}". Edit or delete it in the Promotions tab.`;
+}
+
 // Called from the promotion DELETE handler to clean up the generated product.
 export async function deleteComboProductFor(promotion: {
   comboProductId: string | null;
