@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Segmented, SegmentedItem } from '@/components/ui/segmented';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/toast';
 import { useUpdateMenu } from '@/hooks/use-menus';
@@ -26,6 +27,8 @@ const DEFAULT_ALLERGEN: AllergenDisplay = 'TEXT';
 const DEFAULT_CALORIES: CaloriesDisplay = 'DIRECT';
 const DEFAULT_SHOW_NUTRITION = false;
 const DEFAULT_SHOW_DISCOUNT = true;
+
+type OffersRailPosition = 'TOP' | 'BOTTOM';
 
 interface ContentDisplayCardProps {
   menu: Menu | MenuWithDetails;
@@ -55,6 +58,14 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
   const [featuredEnabled, setFeaturedEnabled] = useState<boolean>(
     menu.featuredEnabled ?? true,
   );
+  // T1.12 / T2.5 — Offers rail: on/off and above/below the menu body.
+  // Legacy menus (no stored value) read as ON / TOP.
+  const [offersRailEnabled, setOffersRailEnabled] = useState<boolean>(
+    menu.offersRailEnabled ?? true,
+  );
+  const [offersRailPosition, setOffersRailPosition] = useState<OffersRailPosition>(
+    menu.offersRailPosition ?? 'TOP',
+  );
 
   const prevMenuIdRef = useRef(menu.id);
   useEffect(() => {
@@ -66,6 +77,8 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
       setShowDiscount(menu.showDiscount ?? DEFAULT_SHOW_DISCOUNT);
       setPromoPopupEnabled(menu.promoPopupEnabled ?? false);
       setFeaturedEnabled(menu.featuredEnabled ?? true);
+      setOffersRailEnabled(menu.offersRailEnabled ?? true);
+      setOffersRailPosition(menu.offersRailPosition ?? 'TOP');
     }
   }, [
     menu.id,
@@ -75,6 +88,8 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
     menu.showDiscount,
     menu.promoPopupEnabled,
     menu.featuredEnabled,
+    menu.offersRailEnabled,
+    menu.offersRailPosition,
   ]);
 
   const save = async (patch: Parameters<typeof updateMenu.mutateAsync>[0]) => {
@@ -115,6 +130,18 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
   const handleFeaturedChange = (next: boolean) => {
     setFeaturedEnabled(next);
     void save({ featuredEnabled: next });
+  };
+
+  const handleOffersRailChange = (next: boolean) => {
+    setOffersRailEnabled(next);
+    void save({ offersRailEnabled: next });
+  };
+
+  const handleOffersRailPositionChange = (next: string) => {
+    const value = next as OffersRailPosition;
+    if (value === offersRailPosition) return;
+    setOffersRailPosition(value);
+    void save({ offersRailPosition: value });
   };
 
   return (
@@ -232,6 +259,37 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
             checked={featuredEnabled}
             onCheckedChange={handleFeaturedChange}
           />
+
+          {/* Offers rail switch + position (T2.5, moved from Settings) */}
+          <div className="flex flex-col gap-2">
+            <SwitchRow
+              testId="content-offers-rail-switch"
+              label={t('offersRail.label')}
+              description={t('offersRail.description')}
+              checked={offersRailEnabled}
+              onCheckedChange={handleOffersRailChange}
+            />
+            {offersRailEnabled && (
+              <div className="flex items-center justify-between gap-3 px-3">
+                <span className="text-[11.5px] text-text-muted">
+                  {t('offersRail.position.label')}
+                </span>
+                <Segmented
+                  data-testid="content-offers-rail-position"
+                  value={offersRailPosition}
+                  onValueChange={handleOffersRailPositionChange}
+                  ariaLabel={t('offersRail.position.label')}
+                >
+                  <SegmentedItem value="TOP" data-value="TOP">
+                    {t('offersRail.position.top')}
+                  </SegmentedItem>
+                  <SegmentedItem value="BOTTOM" data-value="BOTTOM">
+                    {t('offersRail.position.bottom')}
+                  </SegmentedItem>
+                </Segmented>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

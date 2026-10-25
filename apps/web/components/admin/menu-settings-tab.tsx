@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { MenuUrlVisibilitySection } from '@/components/admin/menu-url-visibility-section';
 import { MenuDescriptionSection } from '@/components/admin/menu-description-section';
@@ -12,16 +12,6 @@ import { MenuLocationContactSection } from '@/components/admin/menu-location-con
 import { MenuWorkingHoursSection } from '@/components/admin/menu-working-hours-section';
 import { SharedTableSection } from '@/components/admin/shared-table-section';
 import { SharedTableLocked } from '@/components/admin/shared-table-locked';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { toast } from '@/components/ui/toast';
-import { useUpdateMenu } from '@/hooks/use-menus';
 import { useUserPlan } from '@/hooks/use-user-plan';
 import type { MenuWithDetails } from '@/types/menu';
 
@@ -53,77 +43,6 @@ function Section({
       </div>
       {children}
     </div>
-  );
-}
-
-type OffersRailPosition = 'TOP' | 'BOTTOM';
-
-// T1.12 — Offers rail: on/off, and whether it sits above or below the body.
-// Legacy menus (no stored value) read as ON / TOP, matching today's public page.
-function OffersRailSection({ menu }: { menu: MenuWithDetails }) {
-  const t = useTranslations('admin.editor.settings.offersRail');
-  const updateMenu = useUpdateMenu(menu.id);
-
-  const [enabled, setEnabled] = useState<boolean>(menu.offersRailEnabled ?? true);
-  const [position, setPosition] = useState<OffersRailPosition>(
-    menu.offersRailPosition ?? 'TOP',
-  );
-
-  useEffect(() => {
-    setEnabled(menu.offersRailEnabled ?? true);
-    setPosition(menu.offersRailPosition ?? 'TOP');
-  }, [menu.id, menu.offersRailEnabled, menu.offersRailPosition]);
-
-  const save = async (patch: { offersRailEnabled?: boolean; offersRailPosition?: OffersRailPosition }) => {
-    try {
-      await updateMenu.mutateAsync(patch);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('saveError'));
-    }
-  };
-
-  const handleEnabledChange = (next: boolean) => {
-    setEnabled(next);
-    void save({ offersRailEnabled: next });
-  };
-
-  const handlePositionChange = (next: string) => {
-    const value = next as OffersRailPosition;
-    setPosition(value);
-    void save({ offersRailPosition: value });
-  };
-
-  return (
-    <Section label={t('label')} helper={t('helper')}>
-      <div className="flex items-center justify-between gap-3 rounded-[8px] border border-border bg-card-soft px-3 py-[10px]">
-        <div className="min-w-0">
-          <div className="text-[12px] font-semibold text-text-default">{t('switchLabel')}</div>
-          <div className="text-[10.5px] text-text-muted">{t('switchDescription')}</div>
-        </div>
-        <Switch
-          data-testid="offers-rail-switch"
-          checked={enabled}
-          onCheckedChange={handleEnabledChange}
-          aria-label={t('switchLabel')}
-        />
-      </div>
-
-      <div className="mt-3">
-        <Select value={position} onValueChange={handlePositionChange} disabled={!enabled}>
-          <SelectTrigger
-            data-testid="offers-rail-position-select"
-            aria-label={t('position.label')}
-            className="rounded-[8px] border border-border bg-white px-3 py-[9px] text-[13px]"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="TOP">{t('position.top')}</SelectItem>
-            <SelectItem value="BOTTOM">{t('position.bottom')}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </Section>
   );
 }
 
@@ -174,9 +93,6 @@ export function MenuSettingsTab({ menu }: MenuSettingsTabProps) {
             <SharedTableLocked />
           )}
         </Section>
-
-        {/* Offers row (T1.12) — on/off and TOP/BOTTOM placement, all plans */}
-        <OffersRailSection menu={menu} />
 
         {/* Description (T20.9) — fallback for SEO meta-description */}
         <Section

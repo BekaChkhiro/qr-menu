@@ -253,4 +253,56 @@ test.describe('content tab · display sub-card (T20.3)', () => {
     expect(row?.caloriesDisplay).toBe('HIDDEN');
     expect(row?.showNutrition).toBe(true);
   });
+
+  // ── Functional: Offers rail switch + position (T2.5) ─────────────────────
+
+  test('functional: offers rail switch and position persist from the display card', async ({
+    page,
+  }) => {
+    await prismaTest.menu.update({
+      where: { id: menuId },
+      data: { offersRailEnabled: true, offersRailPosition: 'TOP' },
+    });
+    await page.reload();
+
+    const switchEl = page.getByTestId('content-offers-rail-switch');
+    const position = page.getByTestId('content-offers-rail-position');
+    await expect(switchEl).toHaveAttribute('aria-checked', 'true');
+    await expect(position).toBeVisible();
+    await expect(position.locator('[data-value="TOP"]')).toHaveAttribute('aria-checked', 'true');
+
+    const isPut = (r: { url(): string; request(): { method(): string }; ok(): boolean }) =>
+      r.url().includes(`/api/menus/${menuId}`) && r.request().method() === 'PUT' && r.ok();
+
+    // Off → persisted, position control hidden after reload.
+    let put = page.waitForResponse(isPut);
+    await switchEl.click();
+    await put;
+    expect(
+      (await prismaTest.menu.findUnique({ where: { id: menuId } }))?.offersRailEnabled,
+    ).toBe(false);
+    await page.reload();
+    await expect(page.getByTestId('content-offers-rail-switch')).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+    await expect(page.getByTestId('content-offers-rail-position')).toHaveCount(0);
+
+    // On again → choose BOTTOM.
+    put = page.waitForResponse(isPut);
+    await page.getByTestId('content-offers-rail-switch').click();
+    await put;
+    put = page.waitForResponse(isPut);
+    await page.getByTestId('content-offers-rail-position').locator('[data-value="BOTTOM"]').click();
+    await put;
+    await expect(
+      page.getByTestId('content-offers-rail-position').locator('[data-value="BOTTOM"]'),
+    ).toHaveAttribute('aria-checked', 'true');
+
+    const row = await prismaTest.menu.findUnique({
+      where: { id: menuId },
+      select: { offersRailEnabled: true, offersRailPosition: true },
+    });
+    expect(row).toEqual({ offersRailEnabled: true, offersRailPosition: 'BOTTOM' });
+  });
 });

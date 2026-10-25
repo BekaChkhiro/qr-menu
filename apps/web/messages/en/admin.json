@@ -595,18 +595,6 @@
           "sat": "Sat",
           "sun": "Sun"
         }
-      },
-      "offersRail": {
-        "label": "Offers row",
-        "helper": "Shows combo offers as a row on the public menu. When off, Offers appears as a normal category in the menu.",
-        "switchLabel": "Show Offers row",
-        "switchDescription": "Off: the Offers category is listed in the menu like any other category.",
-        "position": {
-          "label": "Row position",
-          "top": "Top, above the menu",
-          "bottom": "Bottom, below the menu"
-        },
-        "saveError": "Could not save the Offers row setting."
       }
     },
     "promotions": {
@@ -954,6 +942,15 @@
         "featured": {
           "label": "“Most ordered” rail",
           "description": "Pick dishes by hand; if none are picked, dishes with a Popular, Chef's pick or Daily dish ribbon are shown."
+        },
+        "offersRail": {
+          "label": "Offers row",
+          "description": "Shows the combo offers from Promotions as a separate row. When off, Offers is listed as a normal category in the menu.",
+          "position": {
+            "label": "Row position",
+            "top": "Top",
+            "bottom": "Bottom"
+          }
         }
       }
     },
