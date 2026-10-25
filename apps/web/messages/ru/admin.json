@@ -666,6 +666,8 @@
         "next": "Следующий месяц",
         "today": "Сегодня",
         "alwaysOn": "Постоянные",
+        "everyDay": "Ежедневно",
+        "onlyOn": "Только: {days}",
         "more": "+{count}",
         "emptyMonth": "В этом месяце нет акций с датами.",
         "weekdays": {

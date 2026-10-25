@@ -666,6 +666,8 @@
         "next": "Next month",
         "today": "Today",
         "alwaysOn": "Always on",
+        "everyDay": "Every day",
+        "onlyOn": "Only on {days}",
         "more": "+{count}",
         "emptyMonth": "No dated promotions this month.",
         "weekdays": {

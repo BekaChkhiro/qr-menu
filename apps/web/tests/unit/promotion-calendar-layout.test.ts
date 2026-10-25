@@ -1,12 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
-import { dayInZone, dayNumber, layoutMonth } from '@/components/admin/promotion-calendar';
+import {
+  layoutMonth,
+  monthGridRange,
+  weekdayRunsLabel,
+} from '@/components/admin/promotion-calendar';
+import {
+  dayInZone,
+  dayNumber,
+  expandPromotionSegments,
+} from '@/lib/promotions/calendar-days';
 
 // October 2026: the 1st is a Thursday, so the Monday-first grid runs
 // 28 Sep → 1 Nov (five weeks).
 const d = (month: number, day: number) => dayNumber(2026, month, day);
 
-describe('dayInZone', () => {
+describe('dayInZone (re-exported for the calendar)', () => {
   it('reads a bare YYYY-MM-DD (UTC midnight) as that day in Tbilisi', () => {
     expect(dayInZone('2026-10-20T00:00:00.000Z', 'Asia/Tbilisi')).toBe(d(9, 20));
   });
@@ -14,10 +23,11 @@ describe('dayInZone', () => {
   it('counts late-evening UTC instants on the next café-local day', () => {
     expect(dayInZone('2026-10-20T21:00:00.000Z', 'Asia/Tbilisi')).toBe(d(9, 21));
   });
+});
 
-  it('falls back to Tbilisi for an unknown zone and rejects invalid dates', () => {
-    expect(dayInZone('2026-10-20T21:00:00.000Z', 'Not/AZone')).toBe(d(9, 21));
-    expect(dayInZone('not a date')).toBeNull();
+describe('monthGridRange', () => {
+  it('covers 28 Sep → 1 Nov for October 2026', () => {
+    expect(monthGridRange(2026, 9)).toEqual({ start: d(8, 28), end: d(10, 1) });
   });
 });
 
@@ -78,5 +88,61 @@ describe('layoutMonth', () => {
     );
     expect(weeks[1].bars.map((b) => b.lane)).toEqual([0, 0]);
     expect(weeks[1].laneCount).toBe(1);
+  });
+
+  it('paints a Mon/Wed promotion as one-day segments sharing a lane, never a continuous bar', () => {
+    const grid = monthGridRange(2026, 9);
+    const segments = expandPromotionSegments(
+      {
+        startDate: '2026-10-01T00:00:00.000Z',
+        endDate: '2026-10-31T00:00:00.000Z',
+        timeRestrictions: { enabled: true, days: ['mon', 'wed'] },
+      },
+      { fromDay: grid.start - 1, toDay: grid.end + 1, timeZone: 'Asia/Tbilisi' },
+    );
+    const weeks = layoutMonth(
+      segments.map((s) => ({ id: 'mw', ...s })),
+      2026,
+      9,
+    );
+    // Week of 5–11 Oct: Monday 5 and Wednesday 7, both in lane 0, no chevrons.
+    expect(weeks[1].bars).toEqual([
+      { id: 'mw', startCol: 0, endCol: 0, lane: 0, continuesLeft: false, continuesRight: false },
+      { id: 'mw', startCol: 2, endCol: 2, lane: 0, continuesLeft: false, continuesRight: false },
+    ]);
+    expect(weeks[1].laneCount).toBe(1);
+    // Nothing before 1 Oct (week 28 Sep – 4 Oct holds no Mon/Wed in range).
+    expect(weeks[0].bars).toEqual([]);
+    // Across the month: 5, 7, 12, 14, 19, 21, 26, 28 → eight single-day bars.
+    expect(weeks.flatMap((w) => w.bars)).toHaveLength(8);
+  });
+
+  it('a permanent promotion expanded one day past the grid gets chevrons on both edges', () => {
+    const grid = monthGridRange(2026, 9);
+    const segments = expandPromotionSegments(
+      { startDate: null, endDate: null },
+      { fromDay: grid.start - 1, toDay: grid.end + 1 },
+    );
+    const weeks = layoutMonth(segments.map((s) => ({ id: 'p', ...s })), 2026, 9);
+    expect(weeks).toHaveLength(5);
+    expect(weeks.every((w) => w.bars.length === 1)).toBe(true);
+    expect(weeks[0].bars[0]).toMatchObject({ startCol: 0, endCol: 6, continuesLeft: true, continuesRight: true });
+    expect(weeks[4].bars[0]).toMatchObject({ startCol: 0, endCol: 6, continuesLeft: true, continuesRight: true });
+  });
+});
+
+describe('weekdayRunsLabel', () => {
+  const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const name = (i: number) => names[i];
+
+  it('says "every day" for all seven', () => {
+    expect(weekdayRunsLabel([0, 1, 2, 3, 4, 5, 6], name, 'Every day')).toBe('Every day');
+  });
+
+  it('lists separate days and collapses runs of three or more', () => {
+    expect(weekdayRunsLabel([0, 2], name, 'Every day')).toBe('Mon, Wed');
+    expect(weekdayRunsLabel([2, 3, 4, 5, 6], name, 'Every day')).toBe('Wed–Sun');
+    expect(weekdayRunsLabel([0, 1, 3, 4, 5], name, 'Every day')).toBe('Mon, Tue, Thu–Sat');
+    expect(weekdayRunsLabel([6, 0], name, 'Every day')).toBe('Mon, Sun');
   });
 });

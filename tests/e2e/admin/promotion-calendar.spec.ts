@@ -1,18 +1,22 @@
-// T22.25 — promotions month calendar (redesigned).
+// T22.25 / T2.8 — promotions month calendar.
 //
 // Run: pnpm test:e2e tests/e2e/admin/promotion-calendar.spec.ts
 //
-// The Promotions tab shows a month view above the list. Permanent promotions
-// (no dates) sit in an "always on" strip instead of being painted across every
-// week; dated ones are bars in lanes under the day numbers, with a "+N" chip
-// when more than three overlap. Below md the grid becomes a weekly agenda.
+// The Promotions tab shows a month view above the list that paints the real
+// schedule: permanent promotions (no dates) run every day and are drawn as
+// thin bars in every week; dated ones are bars on their days; weekday-
+// restricted ones (timeRestrictions enabled with days) are separate segments
+// on those weekdays only; paused ones striped, ended ones grey. More than three
+// dated overlaps collapse into a per-day "+N" chip. Below md the grid becomes
+// a weekly agenda listing each promotion with the days it runs that week.
+// Days are counted in the menu's timezone, not the browser's.
 //
 // The browser clock is pinned to 2026-10-22 so the month, the lanes and the
 // screenshots are the same on every run.
 //
 // Phase-21 constraint: NO resetDb / NO TRUNCATE. Additive seeds, cleanup by id.
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import bcrypt from 'bcryptjs';
 
 import { loginAs } from '../fixtures/auth';
@@ -27,6 +31,13 @@ const NOW = new Date('2026-10-22T08:00:00Z');
 const day = (iso: string) => new Date(`${iso}T00:00:00Z`);
 
 test.use({ timezoneId: 'Asia/Tbilisi' });
+
+const MENU_TZ = 'Europe/Berlin';
+// Mon/Wed lunch window — the canonical per-day `windows` shape the drawer saves.
+const MON_WED = {
+  enabled: true,
+  windows: { mon: { start: '12:00', end: '16:00' }, wed: { start: '12:00', end: '16:00' } },
+};
 
 test.afterAll(async () => {
   for (const id of cleanupUserIds) {
@@ -55,6 +66,9 @@ async function seedCalendar(tag: string) {
       status: 'PUBLISHED',
       publishedAt: new Date(),
       enabledLanguages: ['KA'],
+      // Not the browser's zone (Asia/Tbilisi below): proves the tab hands the
+      // menu's timezone to the calendar.
+      timezone: MENU_TZ,
     },
   });
 
@@ -65,6 +79,7 @@ async function seedCalendar(tag: string) {
     startDate?: Date | null;
     endDate?: Date | null;
     isActive?: boolean;
+    timeRestrictions?: object;
   }) =>
     prismaTest.promotion.create({
       data: {
@@ -81,10 +96,16 @@ async function seedCalendar(tag: string) {
     });
 
   const promos = {
-    // Permanent: never painted in the grid.
+    // Permanent: thin bars in every week.
     lunch: await create({ titleKa: 'ბიზნეს ლანჩი −15%', type: 'PERCENTAGE' }),
     happyHour: await create({ titleKa: 'საღამოს ჰეფი ჰაუერი', type: 'BANNER', isActive: false }),
     combo: await create({ titleKa: 'ხაჭაპური + ლიმონათი', type: 'COMBO' }),
+    // Permanent but Mon/Wed only: one segment per Monday and Wednesday.
+    chakapuli: await create({
+      titleKa: 'ჩაქაფულის დღეები',
+      type: 'PERCENTAGE',
+      timeRestrictions: MON_WED,
+    }),
     // Dated, overlapping across week boundaries.
     autumn: await create({
       titleKa: 'შემოდგომის ფასდაკლება',
@@ -143,6 +164,20 @@ async function seedCalendar(tag: string) {
 const HIDE_CHROME =
   'nextjs-portal, .tsqd-open-btn-container, [data-testid="admin-mobile-tab-bar"] { display: none !important; }';
 
+// Element screenshots of a tall element inside the admin's scroll container
+// come back with unrasterised (blank) tiles below ~700px now and then, so the
+// baselines are page screenshots clipped to the calendar's box instead. The
+// viewport is sized per test so the whole calendar is on screen.
+async function shoot(page: Page, calendar: Locator, name: string) {
+  const box = await calendar.boundingBox();
+  if (!box) throw new Error('calendar has no box');
+  const viewport = page.viewportSize()!;
+  expect(box.y + box.height, `calendar must fit the ${viewport.height}px viewport`).toBeLessThanOrEqual(
+    viewport.height,
+  );
+  await expect(page).toHaveScreenshot(name, { clip: box });
+}
+
 async function openCalendar(page: Page, email: string, menuId: string) {
   await page.clock.setFixedTime(NOW);
   await page.context().addCookies([
@@ -163,11 +198,16 @@ test.describe('promotions calendar', () => {
     );
   });
 
-  test('month grid: always-on strip, lanes, +N, paused and ended styles, drawer', async ({ page }) => {
+  test('month grid: permanent every day, Mon/Wed segments, lanes, +N, paused and ended styles, drawer', async ({ page }) => {
+    // Tall enough that all five week rows (dated + permanent lanes) are on
+    // screen for the clipped screenshot (see shoot()).
+    await page.setViewportSize({ width: 1440, height: 1500 });
     const { email, menu, promos } = await seedCalendar('grid');
     const calendar = await openCalendar(page, email, menu.id);
 
     await expect(calendar.getByTestId('promotion-calendar-month')).toHaveText(/ოქტომბერი 2026/i);
+    // The tab passes the menu's timezone, not the browser's.
+    await expect(calendar).toHaveAttribute('data-timezone', MENU_TZ);
 
     // Weekdays are localized and start on Monday.
     const grid = calendar.getByTestId('promotion-calendar-grid');
@@ -175,18 +215,41 @@ test.describe('promotions calendar', () => {
     await expect(grid).toContainText('ორშ');
     await expect(grid).toContainText('კვი');
 
-    // Permanent promotions live in the strip, never in the grid.
-    const strip = calendar.getByTestId('promotion-calendar-permanent');
+    // The old "always on" strip is gone: permanent promotions are in the grid.
+    await expect(calendar.getByTestId('promotion-calendar-permanent')).toHaveCount(0);
+
+    // Permanent promotions: one thin full-width bar in every week row
+    // (28 Sep – 1 Nov is five weeks), continuing on both edges.
+    const weekRows = calendar.getByTestId('promotion-calendar-week');
+    await expect(weekRows).toHaveCount(5);
     for (const p of [promos.lunch, promos.happyHour, promos.combo]) {
-      await expect(strip.getByTestId(`promotion-calendar-permanent-${p.id}`)).toBeVisible();
-      await expect(calendar.getByTestId(`promotion-calendar-bar-${p.id}`)).toHaveCount(0);
+      const bars = calendar.getByTestId(`promotion-calendar-bar-${p.id}`);
+      await expect(bars).toHaveCount(5);
+      for (let w = 0; w < 5; w++) {
+        const bar = weekRows.nth(w).getByTestId(`promotion-calendar-bar-${p.id}`);
+        await expect(bar).toHaveCount(1);
+        await expect(bar).toHaveAttribute('data-permanent', 'true');
+        await expect(bar).toHaveAttribute('data-start-col', '0');
+        await expect(bar).toHaveAttribute('data-end-col', '6');
+      }
     }
-    await expect(
-      strip.getByTestId(`promotion-calendar-permanent-${promos.happyHour.id}`),
-    ).toHaveAttribute('data-status', 'paused');
-    await expect(
-      strip.getByTestId(`promotion-calendar-permanent-${promos.happyHour.id}`),
-    ).toContainText('გამორთულია');
+    const pausedPermanent = calendar.getByTestId(`promotion-calendar-bar-${promos.happyHour.id}`);
+    await expect(pausedPermanent.first()).toHaveAttribute('data-status', 'paused');
+    await expect(pausedPermanent.first()).toHaveAttribute('aria-label', /გამორთულია/);
+
+    // Mon/Wed only: a one-day segment on every Monday (col 0) and Wednesday
+    // (col 2) of the grid — 5 Mondays + 5 Wednesdays — never a continuous bar.
+    const monWed = calendar.getByTestId(`promotion-calendar-bar-${promos.chakapuli.id}`);
+    await expect(monWed).toHaveCount(10);
+    for (let w = 0; w < 5; w++) {
+      const segs = weekRows.nth(w).getByTestId(`promotion-calendar-bar-${promos.chakapuli.id}`);
+      await expect(segs).toHaveCount(2);
+      await expect(segs.nth(0)).toHaveAttribute('data-start-col', '0');
+      await expect(segs.nth(0)).toHaveAttribute('data-end-col', '0');
+      await expect(segs.nth(1)).toHaveAttribute('data-start-col', '2');
+      await expect(segs.nth(1)).toHaveAttribute('data-end-col', '2');
+    }
+    await expect(monWed.first()).toHaveAttribute('aria-label', /ორშ, ოთხ/);
 
     // Dated promotions are bars; one bar per week they touch.
     await expect(calendar.getByTestId(`promotion-calendar-bar-${promos.autumn.id}`)).toHaveCount(3);
@@ -206,7 +269,7 @@ test.describe('promotions calendar', () => {
     await expect(calendar.getByTestId('promotion-calendar-today-cell')).toHaveText('22');
 
     await page.addStyleTag({ content: HIDE_CHROME });
-    await expect(calendar).toHaveScreenshot('promotion-calendar-desktop.png');
+    await shoot(page, calendar, 'promotion-calendar-desktop.png');
 
     // Week of 19–25 Oct holds four overlapping promotions: three lanes + "+1".
     const more = calendar.locator('[data-testid^="promotion-calendar-more-"]');
@@ -226,6 +289,20 @@ test.describe('promotions calendar', () => {
     await expect(tooltip).toContainText('შემოდგომის ფასდაკლება');
     await expect(tooltip).toContainText('მთელ მენიუზე');
     await expect(tooltip).toContainText('აქტიური');
+
+    await page.keyboard.press('Escape');
+    await expect(tooltip).toBeHidden();
+
+    // A weekday-restricted promotion names its days in the tooltip (opened by
+    // keyboard focus: Radix shows it at once, no hover delay to race).
+    await monWed.nth(2).focus();
+    await expect(
+      page
+        .getByRole('tooltip')
+        .filter({ hasText: 'ჩაქაფულის დღეები' })
+        .getByTestId('promotion-calendar-weekdays'),
+    ).toHaveText('მხოლოდ: ორშ, ოთხ');
+    await page.keyboard.press('Escape');
 
     // Click opens that promotion in the drawer.
     await calendar.getByTestId(`promotion-calendar-bar-${promos.autumn.id}`).first().click();
@@ -247,34 +324,48 @@ test.describe('promotions calendar', () => {
   });
 
   test('narrow screens get a weekly agenda instead of the grid', async ({ page }) => {
-    // Phone width; tall enough that the whole calendar fits the screenshot
-    // (it sits inside the admin's scroll container).
-    await page.setViewportSize({ width: 390, height: 1600 });
+    // Phone width; tall enough that the whole agenda is on screen for the
+    // clipped screenshot (see shoot()).
+    await page.setViewportSize({ width: 390, height: 3200 });
     const { email, menu, promos } = await seedCalendar('agenda');
     const calendar = await openCalendar(page, email, menu.id);
 
     await expect(calendar.getByTestId('promotion-calendar-grid')).toBeHidden();
     const agenda = calendar.getByTestId('promotion-calendar-agenda');
     await expect(agenda).toBeVisible();
-    // Each promotion is listed once, under the first week it touches.
-    await expect(agenda.getByTestId('promotion-calendar-agenda-week')).toHaveCount(4);
-    await expect(
-      agenda.getByTestId(`promotion-calendar-agenda-item-${promos.wine.id}`),
-    ).toHaveCount(1);
-    await expect(
-      agenda.getByTestId(`promotion-calendar-agenda-item-${promos.autumn.id}`),
-    ).toHaveCount(1);
-    await expect(
-      agenda.getByTestId(`promotion-calendar-agenda-item-${promos.newYear.id}`),
-    ).toHaveCount(0);
-    await expect(
-      calendar.getByTestId(`promotion-calendar-permanent-${promos.lunch.id}`),
-    ).toBeVisible();
+    const weeks = agenda.getByTestId('promotion-calendar-agenda-week');
+    // Permanent promotions run in all five weeks, so every week is listed.
+    await expect(weeks).toHaveCount(5);
+    const item = (id: string) => agenda.getByTestId(`promotion-calendar-agenda-item-${id}`);
+    const days = (id: string) => agenda.getByTestId(`promotion-calendar-agenda-item-${id}-days`);
+
+    // Permanent: every week, "every day".
+    await expect(item(promos.lunch.id)).toHaveCount(5);
+    for (let w = 0; w < 5; w++) {
+      await expect(weeks.nth(w).getByTestId(`promotion-calendar-agenda-item-${promos.lunch.id}-days`)).toHaveText(
+        'ყოველდღე',
+      );
+    }
+    // Permanent Mon/Wed: every week, with just those days.
+    await expect(item(promos.chakapuli.id)).toHaveCount(5);
+    for (let w = 0; w < 5; w++) {
+      await expect(days(promos.chakapuli.id).nth(w)).toHaveText('ორშ, ოთხ');
+    }
+    // Dated: listed in each week it touches, with the days of that week.
+    // 14–28 Oct → Wed–Sun of 12–18, all of 19–25, Mon–Wed of 26 Oct – 1 Nov.
+    await expect(item(promos.autumn.id)).toHaveCount(3);
+    await expect(days(promos.autumn.id).nth(0)).toHaveText('ოთხ–კვი');
+    await expect(days(promos.autumn.id).nth(1)).toHaveText('ყოველდღე');
+    await expect(days(promos.autumn.id).nth(2)).toHaveText('ორშ–ოთხ');
+    await expect(item(promos.wine.id)).toHaveCount(2);
+    await expect(item(promos.newYear.id)).toHaveCount(0);
+    // Paused stays paused in the agenda too.
+    await expect(item(promos.happyHour.id).first()).toHaveAttribute('data-status', 'paused');
 
     await page.addStyleTag({ content: HIDE_CHROME });
-    await expect(calendar).toHaveScreenshot('promotion-calendar-mobile.png');
+    await shoot(page, calendar, 'promotion-calendar-mobile.png');
 
-    await agenda.getByTestId(`promotion-calendar-agenda-item-${promos.wine.id}`).click();
+    await item(promos.wine.id).first().click();
     await expect(page.getByTestId('promotion-drawer')).toBeVisible();
   });
 });

@@ -50,6 +50,7 @@ import {
   useTogglePromotionActive,
   useUpdatePromotion,
 } from '@/hooks/use-promotions';
+import { useMenu } from '@/hooks/use-menus';
 import type { Promotion } from '@/types/menu';
 import type { CreatePromotionInput } from '@/lib/validations/promotion';
 import { cn } from '@/lib/utils';
@@ -416,6 +417,8 @@ export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocke
   const { data: promotions, isLoading, error } = usePromotions(menuId, {
     includeExpired: true,
   });
+  // T2.8 — the calendar counts days in the café's timezone (cached by the editor page).
+  const { data: menu } = useMenu(menuId);
   const createPromotion = useCreatePromotion(menuId);
   const updatePromotion = useUpdatePromotion(menuId, dialogPromotion?.id ?? '');
   const deletePromotion = useDeletePromotion(menuId);
@@ -615,6 +618,7 @@ export function EditorPromotionsTab({ menuId, canUsePromotions, multilangUnlocke
         <PromotionCalendar
           promotions={annotated.map((a) => a.promotion)}
           locale={locale as 'ka' | 'en' | 'ru'}
+          timeZone={menu?.timezone ?? 'Asia/Tbilisi'}
           onSelect={(promotion) => setDialogPromotion(promotion)}
         />
         <div

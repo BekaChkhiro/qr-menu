@@ -16,32 +16,46 @@ import {
 
 import { cn } from '@/lib/utils';
 import { getPromotionStatus, type PromotionStatus } from '@/lib/promotions/status';
+import {
+  DEFAULT_TZ,
+  WEEKDAY_KEYS,
+  dateOfDay,
+  dayInZone,
+  dayNumber,
+  expandPromotionDays,
+  mondayIndex,
+  promotionDayBounds,
+  restrictedWeekdays,
+  toSegments,
+} from '@/lib/promotions/calendar-days';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Promotion } from '@/types/menu';
 
-// T22.25 — month calendar over the promotions list: which promotions run on
-// which dates and where they overlap.
+// T22.25 / T2.8 — month calendar over the promotions list: which promotions
+// run on which dates and where they overlap.
 //
-// Redesign:
-// - Permanent promotions (no dates at all) are not painted across every week;
-//   they sit in a compact "always on" strip above the grid. Only promotions
-//   with at least one date boundary go into the grid.
-// - Each week row is a header line with the day numbers, then up to
-//   MAX_LANES lanes of bars below it. Overlaps beyond that collapse into a
-//   per-day "+N" chip that opens that day's list.
-// - Bars are tinted by promotion type (token *-soft background, solid 3px
-//   accent at the real start). Paused promotions are striped and muted,
-//   ended ones grey, so neither reads as running.
-// - Below md the grid becomes an agenda grouped by week.
-// - Days are counted in the café's timezone, weeks start on Monday.
+// The grid paints the real schedule (lib/promotions/calendar-days.ts):
+// - Permanent promotions (no dates) run every day, so they are drawn in every
+//   week — as thinner, lighter bars in their own lanes under the dated ones,
+//   so a handful of always-on offers does not bury the dated bars.
+// - Dated promotions cover their days inclusive, counted in the café timezone.
+// - Weekday-restricted promotions (timeRestrictions enabled with days) are
+//   painted only on those weekdays: Mon/Wed → one short segment per Monday
+//   and Wednesday, never a continuous bar. This combines with both above.
+// - Paused promotions are striped and muted, ended ones grey.
+// - Each week row: day numbers, up to MAX_LANES lanes of dated bars, up to
+//   MAX_PERMANENT_LANES thin permanent lanes, then a per-day "+N" chip for
+//   whatever did not fit, opening that day's list.
+// - Below md the grid becomes a weekly agenda: every promotion running in a
+//   week is listed with the weekdays it runs that week.
 
-const DEFAULT_TZ = 'Asia/Tbilisi';
+export { dayInZone, dayNumber };
+
 const MAX_LANES = 3;
-const DAY_MS = 86_400_000;
+const MAX_PERMANENT_LANES = 4;
 // date-fns rather than Intl: browsers without Georgian ICU data fall back to English.
 const DATE_LOCALES = { ka, en: enUS, ru } as const;
-const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
 type PromotionKind = 'PERCENTAGE' | 'BANNER' | 'COMBO';
 
@@ -87,56 +101,10 @@ function promotionKind(p: Pick<Promotion, 'type' | 'discountType'>): PromotionKi
   return 'PERCENTAGE';
 }
 
-// ── Day arithmetic ──────────────────────────────────────────────────────────
-//
-// A "day number" is the count of days since 1970-01-01 for a calendar date.
-// Working in whole days keeps the grid independent of the browser's timezone.
-
-const zoneFormatters = new Map<string, Intl.DateTimeFormat>();
-
-function zoneFormatter(timeZone: string): Intl.DateTimeFormat {
-  let f = zoneFormatters.get(timeZone);
-  if (!f) {
-    try {
-      f = new Intl.DateTimeFormat('en-CA', {
-        timeZone,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      });
-    } catch {
-      f = zoneFormatter(DEFAULT_TZ);
-    }
-    zoneFormatters.set(timeZone, f);
-  }
-  return f;
-}
-
-export function dayNumber(year: number, month: number, day: number): number {
-  return Date.UTC(year, month, day) / DAY_MS;
-}
-
-/** The café-local calendar day an instant falls on. */
-export function dayInZone(value: Date | string, timeZone: string = DEFAULT_TZ): number | null {
-  const d = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  const parts = zoneFormatter(timeZone).formatToParts(d);
-  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
-  return dayNumber(get('year'), get('month') - 1, get('day'));
-}
-
-function dateOfDay(n: number): Date {
-  return new Date(n * DAY_MS);
-}
-
 /** The day as a local-midnight Date, for date-fns formatting. */
 function localDateOfDay(n: number): Date {
   const d = dateOfDay(n);
   return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-}
-
-function mondayIndex(n: number): number {
-  return (dateOfDay(n).getUTCDay() + 6) % 7;
 }
 
 // ── Layout ──────────────────────────────────────────────────────────────────
@@ -159,21 +127,27 @@ export interface CalendarBar {
 
 export interface CalendarWeek {
   days: number[];
-  /** Bars in lanes 0…MAX_LANES-1. */
+  /** Bars in lanes 0…maxLanes-1. */
   bars: CalendarBar[];
-  /** Per column: how many promotions on that day did not get a visible lane. */
+  /** Per column: how many entries on that day did not get a visible lane. */
   hidden: number[];
   laneCount: number;
 }
 
-function covers(e: Pick<CalendarEntry, 'from' | 'to'>, day: number): boolean {
-  return (e.from === null || e.from <= day) && (e.to === null || e.to >= day);
+/** First and last day of the Monday-first grid that covers the month. */
+export function monthGridRange(year: number, month: number): { start: number; end: number } {
+  const first = dayNumber(year, month, 1);
+  const last = dayNumber(year, month + 1, 1) - 1;
+  const start = first - mondayIndex(first);
+  const weekCount = Math.ceil((last - start + 1) / 7);
+  return { start, end: start + weekCount * 7 - 1 };
 }
 
 /**
  * Month grid: the weeks (Monday-first) that contain any day of the month, and
  * per week the entries packed into lanes. Longer bars take the upper lanes so
- * a short promotion does not push a long one down mid-week.
+ * a short promotion does not push a long one down mid-week. Several entries
+ * may share an id (one promotion painted as separate weekday segments).
  */
 export function layoutMonth(
   entries: CalendarEntry[],
@@ -181,10 +155,8 @@ export function layoutMonth(
   month: number,
   maxLanes: number = MAX_LANES,
 ): CalendarWeek[] {
-  const first = dayNumber(year, month, 1);
-  const last = dayNumber(year, month + 1, 1) - 1;
-  const gridStart = first - mondayIndex(first);
-  const weekCount = Math.ceil((last - gridStart + 1) / 7);
+  const { start: gridStart, end: gridEnd } = monthGridRange(year, month);
+  const weekCount = (gridEnd - gridStart + 1) / 7;
 
   return Array.from({ length: weekCount }, (_, w) => {
     const ws = gridStart + w * 7;
@@ -242,6 +214,28 @@ export function layoutMonth(
   });
 }
 
+/**
+ * Monday-first weekday indexes → short label: all seven → `everyDay`,
+ * otherwise contiguous runs joined ("Mon–Wed, Fri").
+ */
+export function weekdayRunsLabel(
+  indexes: number[],
+  name: (index: number) => string,
+  everyDay: string,
+): string {
+  const sorted = Array.from(new Set(indexes)).sort((a, b) => a - b);
+  if (sorted.length === 7) return everyDay;
+  const runs: Array<[number, number]> = [];
+  for (const i of sorted) {
+    const last = runs[runs.length - 1];
+    if (last && last[1] === i - 1) last[1] = i;
+    else runs.push([i, i]);
+  }
+  return runs
+    .map(([a, b]) => (a === b ? name(a) : b === a + 1 ? `${name(a)}, ${name(b)}` : `${name(a)}–${name(b)}`))
+    .join(', ');
+}
+
 // ── Component ───────────────────────────────────────────────────────────────
 
 interface PromotionCalendarProps {
@@ -260,6 +254,10 @@ interface Item {
   kind: PromotionKind;
   from: number | null;
   to: number | null;
+  /** No date on either side: runs until switched off. */
+  permanent: boolean;
+  /** Monday-first weekday indexes it is limited to; null = every weekday. */
+  weekdays: number[] | null;
   range: string;
   scope: string | null;
 }
@@ -288,12 +286,14 @@ export function PromotionCalendar({
   const dateLocale = DATE_LOCALES[locale] ?? enUS;
   const fmt = (n: number) => format(localDateOfDay(n), 'd MMM', { locale: dateLocale });
   const fmtLong = (n: number) => format(localDateOfDay(n), 'EEEE, d MMMM', { locale: dateLocale });
+  const weekdayName = (index: number) => t(`calendar.weekdays.${WEEKDAY_KEYS[index]}`);
+  const runsLabel = (indexes: number[]) =>
+    weekdayRunsLabel(indexes, weekdayName, t('calendar.everyDay'));
 
   const items = useMemo<Item[]>(() => {
     const yearOf = (n: number) => dateOfDay(n).getUTCFullYear();
     return promotions.map((p) => {
-      const from = p.startDate ? dayInZone(p.startDate, timeZone) : null;
-      const to = p.endDate ? dayInZone(p.endDate, timeZone) : null;
+      const { from, to } = promotionDayBounds(p, timeZone);
       let range: string;
       if (from === null && to === null) range = t('card.noDates');
       else if (to === null) range = t('card.fromDate', { date: fmt(from!) });
@@ -315,6 +315,7 @@ export function PromotionCalendar({
         scope = t('card.appliedToWholeMenu');
       }
 
+      const restricted = restrictedWeekdays(p.timeRestrictions);
       return {
         promotion: p,
         title: localizedTitle(p, locale),
@@ -322,6 +323,8 @@ export function PromotionCalendar({
         kind: promotionKind(p),
         from,
         to,
+        permanent: from === null && to === null,
+        weekdays: restricted ? Array.from(restricted).sort((a, b) => a - b) : null,
         range,
         scope,
       };
@@ -330,23 +333,31 @@ export function PromotionCalendar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [promotions, timeZone, locale, dateLocale, t]);
 
-  const permanent = items.filter((i) => i.from === null && i.to === null);
-  const dated = items.filter(
-    (i) => (i.from !== null || i.to !== null) && (i.from === null || i.to === null || i.to >= i.from),
-  );
   const byId = useMemo(() => new Map(items.map((i) => [i.promotion.id, i])), [items]);
 
-  const weeks = useMemo(
-    () =>
-      layoutMonth(
-        dated.map((i) => ({ id: i.promotion.id, from: i.from, to: i.to })),
-        anchor.year,
-        anchor.month,
-      ),
-    // `dated` is derived from `items`
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [items, anchor],
-  );
+  // Which days of this month's grid each promotion runs on. The window is one
+  // day wider on each side so a bar reaching past the grid edge still gets
+  // its continuation chevron.
+  const { runDays, datedWeeks, permanentWeeks } = useMemo(() => {
+    const grid = monthGridRange(anchor.year, anchor.month);
+    const window = { fromDay: grid.start - 1, toDay: grid.end + 1, timeZone };
+    const runDays = new Map<string, Set<number>>();
+    const dated: CalendarEntry[] = [];
+    const permanent: CalendarEntry[] = [];
+    for (const i of items) {
+      const days = expandPromotionDays(i.promotion, window);
+      runDays.set(i.promotion.id, new Set(days));
+      const target = i.permanent ? permanent : dated;
+      for (const s of toSegments(days)) target.push({ id: i.promotion.id, from: s.from, to: s.to });
+    }
+    return {
+      runDays,
+      datedWeeks: layoutMonth(dated, anchor.year, anchor.month, MAX_LANES),
+      permanentWeeks: layoutMonth(permanent, anchor.year, anchor.month, MAX_PERMANENT_LANES),
+    };
+  }, [items, anchor, timeZone]);
+
+  const runsOn = (i: Item, day: number) => runDays.get(i.promotion.id)?.has(day) ?? false;
 
   const monthLabel = format(new Date(anchor.year, anchor.month, 1), 'LLLL yyyy', {
     locale: dateLocale,
@@ -363,12 +374,20 @@ export function PromotionCalendar({
   };
 
   const statusLabel = (s: PromotionStatus) => t(`status.${s}`);
-  const describe = (i: Item) => [i.title, i.range, statusLabel(i.status)].join(' · ');
+  const describe = (i: Item) =>
+    [i.title, i.range, i.weekdays ? runsLabel(i.weekdays) : null, statusLabel(i.status)]
+      .filter(Boolean)
+      .join(' · ');
 
   const details = (i: Item) => (
     <div className="flex max-w-[260px] flex-col gap-0.5 py-0.5 text-left">
       <span className="text-[12px] font-semibold text-text-default">{i.title}</span>
       <span className="tabular-nums text-text-muted">{i.range}</span>
+      {i.weekdays ? (
+        <span className="text-text-muted" data-testid="promotion-calendar-weekdays">
+          {t('calendar.onlyOn', { days: runsLabel(i.weekdays) })}
+        </span>
+      ) : null}
       <span className="text-text-muted">
         {tTypes(`${KIND_STYLE[i.kind].key}.title`)}
         {i.scope ? ` · ${i.scope}` : ''}
@@ -394,8 +413,8 @@ export function PromotionCalendar({
     </div>
   );
 
-  const withTooltip = (i: Item, trigger: React.ReactElement) => (
-    <Tooltip key={i.promotion.id}>
+  const withTooltip = (i: Item, key: string, trigger: React.ReactElement) => (
+    <Tooltip key={key}>
       <TooltipTrigger asChild>{trigger}</TooltipTrigger>
       <TooltipContent tone="light" side="top">
         {details(i)}
@@ -414,14 +433,15 @@ export function PromotionCalendar({
     i.status === 'paused' || i.status === 'ended' ? 'text-text-subtle' : KIND_STYLE[i.kind].icon;
 
   /** One promotion as a full-width row (agenda and "+N" popover). */
-  const row = (i: Item, testId: string) => {
+  const row = (i: Item, testId: string, when?: string) => {
     const { Icon } = KIND_STYLE[i.kind];
     return (
       <button
-        key={i.promotion.id}
+        key={testId}
         type="button"
         data-testid={testId}
         data-status={i.status}
+        data-permanent={i.permanent ? 'true' : undefined}
         onClick={() => onSelect?.(i.promotion)}
         className={cn(
           'flex w-full min-w-0 items-center gap-2.5 rounded-md border-l-[3px] px-2.5 py-2 text-left',
@@ -433,36 +453,100 @@ export function PromotionCalendar({
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-[12.5px] font-medium">{i.title}</span>
           <span className="truncate text-[11.5px] tabular-nums text-text-muted">
-            {i.range} · {statusLabel(i.status)}
+            {when ? (
+              <span className="font-medium text-text-default" data-testid={`${testId}-days`}>
+                {when}
+              </span>
+            ) : null}
+            {when ? ' · ' : ''}
+            {i.permanent && when ? '' : `${i.range} · `}
+            {statusLabel(i.status)}
           </span>
         </span>
+        {i.permanent ? (
+          <InfinityIcon className="size-3.5 shrink-0 text-text-subtle" strokeWidth={1.5} aria-hidden />
+        ) : null}
       </button>
     );
   };
 
-  const agenda = (() => {
-    const placed = new Set<string>();
-    return weeks
-      .map((week) => {
-        const ws = week.days[0];
-        const we = week.days[6];
-        const inWeek = dated.filter(
-          (i) =>
-            !placed.has(i.promotion.id) &&
-            (i.from === null || i.from <= we) &&
-            (i.to === null || i.to >= ws),
-        );
-        inWeek.forEach((i) => placed.add(i.promotion.id));
-        return { ws, we, inWeek };
-      })
-      .filter((w) => w.inWeek.length > 0);
-  })();
+  /** One bar in the grid; `thin` for permanent promotions. */
+  const bar = (b: CalendarBar, rowIndex: number, thin: boolean) => {
+    const i = byId.get(b.id)!;
+    const Icon = thin ? InfinityIcon : KIND_STYLE[i.kind].Icon;
+    const key = `${b.id}:${b.startCol}`;
+    return (
+      <div
+        key={key}
+        className="flex min-w-0"
+        style={{
+          gridColumn: `${b.startCol + 1} / ${b.endCol + 2}`,
+          gridRow: rowIndex,
+        }}
+      >
+        {withTooltip(
+          i,
+          key,
+          <button
+            type="button"
+            data-testid={`promotion-calendar-bar-${b.id}`}
+            data-status={i.status}
+            data-permanent={thin ? 'true' : undefined}
+            data-start-col={b.startCol}
+            data-end-col={b.endCol}
+            aria-label={describe(i)}
+            onClick={() => onSelect?.(i.promotion)}
+            className={cn(
+              'flex min-w-0 flex-1 items-center gap-1 text-left leading-none',
+              thin ? 'h-3.5 text-[10.5px] font-medium' : 'h-5 text-[11px] font-medium',
+              'transition-shadow hover:shadow-xs focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              surface(i),
+              thin && i.status !== 'paused' && i.status !== 'ended' && 'text-text-muted',
+              b.continuesLeft
+                ? 'rounded-l-none border-l-0 pl-1'
+                : cn('ml-1 rounded-l-xs pl-1.5', thin ? 'border-l-2' : 'border-l-[3px]'),
+              b.continuesRight ? 'rounded-r-none pr-1' : 'mr-1 rounded-r-xs pr-1.5',
+            )}
+          >
+            {b.continuesLeft ? (
+              <ChevronLeft className="size-3 shrink-0 text-text-subtle" strokeWidth={1.5} aria-hidden />
+            ) : null}
+            <Icon
+              className={cn('shrink-0', thin ? 'size-2.5' : 'size-3', thin ? 'text-text-subtle' : iconTone(i))}
+              strokeWidth={1.5}
+              aria-hidden
+            />
+            <span className="min-w-0 flex-1 truncate">{i.title}</span>
+            {b.continuesRight ? (
+              <ChevronRight className="size-3 shrink-0 text-text-subtle" strokeWidth={1.5} aria-hidden />
+            ) : null}
+          </button>,
+        )}
+      </div>
+    );
+  };
+
+  // Agenda: per week, every promotion with a run day in it, with those days.
+  const agenda = datedWeeks
+    .map((week) => {
+      const ws = week.days[0];
+      const we = week.days[6];
+      const inWeek = items
+        .map((i) => {
+          const indexes = week.days.filter((d) => runsOn(i, d)).map(mondayIndex);
+          return { item: i, indexes };
+        })
+        .filter((e) => e.indexes.length > 0);
+      return { ws, we, inWeek };
+    })
+    .filter((w) => w.inWeek.length > 0);
 
   return (
     <TooltipProvider delayDuration={150}>
       <section
         className="mb-5 rounded-card border border-border bg-card"
         data-testid="promotion-calendar"
+        data-timezone={timeZone}
         aria-label={t('calendar.ariaLabel')}
       >
         {/* Header: month + navigation */}
@@ -503,55 +587,6 @@ export function PromotionCalendar({
           </div>
         </header>
 
-        {/* Always-on strip: promotions without dates */}
-        {permanent.length > 0 ? (
-          <div
-            data-testid="promotion-calendar-permanent"
-            className="flex flex-wrap items-center gap-1.5 border-t border-border-soft px-4 py-2.5"
-          >
-            <span className="mr-1 inline-flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-[0.6px] text-text-subtle">
-              <InfinityIcon className="size-3.5" strokeWidth={1.5} aria-hidden />
-              {t('calendar.alwaysOn')}
-            </span>
-            {permanent.map((i) =>
-              withTooltip(
-                i,
-                <button
-                  key={i.promotion.id}
-                  type="button"
-                  data-testid={`promotion-calendar-permanent-${i.promotion.id}`}
-                  data-status={i.status}
-                  aria-label={describe(i)}
-                  onClick={() => onSelect?.(i.promotion)}
-                  className={cn(
-                    'inline-flex h-7 max-w-[240px] items-center gap-1.5 rounded-pill border border-border px-2.5 text-[12px] font-medium',
-                    'transition-shadow hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                    i.status === 'paused'
-                      ? cn(PAUSED_STRIPES, 'border-dashed text-text-muted')
-                      : 'bg-card text-text-default',
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'size-2 shrink-0 rounded-pill',
-                      i.status === 'paused' || i.status === 'ended'
-                        ? 'bg-text-subtle'
-                        : KIND_STYLE[i.kind].dot,
-                    )}
-                    aria-hidden
-                  />
-                  <span className="truncate">{i.title}</span>
-                  {i.status === 'paused' ? (
-                    <span className="shrink-0 text-[11px] font-normal text-text-subtle">
-                      · {statusLabel(i.status)}
-                    </span>
-                  ) : null}
-                </button>,
-              ),
-            )}
-          </div>
-        ) : null}
-
         {/* Month grid (md and up) */}
         <div className="hidden md:block" data-testid="promotion-calendar-grid">
           <div className="grid grid-cols-7 border-t border-border-soft">
@@ -565,17 +600,22 @@ export function PromotionCalendar({
             ))}
           </div>
 
-          {weeks.map((week, wi) => {
-            const hasOverflow = week.hidden.some((n) => n > 0);
+          {datedWeeks.map((week, wi) => {
+            const perm = permanentWeeks[wi];
+            const hidden = week.hidden.map((n, di) => n + perm.hidden[di]);
+            const hasOverflow = hidden.some((n) => n > 0);
+            const permanentRow0 = week.laneCount + 2;
+            const overflowRow = permanentRow0 + perm.laneCount;
             const rows = [
               '28px',
               ...Array<string>(week.laneCount).fill('20px'),
+              ...Array<string>(perm.laneCount).fill('14px'),
               ...(hasOverflow ? ['20px'] : []),
             ];
             return (
               <div
                 key={week.days[0]}
-                className={cn('relative border-t border-border-soft', wi === weeks.length - 1 && 'rounded-b-card')}
+                className={cn('relative border-t border-border-soft', wi === datedWeeks.length - 1 && 'rounded-b-card')}
                 data-testid="promotion-calendar-week"
               >
                 {/* Day cell backgrounds */}
@@ -588,8 +628,8 @@ export function PromotionCalendar({
                         className={cn(
                           di > 0 && 'border-l border-border-soft',
                           !inMonth && 'bg-bg',
-                          wi === weeks.length - 1 && di === 0 && 'rounded-bl-card',
-                          wi === weeks.length - 1 && di === 6 && 'rounded-br-card',
+                          wi === datedWeeks.length - 1 && di === 0 && 'rounded-bl-card',
+                          wi === datedWeeks.length - 1 && di === 6 && 'rounded-br-card',
                         )}
                       />
                     );
@@ -625,71 +665,18 @@ export function PromotionCalendar({
                     );
                   })}
 
-                  {week.bars.map((bar) => {
-                    const i = byId.get(bar.id)!;
-                    const { Icon } = KIND_STYLE[i.kind];
-                    return (
-                      <div
-                        key={bar.id}
-                        className="flex min-w-0"
-                        style={{
-                          gridColumn: `${bar.startCol + 1} / ${bar.endCol + 2}`,
-                          gridRow: bar.lane + 2,
-                        }}
-                      >
-                        {withTooltip(
-                          i,
-                          <button
-                            type="button"
-                            data-testid={`promotion-calendar-bar-${bar.id}`}
-                            data-status={i.status}
-                            aria-label={describe(i)}
-                            onClick={() => onSelect?.(i.promotion)}
-                            className={cn(
-                              'flex h-5 min-w-0 flex-1 items-center gap-1 text-left text-[11px] font-medium leading-none',
-                              'transition-shadow hover:shadow-xs focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                              surface(i),
-                              bar.continuesLeft
-                                ? 'rounded-l-none border-l-0 pl-1'
-                                : 'ml-1 rounded-l-xs border-l-[3px] pl-1.5',
-                              bar.continuesRight ? 'rounded-r-none pr-1' : 'mr-1 rounded-r-xs pr-1.5',
-                            )}
-                          >
-                            {bar.continuesLeft ? (
-                              <ChevronLeft
-                                className="size-3 shrink-0 text-text-subtle"
-                                strokeWidth={1.5}
-                                aria-hidden
-                              />
-                            ) : null}
-                            <Icon
-                              className={cn('size-3 shrink-0', iconTone(i))}
-                              strokeWidth={1.5}
-                              aria-hidden
-                            />
-                            <span className="min-w-0 flex-1 truncate">{i.title}</span>
-                            {bar.continuesRight ? (
-                              <ChevronRight
-                                className="size-3 shrink-0 text-text-subtle"
-                                strokeWidth={1.5}
-                                aria-hidden
-                              />
-                            ) : null}
-                          </button>,
-                        )}
-                      </div>
-                    );
-                  })}
+                  {week.bars.map((b) => bar(b, b.lane + 2, false))}
+                  {perm.bars.map((b) => bar(b, permanentRow0 + b.lane, true))}
 
-                  {week.hidden.map((count, di) => {
+                  {hidden.map((count, di) => {
                     if (count === 0) return null;
                     const day = week.days[di];
-                    const onDay = dated.filter((i) => covers(i, day));
+                    const onDay = items.filter((i) => runsOn(i, day));
                     return (
                       <div
                         key={`more-${day}`}
                         className="flex min-w-0 px-1"
-                        style={{ gridColumn: di + 1, gridRow: week.laneCount + 2 }}
+                        style={{ gridColumn: di + 1, gridRow: overflowRow }}
                       >
                         <Popover>
                           <PopoverTrigger asChild>
@@ -725,8 +712,8 @@ export function PromotionCalendar({
           })}
         </div>
 
-        {/* Agenda (below md): each dated promotion once, under the first week of
-            the month it touches, so a long promotion does not repeat down the list */}
+        {/* Agenda (below md): per week, every promotion running in it with the
+            weekdays it runs that week */}
         <div
           className="space-y-3 border-t border-border-soft px-4 py-3 md:hidden"
           data-testid="promotion-calendar-agenda"
@@ -743,7 +730,9 @@ export function PromotionCalendar({
                     {fmt(ws)} – {fmt(we)}
                   </h4>
                   <div className="flex flex-col gap-1">
-                    {inWeek.map((i) => row(i, `promotion-calendar-agenda-item-${i.promotion.id}`))}
+                    {inWeek.map(({ item, indexes }) =>
+                      row(item, `promotion-calendar-agenda-item-${item.promotion.id}`, runsLabel(indexes)),
+                    )}
                   </div>
                 </section>
               );
@@ -765,6 +754,10 @@ export function PromotionCalendar({
               </span>
             );
           })}
+          <span className="inline-flex items-center gap-1.5">
+            <InfinityIcon className="size-3.5 text-text-subtle" strokeWidth={1.5} aria-hidden />
+            {t('calendar.alwaysOn')}
+          </span>
           <span className="inline-flex items-center gap-1.5">
             <span
               className={cn('h-2.5 w-4 rounded-xs border border-border', PAUSED_STRIPES)}

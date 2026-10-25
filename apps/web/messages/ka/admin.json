@@ -666,6 +666,8 @@
         "next": "შემდეგი თვე",
         "today": "დღეს",
         "alwaysOn": "მუდმივი აქციები",
+        "everyDay": "ყოველდღე",
+        "onlyOn": "მხოლოდ: {days}",
         "more": "+{count}",
         "emptyMonth": "ამ თვეში თარიღიანი აქცია არ არის.",
         "weekdays": {
