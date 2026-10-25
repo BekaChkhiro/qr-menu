@@ -78,7 +78,7 @@ async function seedMenuWithOffers(
     },
   });
 
-  return { menu, offers, regular };
+  return { menu, offers, regular, dish };
 }
 
 async function openMenu(page: Page, slug: string) {
@@ -135,5 +135,42 @@ test.describe('Offers rail position (T1.12)', () => {
     await expect(page.getByTestId('offers-carousel')).toHaveCount(0);
     await expect(page.locator(`#category-${offers.id}`)).toBeVisible();
     await expect(page).toHaveScreenshot('offers-rail-off.png', { fullPage: true });
+  });
+
+  // T2.7 (#12c) — a kind=COMBO product made in Content is not mirrored in the rail.
+  test('the rail lists Offers products only; a Content combo stays in its category', async ({
+    page,
+  }) => {
+    const { menu, regular, dish } = await seedMenuWithOffers('content-combo', {
+      offersRailEnabled: true,
+      offersRailPosition: 'TOP',
+    });
+    const tea = await prismaTest.product.create({
+      data: { categoryId: regular.id, nameKa: 'ჩაი', price: 3, sortOrder: 1 },
+    });
+    await prismaTest.product.create({
+      data: {
+        categoryId: regular.id,
+        kind: 'COMBO',
+        nameKa: 'საუზმის სეტი',
+        price: 7.5,
+        sortOrder: 2,
+        comboItems: {
+          create: [
+            { componentId: dish.id, quantity: 1, sortOrder: 0 },
+            { componentId: tea.id, quantity: 1, sortOrder: 1 },
+          ],
+        },
+      },
+    });
+
+    await openMenu(page, menu.slug);
+    const rail = page.getByTestId('offers-carousel');
+    await expect(rail).toBeVisible();
+    await expect(rail.getByText('ყავა + ჩაი').first()).toBeVisible();
+    await expect(rail.getByText('საუზმის სეტი')).toHaveCount(0);
+    await expect(
+      page.locator(`#category-${regular.id}`).getByText('საუზმის სეტი').first(),
+    ).toBeVisible();
   });
 });

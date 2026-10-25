@@ -265,10 +265,10 @@ async function renderGuestMenu(args: RenderArgs) {
     categoriesWithProducts.flatMap((c) => c.products)
   );
 
-  // T24.18 — Offers rail above the body. T1.12 follow-up — every available combo
-  // (kind COMBO) from any category, plus legacy Offers products.
+  // T24.18 — the Offers rail above the menu body. T2.7 — system Offers products
+  // (from COMBO promotions) only; Content combos stay in their own category.
   const offersRailProducts = selectOffersRailProducts(categoriesWithProducts);
-  // "See all" jumps to the legacy Offers section when one still exists.
+  // "See all" jumps to the Offers section.
   const offersCategoryId = categoriesWithProducts.find((c) => c.isSystemOffers)?.id;
 
   const currencySymbol = menu.currencySymbol || '₾';
