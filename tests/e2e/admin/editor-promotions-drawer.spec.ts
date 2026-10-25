@@ -249,6 +249,16 @@ test.describe('promotion drawer (T15.8)', () => {
     await expect(page.getByTestId('promotion-type-banner')).toBeVisible();
     await page.getByTestId('promotion-type-combo').click();
     await expect(page.getByTestId('promotion-drawer-combo')).toBeVisible();
+
+    // T2.2 — live summary under the dish picker.
+    const summary = page.getByTestId('combo-summary');
+    await expect(summary).toHaveText('0 dishes · Total 0.00 ₾');
+    const combo = page.getByTestId('promotion-drawer-combo');
+    await combo.locator('label', { hasText: 'ხაჭაპური აჭარული' }).first().click();
+    await combo.locator('label', { hasText: 'ბადრიჯანი ნიგვზით' }).first().click();
+    await expect(summary).toHaveText('2 dishes · Total 32.50 ₾');
+    await page.getByTestId('promotion-combo-price-input').fill('26');
+    await expect(summary).toHaveText('2 dishes · Total 32.50 ₾ · Saves 6.50 ₾ / 20%');
   });
 
   test('functional: the Lunch combo suggestion opens the drawer with COMBO preselected', async ({

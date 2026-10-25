@@ -2033,6 +2033,11 @@
       "90d": "ბოლო 90 დღე"
     }
   },
+  "comboSummary": {
+    "count": "{count} კერძი",
+    "total": "ჯამი {total} ₾",
+    "saving": "დაზოგავს {saving} ₾ / {percent}%"
+  },
   "upgrade": {
     "recommended": "რეკომენდებული",
     "upgradeNow": "განაახლეთ ახლა",

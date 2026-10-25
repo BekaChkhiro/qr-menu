@@ -105,6 +105,14 @@ test.describe('product drawer — combo product (T1.9)', () => {
     await pickDish(page, 'ბადრიჯანი ნიგვზით');
     await expect(page.getByTestId('product-combo-min-error')).toHaveCount(0);
 
+    // T2.2 — live summary: 18.00 + 14.50 = 32.50; the combo's 21.00 saves 11.50 (35%).
+    await expect(page.getByTestId('combo-summary')).toHaveText(
+      '2 dishes · Total 32.50 ₾ · Saves 11.50 ₾ / 35%'
+    );
+    await page.getByTestId('product-basics-price-input').fill('');
+    await expect(page.getByTestId('combo-summary')).toHaveText('2 dishes · Total 32.50 ₾');
+    await page.getByTestId('product-basics-price-input').fill('21.00');
+
     const responsePromise = page.waitForResponse(
       (res) =>
         res.url().includes(`/api/menus/${menu.id}/products`) && res.request().method() === 'POST'

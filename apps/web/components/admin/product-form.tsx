@@ -505,6 +505,7 @@ export function ProductForm({
               excludeId={product?.id}
               emptyText={t('comboEmpty')}
               testIdPrefix="product-combo-component"
+              comboPrice={price}
             />
             <p className="mt-1.5 text-[12px] text-text-muted">{t('comboItemsHint')}</p>
             {errors.comboItems && (

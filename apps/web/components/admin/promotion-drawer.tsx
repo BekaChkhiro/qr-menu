@@ -768,6 +768,7 @@ export function PromotionDrawer({
                           onChange={field.onChange}
                           emptyText={t('fields.comboProductsHint')}
                           testIdPrefix="promotion-combo-product"
+                          comboPrice={comboPriceWatch}
                         />
                       )}
                     />

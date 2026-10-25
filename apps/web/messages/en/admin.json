@@ -2033,6 +2033,11 @@
       "90d": "Last 90 days"
     }
   },
+  "comboSummary": {
+    "count": "{count, plural, one {# dish} other {# dishes}}",
+    "total": "Total {total} ₾",
+    "saving": "Saves {saving} ₾ / {percent}%"
+  },
   "upgrade": {
     "recommended": "Recommended",
     "upgradeNow": "Upgrade Now",

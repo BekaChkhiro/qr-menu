@@ -2033,6 +2033,11 @@
       "90d": "Последние 90 дней"
     }
   },
+  "comboSummary": {
+    "count": "{count, plural, one {# блюдо} few {# блюда} many {# блюд} other {# блюда}}",
+    "total": "Сумма {total} ₾",
+    "saving": "Экономия {saving} ₾ / {percent}%"
+  },
   "upgrade": {
     "recommended": "Рекомендуется",
     "upgradeNow": "Обновить сейчас",
