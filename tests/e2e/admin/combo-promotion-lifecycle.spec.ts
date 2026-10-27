@@ -73,8 +73,10 @@ test.describe('COMBO promotion lifecycle (T2.6)', () => {
     await expect(page.getByTestId(`editor-promotions-card-${created.id}-title`)).toHaveText(
       'სადილის კომბო',
     );
-    // Permanent (no dates) → the calendar's always-on strip.
-    await expect(page.getByTestId(`promotion-calendar-permanent-${created.id}`)).toBeVisible();
+    // Permanent (no dates) → drawn in the calendar grid as a permanent bar (T2.8).
+    const calendarBar = page.getByTestId(`promotion-calendar-bar-${created.id}`).first();
+    await expect(calendarBar).toBeVisible();
+    await expect(calendarBar).toHaveAttribute('data-permanent', 'true');
 
     const generated = await prismaTest.product.findUniqueOrThrow({
       where: { id: created.comboProductId! },
