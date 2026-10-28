@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { cacheGetOrSet, CACHE_KEYS, CACHE_TTL } from '@/lib/cache/redis';
 import { isWithinWindows, isWithinDateRange } from '@/lib/promotions/time-windows';
 import type { WorkingHoursDay } from '@/lib/menu/working-hours';
+import { summarizeCombo } from '@/lib/promotions/combo-summary';
 
 // Shared select shape for menu fetch queries — kept identical between the
 // public page (`/m/[slug]`) and the table-mode page (`/m/[slug]/t/[code]`).
@@ -104,7 +105,8 @@ export const publicMenuSelect = {
             select: {
               quantity: true,
               component: {
-                select: { nameKa: true, nameEn: true, nameRu: true },
+                // T3.1 — prices feed the combo's struck "dishes on their own" total.
+                select: { nameKa: true, nameEn: true, nameRu: true, price: true, oldPrice: true },
               },
             },
           },
@@ -306,7 +308,14 @@ export interface SerializedPublicProduct {
   kind?: 'STANDARD' | 'COMBO';
   comboItems?: Array<{
     quantity: number;
-    component: { nameKa: string; nameEn: string | null; nameRu: string | null };
+    // T3.1 — price/oldPrice are optional: menus cached before the change lack them.
+    component: {
+      nameKa: string;
+      nameEn: string | null;
+      nameRu: string | null;
+      price?: number | string | null;
+      oldPrice?: number | string | null;
+    };
   }>;
   isVegan: boolean;
   isVegetarian: boolean;
@@ -496,6 +505,9 @@ export function applyPromotionPricing(
     if (applicable.length === 0) continue;
 
     for (const product of category.products) {
+      // T3.1 — a combo's price is already a deal; menu/category promotions
+      // never discount it again (applyComboPricing strikes the dish total).
+      if (product.kind === 'COMBO') continue;
       // Dish-level manual discount wins — never override an existing oldPrice.
       if (product.oldPrice != null && Number(product.oldPrice) > 0) continue;
 
@@ -515,5 +527,40 @@ export function applyPromotionPricing(
     }
   }
 
+  return menu;
+}
+
+// T3.1 — a combo's struck "old price" is what its dishes cost on their own:
+// the sum of each component's regular price (its manual-discount oldPrice when
+// set, otherwise its price) × quantity, shown only when it beats the combo
+// price. A combo with its own manual oldPrice keeps it. Menus cached before
+// component prices were selected simply get no strikethrough.
+function regularPrice(component: {
+  price?: number | string | null;
+  oldPrice?: number | string | null;
+}): number | null {
+  const list = component.oldPrice == null ? NaN : Number(component.oldPrice);
+  if (Number.isFinite(list) && list > 0) return list;
+  const price = component.price == null ? NaN : Number(component.price);
+  return Number.isFinite(price) && price > 0 ? price : null;
+}
+
+export function applyComboPricing(menu: SerializedPublicMenu): SerializedPublicMenu {
+  for (const category of menu.categories) {
+    for (const product of category.products) {
+      if (product.kind !== 'COMBO' || !product.comboItems?.length) continue;
+      if (product.oldPrice != null && Number(product.oldPrice) > 0) continue;
+
+      const prices = product.comboItems.map((item) => regularPrice(item.component));
+      if (prices.some((price) => price == null)) continue;
+      const items = product.comboItems.map((item, i) => ({
+        price: prices[i]!,
+        quantity: item.quantity,
+      }));
+
+      const { total, saving } = summarizeCombo(items, product.price);
+      if (saving != null && saving > 0) product.oldPrice = total;
+    }
+  }
   return menu;
 }

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import {
   getPublicMenu,
   pickLocalizedMenuName,
+  applyComboPricing,
   applyPromotionPricing,
   applyDishDiscountWindows,
   filterComboProducts,
@@ -172,9 +173,11 @@ async function renderGuestMenu(args: RenderArgs) {
   // Strip server-only fields.
   const { passwordHash: _omitPasswordHash, ...rawMenuPublic } = rawMenu;
   void _omitPasswordHash;
-  const menu = applyPromotionPricing(
-    applyDishDiscountWindows(
-      filterComboProducts(JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu),
+  const menu = applyComboPricing(
+    applyPromotionPricing(
+      applyDishDiscountWindows(
+        filterComboProducts(JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu),
+      ),
     ),
   );
 

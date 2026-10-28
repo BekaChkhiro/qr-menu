@@ -91,7 +91,7 @@ describe('combo item labels for the public card (T1.9)', () => {
     expect(comboItemLabels(items, 'en')[1]).toBe('2 × ლიმონათი');
   });
 
-  it('is public through the menu query, with names and quantity', () => {
+  it('is public through the menu query, with names, prices and quantity', () => {
     const products = publicMenuSelect.categories.select.products.select;
     expect(products.kind).toBe(true);
     expect(products.comboItems.select.quantity).toBe(true);
@@ -99,6 +99,8 @@ describe('combo item labels for the public card (T1.9)', () => {
       nameKa: true,
       nameEn: true,
       nameRu: true,
+      price: true,
+      oldPrice: true,
     });
   });
 });

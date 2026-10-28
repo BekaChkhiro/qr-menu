@@ -7,6 +7,7 @@ import {
   getPublicMenu,
   getPreviewMenu,
   pickLocalizedMenuName,
+  applyComboPricing,
   applyPromotionPricing,
   applyDishDiscountWindows,
   filterComboProducts,
@@ -130,9 +131,11 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
   // Strip server-only fields before serialising for the client tree.
   const { passwordHash: _omitPasswordHash, ...rawMenuPublic } = rawMenu;
   void _omitPasswordHash;
-  const menu = applyPromotionPricing(
-    applyDishDiscountWindows(
-      filterComboProducts(JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu),
+  const menu = applyComboPricing(
+    applyPromotionPricing(
+      applyDishDiscountWindows(
+        filterComboProducts(JSON.parse(JSON.stringify(rawMenuPublic)) as SerializedPublicMenu),
+      ),
     ),
   );
   // `?locale=` query param takes precedence over the cookie so the admin preview
