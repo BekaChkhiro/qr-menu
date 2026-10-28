@@ -189,7 +189,12 @@ describe('Category API', () => {
     it('sorts a new category past the regular ones and re-pins Offers last', async () => {
       const newCategory = createMockCategory({ menuId: menu.id });
 
-      mockPrisma.menu.findUnique.mockResolvedValue({ userId: user.id, slug: 'test' });
+      // T3.2 — BOTTOM places Offers past the last regular category.
+      mockPrisma.menu.findUnique.mockResolvedValue({
+        userId: user.id,
+        slug: 'test',
+        offersRailPosition: 'BOTTOM',
+      });
       mockPrisma.user.findUnique.mockResolvedValue({ plan: 'PRO' });
       // Two regular categories — Offers itself is excluded from the count.
       mockPrisma.category.count.mockResolvedValue(2);
@@ -376,7 +381,12 @@ describe('Category API', () => {
       const regular = { id: 'cregular0000001', sortOrder: 0, isSystemOffers: false };
       const offers = { id: 'coffers00000001', sortOrder: 1, isSystemOffers: true };
       const rows = [regular, offers];
-      mockPrisma.menu.findUnique.mockResolvedValue({ userId: user.id, slug: menu.slug });
+      // T3.2 — BOTTOM places Offers past the last regular category.
+      mockPrisma.menu.findUnique.mockResolvedValue({
+        userId: user.id,
+        slug: menu.slug,
+        offersRailPosition: 'BOTTOM',
+      });
       mockPrisma.category.findMany
         .mockResolvedValueOnce(rows.map(({ id }) => ({ id })))
         .mockImplementationOnce(async () => [...rows].sort((a, b) => a.sortOrder - b.sortOrder));

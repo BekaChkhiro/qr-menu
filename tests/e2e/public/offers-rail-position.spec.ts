@@ -1,5 +1,8 @@
-// T1.12 — the Offers rail on /m/[slug]: ON + TOP (today's layout), ON + BOTTOM
-// (rail after the menu body) and OFF (no rail; Offers listed as a normal category).
+// T1.12 / T3.2 (client #2) — the Offers rail on /m/[slug] always sits above the
+// menu body when ON and is absent when OFF. Menu.offersRailPosition places the
+// Offers CATEGORY in the body: TOP = first section, BOTTOM = last — rail ON or OFF.
+// The seed stores Offers between two regular categories (a stale sortOrder), so
+// first/last can only come from the setting.
 //
 // Run:     pnpm test:e2e tests/e2e/public/offers-rail-position.spec.ts
 // Update:  pnpm test:e2e:update tests/e2e/public/offers-rail-position.spec.ts
@@ -14,7 +17,7 @@ import bcrypt from 'bcryptjs';
 
 import { prismaTest } from '../fixtures/seed';
 
-const RUN_ID = `t112-${Date.now()}`;
+const RUN_ID = `t32-${Date.now()}`;
 const cleanupUserIds: string[] = [];
 
 async function seedMenuWithOffers(
@@ -52,6 +55,13 @@ async function seedMenuWithOffers(
     data: { categoryId: regular.id, nameKa: 'ყავა', price: 5, sortOrder: 0 },
   });
 
+  const desserts = await prismaTest.category.create({
+    data: { menuId: menu.id, nameKa: 'დესერტები', type: 'FOOD', sortOrder: 2 },
+  });
+  await prismaTest.product.create({
+    data: { categoryId: desserts.id, nameKa: 'ჩურჩხელა', price: 4, sortOrder: 0 },
+  });
+
   const offers = await prismaTest.category.create({
     data: {
       menuId: menu.id,
@@ -78,7 +88,7 @@ async function seedMenuWithOffers(
     },
   });
 
-  return { menu, offers, regular, dish };
+  return { menu, offers, regular, desserts, dish };
 }
 
 async function openMenu(page: Page, slug: string) {
@@ -87,14 +97,19 @@ async function openMenu(page: Page, slug: string) {
   await expect(page.locator('[id^="category-"]').first()).toBeVisible();
 }
 
-// Vertical position of the rail relative to the Offers category's own body
-// section (the rail, when present, sits above or below the whole body).
-async function railOrder(page: Page, categoryId: string) {
-  const rail = page.getByTestId('offers-carousel');
-  const body = page.locator(`#category-${categoryId}`);
-  const railBox = await rail.boundingBox();
-  const bodyBox = await body.boundingBox();
-  return { railAboveBody: !!railBox && !!bodyBox && railBox.y < bodyBox.y };
+// The rail is above the whole body when it sits above its first section.
+async function railAboveBody(page: Page) {
+  const railBox = await page.getByTestId('offers-carousel').boundingBox();
+  const bodyBox = await page.locator('[id^="category-"]').first().boundingBox();
+  return !!railBox && !!bodyBox && railBox.y < bodyBox.y;
+}
+
+// Body section ids, top to bottom, limited to the seeded categories.
+async function sectionOrder(page: Page, ids: string[]) {
+  const domIds = await page
+    .locator('[id^="category-"]')
+    .evaluateAll((els) => els.map((el) => el.id.replace(/^category-/, '')));
+  return domIds.filter((id) => ids.includes(id));
 }
 
 test.afterAll(async () => {
@@ -103,37 +118,52 @@ test.afterAll(async () => {
   }
 });
 
-test.describe('Offers rail position (T1.12)', () => {
-  test('ON + TOP: rail above the menu body', async ({ page }) => {
-    const { menu, offers } = await seedMenuWithOffers('top', {
+test.describe('Offers rail and Offers category position (T3.2)', () => {
+  test('ON + TOP: rail above the body, Offers section first', async ({ page }) => {
+    const { menu, offers, regular, desserts } = await seedMenuWithOffers('top', {
       offersRailEnabled: true,
       offersRailPosition: 'TOP',
     });
     await openMenu(page, menu.slug);
     await expect(page.getByTestId('offers-carousel')).toBeVisible();
-    expect((await railOrder(page, offers.id)).railAboveBody).toBe(true);
+    expect(await railAboveBody(page)).toBe(true);
+    expect(await sectionOrder(page, [offers.id, regular.id, desserts.id])).toEqual([
+      offers.id,
+      regular.id,
+      desserts.id,
+    ]);
     await expect(page).toHaveScreenshot('offers-rail-on-top.png', { fullPage: true });
   });
 
-  test('ON + BOTTOM: rail after the menu body', async ({ page }) => {
-    const { menu, offers } = await seedMenuWithOffers('bottom', {
+  test('ON + BOTTOM: rail still above the body, Offers section last', async ({ page }) => {
+    const { menu, offers, regular, desserts } = await seedMenuWithOffers('bottom', {
       offersRailEnabled: true,
       offersRailPosition: 'BOTTOM',
     });
     await openMenu(page, menu.slug);
     await expect(page.getByTestId('offers-carousel')).toBeVisible();
-    expect((await railOrder(page, offers.id)).railAboveBody).toBe(false);
+    expect(await railAboveBody(page)).toBe(true);
+    expect(await sectionOrder(page, [offers.id, regular.id, desserts.id])).toEqual([
+      regular.id,
+      desserts.id,
+      offers.id,
+    ]);
     await expect(page).toHaveScreenshot('offers-rail-on-bottom.png', { fullPage: true });
   });
 
-  test('OFF: no rail; Offers listed in the body as a normal category', async ({ page }) => {
-    const { menu, offers } = await seedMenuWithOffers('off', {
+  test('OFF + BOTTOM: no rail, Offers section last', async ({ page }) => {
+    const { menu, offers, regular, desserts } = await seedMenuWithOffers('off', {
       offersRailEnabled: false,
-      offersRailPosition: 'TOP',
+      offersRailPosition: 'BOTTOM',
     });
     await openMenu(page, menu.slug);
     await expect(page.getByTestId('offers-carousel')).toHaveCount(0);
     await expect(page.locator(`#category-${offers.id}`)).toBeVisible();
+    expect(await sectionOrder(page, [offers.id, regular.id, desserts.id])).toEqual([
+      regular.id,
+      desserts.id,
+      offers.id,
+    ]);
     await expect(page).toHaveScreenshot('offers-rail-off.png', { fullPage: true });
   });
 

@@ -12,7 +12,7 @@ import { canCreateCategory } from '@/lib/auth/permissions';
 import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 import { logActivity } from '@/lib/activity/log';
-import { pushOffersCategoryLast } from '@/lib/promotions/combo';
+import { placeOffersCategory } from '@/lib/promotions/combo';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -175,8 +175,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    // T24.8 — keep the auto-managed Offers category pinned to the very end.
-    await pushOffersCategoryLast(menuId);
+    // T24.8 / T3.2 — keep the auto-managed Offers category at its set edge.
+    await placeOffersCategory(menuId);
 
     // Invalidate cache
     await invalidateMenuCache(menuId, menu.slug);

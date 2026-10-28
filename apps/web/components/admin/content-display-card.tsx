@@ -58,8 +58,8 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
   const [featuredEnabled, setFeaturedEnabled] = useState<boolean>(
     menu.featuredEnabled ?? true,
   );
-  // T1.12 / T2.5 — Offers rail: on/off and above/below the menu body.
-  // Legacy menus (no stored value) read as ON / TOP.
+  // T1.12 / T2.5 — Offers rail on/off. T3.2 — the position is the Offers
+  // category's place in the body (first / last). Legacy menus read as ON / TOP.
   const [offersRailEnabled, setOffersRailEnabled] = useState<boolean>(
     menu.offersRailEnabled ?? true,
   );
@@ -260,35 +260,40 @@ export function ContentDisplayCard({ menu }: ContentDisplayCardProps) {
             onCheckedChange={handleFeaturedChange}
           />
 
-          {/* Offers rail switch + position (T2.5, moved from Settings) */}
-          <div className="flex flex-col gap-2">
-            <SwitchRow
-              testId="content-offers-rail-switch"
-              label={t('offersRail.label')}
-              description={t('offersRail.description')}
-              checked={offersRailEnabled}
-              onCheckedChange={handleOffersRailChange}
-            />
-            {offersRailEnabled && (
-              <div className="flex items-center justify-between gap-3 px-3">
-                <span className="text-[11.5px] text-text-muted">
-                  {t('offersRail.position.label')}
-                </span>
-                <Segmented
-                  data-testid="content-offers-rail-position"
-                  value={offersRailPosition}
-                  onValueChange={handleOffersRailPositionChange}
-                  ariaLabel={t('offersRail.position.label')}
-                >
-                  <SegmentedItem value="TOP" data-value="TOP">
-                    {t('offersRail.position.top')}
-                  </SegmentedItem>
-                  <SegmentedItem value="BOTTOM" data-value="BOTTOM">
-                    {t('offersRail.position.bottom')}
-                  </SegmentedItem>
-                </Segmented>
+          {/* Offers rail switch (T2.5, moved from Settings). T3.2 — the rail
+              always sits on top; this only turns it on or off. */}
+          <SwitchRow
+            testId="content-offers-rail-switch"
+            label={t('offersRail.label')}
+            description={t('offersRail.description')}
+            checked={offersRailEnabled}
+            onCheckedChange={handleOffersRailChange}
+          />
+
+          {/* T3.2 — where the Offers category sits in the menu body; shown
+              whether or not the rail is on. */}
+          <div className="flex items-center justify-between gap-3 rounded-[8px] border border-border bg-card-soft px-3 py-[10px]">
+            <div className="min-w-0">
+              <div className="text-[12px] font-semibold text-text-default">
+                {t('offersRail.category.label')}
               </div>
-            )}
+              <div className="text-[10.5px] text-text-muted">
+                {t('offersRail.category.description')}
+              </div>
+            </div>
+            <Segmented
+              data-testid="content-offers-rail-position"
+              value={offersRailPosition}
+              onValueChange={handleOffersRailPositionChange}
+              ariaLabel={t('offersRail.category.label')}
+            >
+              <SegmentedItem value="TOP" data-value="TOP">
+                {t('offersRail.category.top')}
+              </SegmentedItem>
+              <SegmentedItem value="BOTTOM" data-value="BOTTOM">
+                {t('offersRail.category.bottom')}
+              </SegmentedItem>
+            </Segmented>
           </div>
         </div>
       </div>

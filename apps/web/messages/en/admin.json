@@ -947,9 +947,10 @@
         },
         "offersRail": {
           "label": "Offers row",
-          "description": "Shows the combo offers from Promotions as a separate row. When off, Offers is listed as a normal category in the menu.",
-          "position": {
-            "label": "Row position",
+          "description": "Shows the combo offers from Promotions as a separate row at the top of the menu. When off, no row is shown.",
+          "category": {
+            "label": "Offers category",
+            "description": "Where the Offers category sits in the menu — first or last.",
             "top": "Top",
             "bottom": "Bottom"
           }

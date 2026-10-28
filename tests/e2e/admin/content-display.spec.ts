@@ -254,9 +254,9 @@ test.describe('content tab · display sub-card (T20.3)', () => {
     expect(row?.showNutrition).toBe(true);
   });
 
-  // ── Functional: Offers rail switch + position (T2.5) ─────────────────────
+  // ── Functional: Offers rail switch + Offers category position (T2.5 / T3.2)
 
-  test('functional: offers rail switch and position persist from the display card', async ({
+  test('functional: offers rail switch and category position persist from the display card', async ({
     page,
   }) => {
     await prismaTest.menu.update({
@@ -274,7 +274,7 @@ test.describe('content tab · display sub-card (T20.3)', () => {
     const isPut = (r: { url(): string; request(): { method(): string }; ok(): boolean }) =>
       r.url().includes(`/api/menus/${menuId}`) && r.request().method() === 'PUT' && r.ok();
 
-    // Off → persisted, position control hidden after reload.
+    // Off → persisted; the category position control stays (it is independent).
     let put = page.waitForResponse(isPut);
     await switchEl.click();
     await put;
@@ -286,12 +286,9 @@ test.describe('content tab · display sub-card (T20.3)', () => {
       'aria-checked',
       'false',
     );
-    await expect(page.getByTestId('content-offers-rail-position')).toHaveCount(0);
+    await expect(page.getByTestId('content-offers-rail-position')).toBeVisible();
 
-    // On again → choose BOTTOM.
-    put = page.waitForResponse(isPut);
-    await page.getByTestId('content-offers-rail-switch').click();
-    await put;
+    // With the rail still off → choose BOTTOM.
     put = page.waitForResponse(isPut);
     await page.getByTestId('content-offers-rail-position').locator('[data-value="BOTTOM"]').click();
     await put;
@@ -303,6 +300,6 @@ test.describe('content tab · display sub-card (T20.3)', () => {
       where: { id: menuId },
       select: { offersRailEnabled: true, offersRailPosition: true },
     });
-    expect(row).toEqual({ offersRailEnabled: true, offersRailPosition: 'BOTTOM' });
+    expect(row).toEqual({ offersRailEnabled: false, offersRailPosition: 'BOTTOM' });
   });
 });

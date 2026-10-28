@@ -14,6 +14,7 @@ import { invalidateMenuCache } from '@/lib/cache/redis';
 import { triggerMenuEvent, EVENTS } from '@/lib/pusher/server';
 import { sanitizeMenuResponse } from '@/lib/menu-visibility';
 import { notExpiredWhere } from '@/lib/promotions/time-windows';
+import { placeOffersCategory } from '@/lib/promotions/combo';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -113,6 +114,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         slug: true,
         passwordHash: true,
         status: true,
+        offersRailPosition: true,
         user: { select: { plan: true } },
       },
     });
@@ -230,6 +232,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         },
       },
     });
+
+    // T3.2 — the position setting moves the system Offers category in the body.
+    if (data.offersRailPosition && data.offersRailPosition !== existingMenu.offersRailPosition) {
+      await placeOffersCategory(id);
+    }
 
     // Invalidate cache for the old slug (if changed) and new slug
     if (data.slug && data.slug !== existingMenu.slug) {

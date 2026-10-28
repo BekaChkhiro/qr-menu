@@ -20,7 +20,11 @@ import { MenuBody } from '@/components/public/menu-body';
 import { PromotionCarousel } from '@/components/public/promotion-carousel';
 import { FeaturedCarousel } from '@/components/public/featured-carousel';
 import { OffersCarousel } from '@/components/public/offers-carousel';
-import { resolveOffersRail, selectOffersRailProducts } from '@/lib/menu/offers-rail';
+import {
+  orderCategoriesForBody,
+  resolveOffersRail,
+  selectOffersRailProducts,
+} from '@/lib/menu/offers-rail';
 import { MenuFooter } from '@/components/public/menu-footer';
 import { GoogleReviewCard } from '@/components/public/google-review-card';
 import { footerWorkingHours } from '@/lib/menu/working-hours';
@@ -237,7 +241,11 @@ async function renderGuestMenu(args: RenderArgs) {
     joinedAt: g.joinedAt.toISOString(),
   }));
 
-  const categoriesWithProducts = menu.categories.filter((c) => c.products.length > 0);
+  // T3.2 — Menu.offersRailPosition puts the Offers category first or last.
+  const categoriesWithProducts = orderCategoriesForBody(
+    menu.categories.filter((c) => c.products.length > 0),
+    menu.offersRailPosition,
+  );
 
   const trayProducts: TrayProductInfo[] = categoriesWithProducts.flatMap((c) =>
     c.products.map((p) => ({
@@ -286,8 +294,8 @@ async function renderGuestMenu(args: RenderArgs) {
     productTouchEffect: menu.productTouchEffect || 'SCALE',
   };
 
-  // T1.12 — the rail is opt-out and TOP (above the body) by default; BOTTOM
-  // renders it after the body. OFF leaves Offers in the body as a normal category.
+  // T1.12 — the rail is opt-out. T3.2 — it always renders above the body; the
+  // position setting moves the Offers category instead (see above).
   const offersRailLayout = resolveOffersRail(menu);
   const offersRail =
     offersRailLayout.enabled && offersRailProducts.length > 0 ? (
@@ -364,7 +372,7 @@ async function renderGuestMenu(args: RenderArgs) {
 
         {hasPromotions && <PromotionCarousel promotions={activePromotions} locale={args.locale} />}
 
-        {offersRailLayout.onTop && offersRail}
+        {offersRail}
 
         {/* T24.19 — opt-out per menu; legacy menus default to shown. */}
         {menu.featuredEnabled !== false && featuredProducts.length > 0 && (
@@ -401,8 +409,6 @@ async function renderGuestMenu(args: RenderArgs) {
             </div>
           </main>
         )}
-
-        {!offersRailLayout.onTop && offersRail}
 
         <GoogleReviewCard url={menu.googleReviewUrl} locale={args.locale} />
 

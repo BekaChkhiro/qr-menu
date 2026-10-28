@@ -17,20 +17,20 @@ import { prisma } from '@/lib/db';
 //   generated combo product, if one exists.
 
 /**
- * T24.8 — the Offers category is never hand-ordered: it always sits at the very
- * end of the menu. Creating a normal category after it used to leave Offers
- * stranded in the middle, so every path that can disturb the order calls this
- * to snap Offers back past the last regular category.
+ * T24.8 — the Offers category is never hand-ordered. Creating or reordering a
+ * normal category used to leave Offers stranded in the middle, so every path
+ * that can disturb the order calls this to snap Offers back into place.
  *
- * T1.12 — with the Offers rail switched OFF the category is an ordinary one:
- * the owner's sortOrder stands, so this leaves it where it was placed.
+ * T3.2 (client #2) — the place is Menu.offersRailPosition: TOP puts Offers
+ * before the first regular category, BOTTOM past the last one. It applies with
+ * the Offers rail switched OFF too (supersedes the T1.12 OFF rule).
  */
-export async function pushOffersCategoryLast(menuId: string): Promise<void> {
+export async function placeOffersCategory(menuId: string): Promise<void> {
   const menu = await prisma.menu.findUnique({
     where: { id: menuId },
-    select: { offersRailEnabled: true },
+    select: { offersRailPosition: true },
   });
-  if (menu?.offersRailEnabled === false) return;
+  if (!menu) return;
 
   const offers = await prisma.category.findFirst({
     where: { menuId, isSystemOffers: true },
@@ -38,13 +38,14 @@ export async function pushOffersCategoryLast(menuId: string): Promise<void> {
   });
   if (!offers) return;
 
-  const lastRegular = await prisma.category.findFirst({
+  const onTop = menu.offersRailPosition !== 'BOTTOM';
+  const edgeRegular = await prisma.category.findFirst({
     where: { menuId, isSystemOffers: false },
-    orderBy: { sortOrder: 'desc' },
+    orderBy: { sortOrder: onTop ? 'asc' : 'desc' },
     select: { sortOrder: true },
   });
 
-  const target = (lastRegular?.sortOrder ?? -1) + 1;
+  const target = onTop ? (edgeRegular?.sortOrder ?? 1) - 1 : (edgeRegular?.sortOrder ?? -1) + 1;
   if (offers.sortOrder === target) return;
 
   await prisma.category.update({
@@ -59,12 +60,13 @@ async function getOrCreateOffersCategory(menuId: string): Promise<string> {
     select: { id: true },
   });
   if (existing) {
-    await pushOffersCategoryLast(menuId);
+    await placeOffersCategory(menuId);
     return existing.id;
   }
 
   // Sort past the last *regular* category — the Offers row itself must never
   // be part of that measurement, or it drifts one slot further on every sync.
+  // placeOffersCategory then moves it to the top when the menu asks for that.
   const last = await prisma.category.findFirst({
     where: { menuId, isSystemOffers: false },
     orderBy: { sortOrder: 'desc' },
@@ -83,6 +85,7 @@ async function getOrCreateOffersCategory(menuId: string): Promise<string> {
     },
     select: { id: true },
   });
+  await placeOffersCategory(menuId);
   return created.id;
 }
 

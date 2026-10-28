@@ -22,7 +22,11 @@ import { PromotionCarousel } from '@/components/public/promotion-carousel';
 import { PromotionPopup } from '@/components/public/promotion-popup';
 import { FeaturedCarousel } from '@/components/public/featured-carousel';
 import { OffersCarousel } from '@/components/public/offers-carousel';
-import { resolveOffersRail, selectOffersRailProducts } from '@/lib/menu/offers-rail';
+import {
+  orderCategoriesForBody,
+  resolveOffersRail,
+  selectOffersRailProducts,
+} from '@/lib/menu/offers-rail';
 import { MenuFooter } from '@/components/public/menu-footer';
 import { GoogleReviewCard } from '@/components/public/google-review-card';
 import { footerWorkingHours } from '@/lib/menu/working-hours';
@@ -145,7 +149,11 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
       ? localeParam
       : (getLocaleFromCookie(cookieStore.get(LOCALE_COOKIE_NAME)?.value) as Locale);
 
-  const categoriesWithProducts = menu.categories.filter((c) => c.products.length > 0);
+  // T3.2 — Menu.offersRailPosition puts the Offers category first or last.
+  const categoriesWithProducts = orderCategoriesForBody(
+    menu.categories.filter((c) => c.products.length > 0),
+    menu.offersRailPosition,
+  );
   // T22.21 — only promotions inside their café-local day/hour window are shown.
   const activePromotions = livePromotions(menu);
   const hasPromotions = activePromotions.length > 0;
@@ -175,8 +183,8 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
     productTouchEffect: menu.productTouchEffect || 'SCALE',
   };
 
-  // T1.12 — the rail is opt-out and TOP (above the body) by default; BOTTOM
-  // renders it after the body. OFF leaves Offers in the body as a normal category.
+  // T1.12 — the rail is opt-out. T3.2 — it always renders above the body; the
+  // position setting moves the Offers category instead (see above).
   const offersRailLayout = resolveOffersRail(menu);
   const offersRail =
     offersRailLayout.enabled && offersRailProducts.length > 0 ? (
@@ -245,7 +253,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         <PromotionPopup menuId={menu.id} promotions={activePromotions} locale={locale} />
       )}
 
-      {offersRailLayout.onTop && offersRail}
+      {offersRail}
 
       {/* T24.19 — opt-out per menu; legacy menus default to shown. */}
       {menu.featuredEnabled !== false && featuredProducts.length > 0 && (
@@ -278,8 +286,6 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
           </div>
         </main>
       )}
-
-      {!offersRailLayout.onTop && offersRail}
 
       <GoogleReviewCard url={menu.googleReviewUrl} locale={locale} />
 

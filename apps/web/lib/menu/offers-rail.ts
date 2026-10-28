@@ -1,6 +1,9 @@
-// T1.12 — how the public menu places the Offers rail (combo promotions).
-// Legacy menus have no stored value yet, so an absent flag reads as ON / TOP:
-// exactly what the public page rendered before the switch existed.
+// T1.12 — the public Offers rail switch. Legacy menus have no stored value
+// yet, so an absent flag reads as ON: what the public page rendered before the
+// switch existed.
+// T3.2 (client #2) — the rail always sits above the body; the TOP/BOTTOM
+// setting no longer moves the rail but the system Offers category in the body
+// (see orderCategoriesForBody), whether the rail is on or off.
 export type OffersRailPosition = 'TOP' | 'BOTTOM';
 
 export interface OffersRailSettings {
@@ -8,11 +11,22 @@ export interface OffersRailSettings {
   offersRailPosition?: OffersRailPosition | null;
 }
 
-export function resolveOffersRail(menu: OffersRailSettings): { enabled: boolean; onTop: boolean } {
-  return {
-    enabled: menu.offersRailEnabled !== false,
-    onTop: menu.offersRailPosition !== 'BOTTOM',
-  };
+export function resolveOffersRail(menu: OffersRailSettings): { enabled: boolean } {
+  return { enabled: menu.offersRailEnabled !== false };
+}
+
+/**
+ * T3.2 — the body order with the system Offers category moved first (TOP, the
+ * column default) or last (BOTTOM). The other categories keep their order, so
+ * rendering never depends on a stale Offers sortOrder.
+ */
+export function orderCategoriesForBody<T extends { isSystemOffers: boolean }>(
+  categories: ReadonlyArray<T>,
+  position: OffersRailPosition | null | undefined,
+): T[] {
+  const offers = categories.filter((category) => category.isSystemOffers);
+  const regular = categories.filter((category) => !category.isSystemOffers);
+  return position === 'BOTTOM' ? [...regular, ...offers] : [...offers, ...regular];
 }
 
 export interface OffersRailCandidate {
