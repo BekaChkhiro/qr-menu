@@ -32,6 +32,7 @@ export function orderCategoriesForBody<T extends { isSystemOffers: boolean }>(
 export interface OffersRailCandidate {
   id: string;
   kind?: 'STANDARD' | 'COMBO';
+  offerRank?: number | null;
 }
 
 export interface OffersRailSourceCategory<T extends OffersRailCandidate> {
@@ -39,12 +40,22 @@ export interface OffersRailSourceCategory<T extends OffersRailCandidate> {
   products: T[];
 }
 
-// T2.7 (client #12c) — the rail lists the system Offers category only: the
-// products COMBO promotions generate, in that category's product order. A
-// kind=COMBO product made in Content stays a normal card in its own category
-// (with its included-dishes line) and is not mirrored here.
+// T2.7 (client #12c) — the rail lists the system Offers category: the products
+// COMBO promotions generate, in that category's product order.
+// T3.3 (client #3) — plus any dish (a Content kind=COMBO one too) the owner
+// picked with Product.offerRank. Picks lead, lowest rank first (ties keep body
+// order); the Offers category's products follow, each product at most once.
 export function selectOffersRailProducts<T extends OffersRailCandidate>(
   categories: ReadonlyArray<OffersRailSourceCategory<T>>,
 ): T[] {
-  return categories.find((category) => category.isSystemOffers)?.products.slice() ?? [];
+  const picked = categories
+    .flatMap((category) => category.products)
+    .filter((product) => product.offerRank != null)
+    // Array.prototype.sort is stable, so equal ranks keep category order.
+    .sort((a, b) => (a.offerRank ?? 0) - (b.offerRank ?? 0));
+  const seen = new Set(picked.map((product) => product.id));
+  const offers = (categories.find((category) => category.isSystemOffers)?.products ?? []).filter(
+    (product) => !seen.has(product.id),
+  );
+  return [...picked, ...offers];
 }

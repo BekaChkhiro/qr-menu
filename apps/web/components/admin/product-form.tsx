@@ -76,12 +76,18 @@ const productFormSchema = z.object({
   // T1.11 — "Recommended" rail pick. The order is only required while the switch is on.
   featured: z.boolean(),
   featuredRank: z.string().optional(),
+  // T3.3 — public Offers rail pick, same UX as the featured pick.
+  offer: z.boolean(),
+  offerRank: z.string().optional(),
   // T1.9 — STANDARD dish or COMBO bundle; comboItems are the included dishes' ids, in order.
   kind: z.enum(['STANDARD', 'COMBO']),
   comboItems: z.array(z.string()),
 }).superRefine((values, ctx) => {
   if (values.featured && !/^\d{1,4}$/.test((values.featuredRank ?? '').trim())) {
     ctx.addIssue({ code: 'custom', path: ['featuredRank'], message: 'featuredRankError' });
+  }
+  if (values.offer && !/^\d{1,4}$/.test((values.offerRank ?? '').trim())) {
+    ctx.addIssue({ code: 'custom', path: ['offerRank'], message: 'featuredRankError' });
   }
   if (values.kind === 'COMBO' && new Set(values.comboItems).size < 2) {
     ctx.addIssue({ code: 'custom', path: ['comboItems'], message: 'comboMinError' });
@@ -191,6 +197,8 @@ export function ProductForm({
       featured: product?.featuredRank != null,
       featuredRank:
         product?.featuredRank != null ? String(product.featuredRank) : '',
+      offer: product?.offerRank != null,
+      offerRank: product?.offerRank != null ? String(product.offerRank) : '',
       kind: product?.kind ?? 'STANDARD',
       comboItems: product?.comboItems?.map((item) => item.componentId) ?? [],
     },
@@ -211,6 +219,7 @@ export function ProductForm({
   const discountWindowsEnabled = discountWindowsValue?.enabled ?? false;
   const isAvailable = watch('isAvailable');
   const featured = watch('featured') || false;
+  const offer = watch('offer') || false;
   const kind = watch('kind');
   const comboItems = watch('comboItems') ?? [];
   const ribbons = watch('ribbons') || [];
@@ -901,6 +910,67 @@ export function ProductForm({
           {errors.featuredRank && (
             <p
               data-testid="product-basics-featured-rank-error"
+              className="mt-1.5 flex items-center gap-1 text-[11.5px] text-danger"
+            >
+              <Info className="h-[11px] w-[11px]" strokeWidth={1.8} aria-hidden="true" />
+              {t('featuredRankError')}
+            </p>
+          )}
+        </div>
+
+        {/* ── 7b. Offers rail pick (T3.3) ───────────────────────────────── */}
+        <div>
+          <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.1px] text-text-default">
+            {t('offerLabel')}
+          </div>
+          <div className="rounded-[10px] border border-border bg-card p-3.5">
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={offer}
+                onCheckedChange={(v) => setValue('offer', v)}
+                data-testid="product-basics-offer-toggle"
+                aria-label={t('offerLabel')}
+              />
+              <div className="flex-1 text-[13px] font-[550] text-text-default">
+                {t('offerHelp')}
+              </div>
+            </div>
+            {offer && (
+              <div className="mt-3 flex items-center gap-3">
+                <div className="flex-1">
+                  <div className="text-[13px] font-[550] text-text-default">
+                    {t('featuredRankLabel')}
+                  </div>
+                  <div className="text-[11.5px] text-text-muted">{t('featuredRankHelp')}</div>
+                </div>
+                <div className="w-24">
+                  <Controller
+                    control={form.control}
+                    name="offerRank"
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        type="number"
+                        inputMode="numeric"
+                        step="1"
+                        min="0"
+                        max="9999"
+                        placeholder="1"
+                        data-testid="product-basics-offer-rank-input"
+                        className={cn(
+                          'tabular-nums',
+                          errors.offerRank && 'border-danger ring-[3px] ring-danger-soft',
+                        )}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          {errors.offerRank && (
+            <p
+              data-testid="product-basics-offer-rank-error"
               className="mt-1.5 flex items-center gap-1 text-[11.5px] text-danger"
             >
               <Info className="h-[11px] w-[11px]" strokeWidth={1.8} aria-hidden="true" />

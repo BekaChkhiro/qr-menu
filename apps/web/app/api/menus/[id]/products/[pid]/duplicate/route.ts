@@ -113,6 +113,8 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
         carbs: source.carbs,
         fiber: source.fiber,
         isAvailable: source.isAvailable,
+        // T3.3 — the copy keeps its Offers rail pick.
+        offerRank: source.offerRank,
         sortOrder: (maxSort._max.sortOrder ?? 0) + 1,
         variations: {
           create: source.variations.map((v) => ({

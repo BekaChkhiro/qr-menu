@@ -135,6 +135,8 @@ const productExtras = {
 
   // T1.11 — manual "Recommended" rail pick; null removes the dish from the rail.
   featuredRank: z.number().int().nonnegative().max(9999).nullable().optional(),
+  // T3.3 — manual pick into the public Offers rail; null removes it.
+  offerRank: z.number().int().nonnegative().max(9999).nullable().optional(),
 
   isVegan: z.boolean().optional(),
   isVegetarian: z.boolean().optional(),

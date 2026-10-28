@@ -947,7 +947,7 @@
         },
         "offersRail": {
           "label": "Offers row",
-          "description": "Shows the combo offers from Promotions as a separate row at the top of the menu. When off, no row is shown.",
+          "description": "Shows the combo offers from Promotions and the dishes marked “Show in Offers” as a separate row at the top of the menu. When off, no row is shown.",
           "category": {
             "label": "Offers category",
             "description": "Where the Offers category sits in the menu — first or last.",
@@ -1449,6 +1449,8 @@
       "featuredRankLabel": "Order",
       "featuredRankHelp": "Lower numbers show first",
       "featuredRankError": "Enter a whole number, 0 or more",
+      "offerLabel": "Show in Offers",
+      "offerHelp": "Show in the Offers rail on the public menu",
       "kindLabel": "Type",
       "kindStandard": "Dish",
       "kindCombo": "Combo / set",

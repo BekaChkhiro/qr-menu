@@ -98,6 +98,7 @@ export const publicMenuSelect = {
           ribbons: true,
           // T1.11 — manual "Recommended" rail pick (null = ribbon fallback).
           featuredRank: true,
+          offerRank: true,
           // T1.9 — COMBO products list the dishes they include.
           kind: true,
           comboItems: {
@@ -303,6 +304,7 @@ export interface SerializedPublicProduct {
   ribbons: string[];
   // T1.11 — manual "Recommended" rail order; null = not picked.
   featuredRank: number | null;
+  offerRank: number | null;
   // T1.9 — COMBO products carry the dishes they include (optional: absent on
   // menus cached before the combo change, treated as STANDARD).
   kind?: 'STANDARD' | 'COMBO';

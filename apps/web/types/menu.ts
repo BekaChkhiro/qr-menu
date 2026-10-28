@@ -207,6 +207,7 @@ export interface Product {
   ribbons: Ribbon[];
   // T1.11 — manual "Recommended" rail order; null = not picked.
   featuredRank?: number | null;
+  offerRank?: number | null;
   // T1.9 — STANDARD dish or COMBO bundle; comboItems lists a combo's dishes.
   kind?: 'STANDARD' | 'COMBO';
   comboItems?: Array<{

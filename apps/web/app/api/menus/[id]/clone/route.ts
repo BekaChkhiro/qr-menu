@@ -217,6 +217,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
               ribbons: product.ribbons,
               // T1.11 — a cloned menu keeps its "Recommended" picks and order.
               featuredRank: product.featuredRank,
+              offerRank: product.offerRank,
               isVegan: product.isVegan,
               isVegetarian: product.isVegetarian,
               calories: product.calories,

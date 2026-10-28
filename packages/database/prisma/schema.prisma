@@ -574,6 +574,11 @@ model Product {
   // ascending (lower shows earlier). Otherwise the ribbon fallback applies.
   featuredRank Int?
 
+  // T3.3 — manual pick into the public Offers (შეთავაზება) rail. null = not
+  // picked; picks lead the rail sorted ascending, then the system Offers
+  // category's products.
+  offerRank    Int?
+
   // T1.9 — STANDARD dish or COMBO bundle (components in comboItems).
   kind         ProductKind        @default(STANDARD)
 

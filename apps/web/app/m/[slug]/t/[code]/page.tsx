@@ -277,9 +277,9 @@ async function renderGuestMenu(args: RenderArgs) {
   );
 
   // T24.18 — the Offers rail above the menu body. T2.7 — system Offers products
-  // (from COMBO promotions) only; Content combos stay in their own category.
+  // (from COMBO promotions); T3.3 — led by dishes picked with offerRank.
   const offersRailProducts = selectOffersRailProducts(categoriesWithProducts);
-  // "See all" jumps to the Offers section.
+  // "See all" jumps to the Offers section (omitted when the menu has none).
   const offersCategoryId = categoriesWithProducts.find((c) => c.isSystemOffers)?.id;
 
   const currencySymbol = menu.currencySymbol || '₾';
